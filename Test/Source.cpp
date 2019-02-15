@@ -2,6 +2,33 @@
 
 class Renderer;
 
+struct Float3
+{
+	union
+	{
+		float x, r;
+	};
+	union
+	{
+		float y, g;
+	};
+	union
+	{
+		float z, b;
+	};
+};
+struct Int2
+{
+	union
+	{
+		int x, u, s;
+	};
+	union
+	{
+		int y, v, t;
+	};
+};
+
 class Texture {
 public:
 	virtual bool LoadFromFile(const char*)							= 0;
@@ -20,10 +47,10 @@ public:
 		@return true if Material was loaded successfully.
 	*/
 	virtual bool LoadFromFile(const char*, std::vector<Texture*>* textureList = nullptr)		= 0;
-	virtual void AddTexture(Texture*);
+	//virtual void AddTexture(Texture*);
 
 private:
-	std::vector<Texture*> textures;
+	//std::vector<Texture*> textures;
 };
 
 class RenderState {
@@ -40,11 +67,23 @@ private:
 
 class Mesh {
 public:
+	struct Polygon {
+		Float3 p[3];
+	};
+
 	/*
+		@param 
 		If called there is not further need to call any initialize function.
 	*/
-	virtual bool LoadFromFile(const char* fileName)					= 0;
-	virtual void InitializeCube()									= 0;
+	virtual bool LoadFromFile(const char* fileName)														= 0;
+	
+	// Multiple meshes can initilize a shape.
+	// It is the programmer's responsibility to only initialize 1 of each mesh shape and use it multiple times instead.
+
+	virtual void InitializeCube()																		= 0;
+	virtual void InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections)	= 0;
+	virtual void InitializePolygonList(const std::vector<Polygon>& polygons)							= 0;
+
 	virtual void SetTechnique(Technique*);
 	virtual const char* GetMaterialName();
 private:
@@ -55,36 +94,22 @@ private:
 
 class Window {
 public:
-	virtual void SetDimensions(unsigned int w, unsigned int h)		= 0;
-	virtual void SetPosition(unsigned int x, unsigned int y)		= 0;
-	virtual void SetTitle(const char* title)						= 0;
-	virtual bool Create()											= 0;
-	virtual void Show()												= 0;
-	virtual void Hide()												= 0;
+	virtual void SetDimensions(Int2 dimensions)	= 0;
+	virtual void SetDimensions(int w, int h)	= 0;
+	virtual void SetPosition(Int2 position)		= 0;
+	virtual void SetPosition(int x, int y)		= 0;
+	virtual void SetTitle(const char* title)	= 0;
+	virtual bool Create()						= 0;
+	virtual void Show()							= 0;
+	virtual void Hide()							= 0;
 
 private:
 	Window();
-	unsigned int width, height;
-	unsigned int posX, posY;
+	Int2 dimensions;
+	Int2 position;
 	//unsigned int handle;
 	const char* title;
 
-};
-
-struct Float3
-{
-	union
-	{
-		float x, r;
-	};
-	union
-	{
-		float y, g;
-	};
-	union
-	{
-		float z, b;
-	};
 };
 
 struct Transform {
@@ -116,7 +141,7 @@ private:
 };
 
 struct SubmissionItem {
-	Mesh * mesh;
+	Blueprint* mesh;
 	Transform transform;
 };
 
@@ -132,13 +157,26 @@ public:
 	virtual Technique*		MakeTechnique(Material*, RenderState*)	= 0;
 
 
-	virtual void			Submit(SubmissionItem item)				= 0; //How will this work with multi-threaded submitions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
+	virtual void			Submit(SubmissionItem item)				= 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
 	virtual void			ClearSubmissions()						= 0; //Should we have this?
 	virtual void			Frame()									= 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			Present()								= 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame()							= 0; //How will this work with multi-threading?
 };
 
+class Blueprint {
+public:
+	Mesh*					mesh;
+	Technique*				technique;
+	std::vector<Texture*>	textures;
+};
+
+struct Object {
+	Blueprint* blueprint;
+	Transform transform;
+
+	static Object* CreateObjectFromBlueprint(Blueprint* bp);
+};
 
 class Buffer;
 
@@ -148,13 +186,17 @@ int main() {
 	//Init Renderer with Window
 	Renderer* renderer = Renderer::MakeRenderer();
 
+
+#pragma region Globals
 	//Globals
+	std::vector<Blueprint*>		blueprints;
 	std::vector<Mesh*>			meshes;
 	std::vector<Material*>		materials;
 	std::vector<Texture*>		textures;
 	std::vector<Technique*>		techniques;
 	std::vector<RenderState*>	renderStates;
 	std::vector<Camera*>		cameras;
+	std::vector<Object>			objects;
 
 
 #pragma region CreateCamera
@@ -166,9 +208,7 @@ int main() {
 	cameras.push_back(cam);
 #pragma endregion
 
-	Float3 fd;
-
-#pragma region CreateUniqueMesh
+#pragma region CreateUniqueBlue
 	//Load meshes and materials from file
 	Mesh* mesh = renderer->MakeMesh();
 	mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
@@ -178,14 +218,6 @@ int main() {
 	Material* mat = renderer->MakeMaterial();
 	mat->LoadFromFile(".mtl");
 	materials.push_back(mat);
-
-	//Create a Texture
-	Texture* tex = renderer->MakeTexture();
-	tex->LoadFromFile(".png");
-	textures.push_back(tex);
-
-	//Add texture to material
-	mat->AddTexture(tex);
 
 	//Create RenderState
 	RenderState* renderState = renderer->MakeRenderState();
@@ -197,14 +229,27 @@ int main() {
 
 	//Attach Technique to mesh
 	mesh->SetTechnique(tech);
+
+	//Create a Texture
+	Texture* tex = renderer->MakeTexture();
+	tex->LoadFromFile(".png");
+	textures.push_back(tex);
+
+	//Create the final blueprint
+	Blueprint* blueprint = new Blueprint;
+	blueprint->technique = tech;
+	blueprint->mesh;
+	blueprint->textures.push_back(tex);
+	blueprints.push_back(blueprint);
+
 #pragma endregion
 
 #pragma region Render
-	//Submit all meshes that should be rendered.
-	for (size_t i = 0; i < meshes.size(); i++)
+	//Submit all meshes that should be rendered and the transformation on the mesh.
+	for (size_t i = 0; i < objects.size(); i++)
 	{
-		//Submit one mesh that should be rendered.
-		renderer->Submit({ meshes[i], {{1,1,1}, {1,1,1}} });
+		//Submit one mesh that should be rendered and the transformation on the mesh.
+		renderer->Submit({ objects[i].blueprint, objects[i].transform });
 	}
 
 	renderer->Frame();	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
