@@ -91,14 +91,28 @@ public:
 	};
 
 	/*
-		@param 
+		Initialize mesh from file. This function will fill all model vertex data into buffers but skip loading the material and textures related to the model. To load the Material and textures 
+		@see Texture
+		and
+		@see Material
+
+
 		If called there is not further need to call any initialize function.
+		@param fileName, name of the file to load.
+
+		@return true if file was loaded successfully
 	*/
 	virtual bool LoadFromFile(const char* fileName)														= 0;
 	
-	// Multiple meshes can initilize a shape.
+	// WARNING: Multiple meshes can initilize the same shape.
 	// It is the programmer's responsibility to only initialize 1 of each mesh shape and use it multiple times instead.
-
+	
+	/*
+		Initialize mesh from with the model of a cube. This function will fill all model vertex data into buffers. To load the Material and textures,
+		@see Texture
+		and
+		@see Material
+	*/
 	virtual void InitializeCube()																		= 0;
 	virtual void InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections)	= 0;
 	virtual void InitializePolygonList(const std::vector<Polygon>& polygons)							= 0;
@@ -117,11 +131,11 @@ public:
 	virtual void SetDimensions(int w, int h)	= 0;
 	virtual void SetPosition(Int2 position)		= 0;
 	virtual void SetPosition(int x, int y)		= 0;
-	virtual void SetTitle(const char* title)	= 0;
-	virtual bool Create()						= 0;
-	virtual void Show()							= 0;
-	virtual void Hide()							= 0;
-	virtual void HandleWindowEvents()			= 0;
+	virtual void SetTitle(const char* title)	= 0; /*Change the title of the window*/
+	virtual bool Create()						= 0; /*This is where the window is actually created*/
+	virtual void Show()							= 0; /*Show the window*/
+	virtual void Hide()							= 0; /*Hide the window*/
+	virtual void HandleWindowEvents()			= 0; /*Should be called every frame to handle the window events.*/
 private:
 	Window();
 	Int2 dimensions;
@@ -177,14 +191,25 @@ public:
 		OpenGL
 	};
 
+	/*
+		Call to create a instance of a specific renderer class used through out the game.
+
+		@param backend directly specifies which type of renderer to return.
+
+		@return a Renderer* to selected by the RendererBackend param
+	*/
 	static	Renderer*		MakeRenderer(RendererBackend backend);
-	virtual Camera*			MakeCamera()							= 0;
-	virtual Window*			MakeWindow()							= 0;
-	virtual Texture*		MakeTexture()							= 0;
-	virtual Mesh*			MakeMesh()								= 0;
-	virtual Material*		MakeMaterial()							= 0;
-	virtual RenderState*	MakeRenderState()						= 0;
-	virtual Technique*		MakeTechnique(Material*, RenderState*)	= 0;
+
+	//Builder functions to create classes specific to the renderer instance created by MakeRenderer();
+#pragma region Renderers Builder Functions
+	virtual Camera*			MakeCamera() = 0;
+	virtual Window*			MakeWindow() = 0;
+	virtual Texture*		MakeTexture() = 0;
+	virtual Mesh*			MakeMesh() = 0;
+	virtual Material*		MakeMaterial() = 0;
+	virtual RenderState*	MakeRenderState() = 0;
+	virtual Technique*		MakeTechnique(Material*, RenderState*) = 0;
+#pragma endregion
 
 
 	virtual void			Submit(SubmissionItem item)				= 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
@@ -206,7 +231,7 @@ public:
 };
 
 /*
-	Object/Entity that can interact with the world and be rendered.
+	GameObject/Entity that can interact with the world and be rendered.
 */
 struct Object {
 	Blueprint* blueprint;
@@ -302,14 +327,13 @@ int main() {
 
 #pragma endregion
 
-
 	//Game Loop
 	while (true)
 	{
 		//Handle window events to detect window movement, window destruction etc. 
 		window->HandleWindowEvents();
 
-//Render the scene.
+		//Render the scene.
 #pragma region Render
 	//Submit all meshes that should be rendered and the transformation on the mesh.
 		for (size_t i = 0; i < objects.size(); i++)
