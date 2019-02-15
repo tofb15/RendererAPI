@@ -1,6 +1,6 @@
 #include <vector>
 
-class Renderer;
+//class Renderer;
 
 struct Float3
 {
@@ -29,6 +29,9 @@ struct Int2
 	};
 };
 
+/*
+	Contain a texture that could be applied to a mesh.
+*/
 class Texture {
 public:
 	virtual bool LoadFromFile(const char*)							= 0;
@@ -36,6 +39,10 @@ private:
 	Texture();
 };
 
+/*
+	Describes the material and what shaders needed to render this material.
+	Could contain data like how reflective the material is etc.
+*/
 class Material {
 public:
 	/*		
@@ -53,11 +60,19 @@ private:
 	//std::vector<Texture*> textures;
 };
 
+/*
+	Specific rendering states goes here like Wireframe, conservative rasterization etc.
+*/
 class RenderState {
 private:
 	bool wireframe;
+	//bool useDepthBuffer; //Should this be here maybe?
 };
 
+/*
+	Describes how a mesh should be rendered.
+	Contains a collection of shader data(Material) and specific render states(RenderState)
+*/
 class Technique {
 private:
 	Technique(Material*, RenderState*);
@@ -65,6 +80,10 @@ private:
 	RenderState* renderState;
 };
 
+/*
+	Used to contain a model.
+	Basicly just a collection of related vertexbuffers.
+*/
 class Mesh {
 public:
 	struct Polygon {
@@ -84,12 +103,12 @@ public:
 	virtual void InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections)	= 0;
 	virtual void InitializePolygonList(const std::vector<Polygon>& polygons)							= 0;
 
-	virtual void SetTechnique(Technique*);
-	virtual const char* GetMaterialName();
+	//virtual void SetTechnique(Technique*);
+	//virtual const char* GetMaterialName();
 private:
 	bool isCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;
-	Technique* tech;
+	//Technique* tech; //Moved To blueprint
 };
 
 class Window {
@@ -102,7 +121,7 @@ public:
 	virtual bool Create()						= 0;
 	virtual void Show()							= 0;
 	virtual void Hide()							= 0;
-
+	virtual void HandleWindowEvents()			= 0;
 private:
 	Window();
 	Int2 dimensions;
@@ -114,7 +133,7 @@ private:
 
 struct Transform {
 	Float3 pos;
-	//Float4 rotation;
+	//Float3 rotation; //rotation should be represented as a quaternion insteed of Float3.
 	Float3 scale;
 };
 
@@ -145,9 +164,20 @@ struct SubmissionItem {
 	Transform transform;
 };
 
+/*
+	Documentation goes here ^^
+*/
 class Renderer {
 public:
-	static	Renderer*		MakeRenderer();
+	enum class RendererBackend
+	{
+		D3D11,
+		D3D12,
+		Vulcan,
+		OpenGL
+	};
+
+	static	Renderer*		MakeRenderer(RendererBackend backend);
 	virtual Camera*			MakeCamera()							= 0;
 	virtual Window*			MakeWindow()							= 0;
 	virtual Texture*		MakeTexture()							= 0;
@@ -164,6 +194,10 @@ public:
 	virtual void			ClearFrame()							= 0; //How will this work with multi-threading?
 };
 
+/*
+	Contain data used to describe a object and how it should be rendered.
+	This class should ONLY be used as a blueprint/prefab to create other object copying data from this class.
+*/
 class Blueprint {
 public:
 	Mesh*					mesh;
@@ -171,24 +205,46 @@ public:
 	std::vector<Texture*>	textures;
 };
 
+/*
+	Object/Entity that can interact with the world and be rendered.
+*/
 struct Object {
 	Blueprint* blueprint;
 	Transform transform;
 
+	/*
+		Used to clone a blueprint and create a GameObject
+
+		@param bp, the blueprint that should be used to create this object.
+
+		@return, A Object cloned from the input blueprint.
+	*/
 	static Object* CreateObjectFromBlueprint(Blueprint* bp);
 };
 
-class Buffer;
+//class Buffer;//Not used for now
 
 
+
+/*This main is only an exemple of how this API could/should be used to render a scene.*/
 int main() {
 
-	//Init Renderer with Window
-	Renderer* renderer = Renderer::MakeRenderer();
+//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
+#pragma region Initialize renderer and window
+	Renderer* renderer = Renderer::MakeRenderer(Renderer::RendererBackend::D3D12);	//Specify Forward or Deferred Rendering?
+	//renderer->InitForwardRendering();				//Init like this?
+	//renderer->InitDeferredRendering();			//Init like this?
 
+	//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
+	Window*	window = renderer->MakeWindow();
+	window->SetDimensions(640, 640);
+	window->SetTitle("Renderer API");
+	window->Create();
+	window->Show();
+#pragma endregion
 
+//Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?
 #pragma region Globals
-	//Globals
 	std::vector<Blueprint*>		blueprints;
 	std::vector<Mesh*>			meshes;
 	std::vector<Material*>		materials;
@@ -197,8 +253,9 @@ int main() {
 	std::vector<RenderState*>	renderStates;
 	std::vector<Camera*>		cameras;
 	std::vector<Object>			objects;
+#pragma endregion 
 
-
+//Here we create the camera(s) that should/could be used in this scene
 #pragma region CreateCamera
 	//Create Camera
 	Camera* cam = renderer->MakeCamera();
@@ -208,7 +265,8 @@ int main() {
 	cameras.push_back(cam);
 #pragma endregion
 
-#pragma region CreateUniqueBlue
+//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
+#pragma region CreateUniqueBlueprint
 	//Load meshes and materials from file
 	Mesh* mesh = renderer->MakeMesh();
 	mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
@@ -228,14 +286,14 @@ int main() {
 	techniques.push_back(tech);
 
 	//Attach Technique to mesh
-	mesh->SetTechnique(tech);
+	//mesh->SetTechnique(tech); // A mesh could be renderer using more than one Technique. This is set in the blueprint insteed
 
 	//Create a Texture
 	Texture* tex = renderer->MakeTexture();
 	tex->LoadFromFile(".png");
 	textures.push_back(tex);
 
-	//Create the final blueprint
+	//Create the final blueprint. This could later be used to create objects.
 	Blueprint* blueprint = new Blueprint;
 	blueprint->technique = tech;
 	blueprint->mesh;
@@ -244,18 +302,29 @@ int main() {
 
 #pragma endregion
 
+
+	//Game Loop
+	while (true)
+	{
+		//Handle window events to detect window movement, window destruction etc. 
+		window->HandleWindowEvents();
+
+//Render the scene.
 #pragma region Render
 	//Submit all meshes that should be rendered and the transformation on the mesh.
-	for (size_t i = 0; i < objects.size(); i++)
-	{
-		//Submit one mesh that should be rendered and the transformation on the mesh.
-		renderer->Submit({ objects[i].blueprint, objects[i].transform });
-	}
+		for (size_t i = 0; i < objects.size(); i++)
+		{
+			//Submit one mesh that should be rendered and the transformation on the mesh.
+			renderer->Submit({ objects[i].blueprint, objects[i].transform });
+		}
 
-	renderer->Frame();	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-	renderer->Present();//Present frame to screen
+		renderer->Frame();	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+		renderer->Present();//Present frame to screen
 
 #pragma endregion
+	}
+
+
 
 	return 0;
 }
