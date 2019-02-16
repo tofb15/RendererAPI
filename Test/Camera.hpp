@@ -3,6 +3,7 @@
 
 class Camera {
 public:
+
 	virtual void SetPosition(Float3 position) = 0;
 	virtual void SetTarget(Float3 target) = 0;
 	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) = 0;
@@ -12,11 +13,14 @@ public:
 	Float3 GetTarget() const;
 	Float3 GetTargetDirection() const;
 
+	/*
+		@return True if any of the cameras properties have changed since it was last used for rendering.
+	*/
 	bool HasViewChanged() const;
 
 private:
 	int id;
-	int viewMatrixIndex; //Move?
+	int viewMatrixIndex;
 	int perspectiveMatrixIndex;
 	bool hasViewChanged;
 

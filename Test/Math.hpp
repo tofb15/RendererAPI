@@ -1,4 +1,7 @@
 #pragma once
+
+typedef unsigned short     uint16_t;
+
 struct Float3
 {
 	union

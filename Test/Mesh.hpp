@@ -1,5 +1,6 @@
 #pragma once
 #include "Math.hpp"
+#include <vector>
 
 /*
 	Used to contain a model.

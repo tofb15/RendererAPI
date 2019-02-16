@@ -60,10 +60,23 @@ public:
 	virtual Technique*		MakeTechnique(Material*, RenderState*) = 0;
 #pragma endregion
 
-
+	/*
+		Submit work that should be rendered.
+	*/
 	virtual void			Submit(SubmissionItem item) = 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
+	/*
+		Clear previusly submited work.
+	*/
 	virtual void			ClearSubmissions() = 0; //Should we have this?
+	/*
+		Render submited work to the back buffer. Call Present() to present the result to the screen.
+		@See Present()
+	*/
 	virtual void			Frame() = 0; //How will this work with multi-threading? One thread to rule them all?
+	/*	
+		Present the last frame rendered by frame() to the window.
+		@See Frame()
+	*/
 	virtual void			Present() = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
 };

@@ -1,4 +1,3 @@
-#include <vector>
 #include "Renderer.hpp"
 #include "Window.hpp"
 #include "Camera.hpp"
