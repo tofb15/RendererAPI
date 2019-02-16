@@ -11,10 +11,6 @@ class Material;
 class RenderState;
 class Technique;
 
-struct SubmissionItem {
-	Blueprint* mesh;
-	Transform transform;
-};
 
 /*
 	Contain data used to describe a object and how it should be rendered.
@@ -25,6 +21,11 @@ public:
 	Mesh*					mesh;
 	Technique*				technique;
 	std::vector<Texture*>	textures;
+};
+
+struct SubmissionItem {
+	Blueprint* mesh;
+	Transform transform;
 };
 
 /*
@@ -79,4 +80,6 @@ public:
 	*/
 	virtual void			Present() = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
+protected:
+	Renderer();
 };

@@ -1,6 +1,10 @@
 #include "D3D12Material.hpp"
 
-bool D3D12Material::LoadFromFile(const char *, std::vector<Texture*>* textureList = nullptr)
+D3D12Material::D3D12Material()
+{
+}
+
+bool D3D12Material::LoadFromFile(const char * fileName, std::vector<Texture*>* textureList)
 {
 	return false;
 }

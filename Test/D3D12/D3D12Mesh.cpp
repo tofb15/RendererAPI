@@ -1,5 +1,9 @@
 #include "D3D12Mesh.hpp"
 
+D3D12Mesh::D3D12Mesh()
+{
+}
+
 bool D3D12Mesh::LoadFromFile(const char * fileName)
 {
 	return false;

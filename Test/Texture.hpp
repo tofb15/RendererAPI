@@ -5,6 +5,6 @@
 class Texture {
 public:
 	virtual bool LoadFromFile(const char*) = 0;
-private:
+protected:
 	Texture();
 };

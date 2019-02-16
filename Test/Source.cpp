@@ -5,6 +5,7 @@
 #include "Material.hpp"
 #include "Technique.hpp"
 #include "Texture.hpp"
+#include <iostream>
 
 //class Renderer;
 
@@ -33,7 +34,11 @@ int main() {
 //Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
 #pragma region Initialize renderer and window
 	Renderer* renderer = Renderer::MakeRenderer(Renderer::RendererBackend::D3D12);	//Specify Forward or Deferred Rendering?
-	//renderer->InitForwardRendering();				//Init like this?
+	if (renderer == nullptr) {
+		std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
+		exit(-1);
+	}																				
+																					//renderer->InitForwardRendering();				//Init like this?
 	//renderer->InitDeferredRendering();			//Init like this?
 
 	//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 

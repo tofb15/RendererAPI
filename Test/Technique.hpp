@@ -8,8 +8,9 @@ class RenderState;
 	Contains a collection of shader data(Material) and specific render states(RenderState)
 */
 class Technique {
-private:
+protected:
 	Technique(Material*, RenderState*);
+private:
 	Material* mat;
 	RenderState* renderState;
 };

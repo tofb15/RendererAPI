@@ -17,7 +17,8 @@ public:
 		@return True if any of the cameras properties have changed since it was last used for rendering.
 	*/
 	bool HasViewChanged() const;
-
+protected:
+	Camera();
 private:
 	int id;
 	int viewMatrixIndex;

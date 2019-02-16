@@ -41,6 +41,8 @@ public:
 
 	//virtual void SetTechnique(Technique*);
 	//virtual const char* GetMaterialName();
+protected:
+	Mesh();
 private:
 	bool isCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;

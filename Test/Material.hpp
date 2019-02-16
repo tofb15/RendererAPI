@@ -19,7 +19,8 @@ public:
 	*/
 	virtual bool LoadFromFile(const char*, std::vector<Texture*>* textureList = nullptr) = 0;
 	//virtual void AddTexture(Texture*);
-
+protected:
+	Material();
 private:
 	//std::vector<Texture*> textures;
 };

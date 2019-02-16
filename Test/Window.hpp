@@ -13,8 +13,9 @@ public:
 	virtual void Show() = 0; /*Show the window*/
 	virtual void Hide() = 0; /*Hide the window*/
 	virtual void HandleWindowEvents() = 0; /*Should be called every frame to handle the window events.*/
-private:
+protected:
 	Window();
+private:
 	Int2 dimensions;
 	Int2 position;
 	//unsigned int handle;

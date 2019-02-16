@@ -115,13 +115,41 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3D12\D3D12Camera.cpp" />
+    <ClCompile Include="D3D12\D3D12Material.cpp" />
+    <ClCompile Include="D3D12\D3D12Mesh.cpp" />
+    <ClCompile Include="D3D12\D3D12Renderer.cpp" />
+    <ClCompile Include="D3D12\D3D12Technique.cpp" />
+    <ClCompile Include="D3D12\D3D12Texture.cpp" />
+    <ClCompile Include="D3D12\D3D12Window.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderState.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Technique.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="D3D12\D3D12Camera.hpp" />
+    <ClInclude Include="D3D12\D3D12Material.hpp" />
+    <ClInclude Include="D3D12\D3D12Mesh.hpp" />
+    <ClInclude Include="D3D12\D3D12Renderer.hpp" />
+    <ClInclude Include="D3D12\D3D12RenderState.hpp" />
+    <ClInclude Include="D3D12\D3D12Technique.hpp" />
+    <ClInclude Include="D3D12\D3D12Texture.hpp" />
+    <ClInclude Include="D3D12\D3D12Window.hpp" />
     <ClInclude Include="Material.hpp" />
+    <ClInclude Include="Math.hpp" />
+    <ClInclude Include="Mesh.hpp" />
     <ClInclude Include="Renderer.hpp" />
+    <ClInclude Include="RenderState.hpp" />
     <ClInclude Include="Technique.hpp" />
     <ClInclude Include="Texture.hpp" />
+    <ClInclude Include="Window.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
