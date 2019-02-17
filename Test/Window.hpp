@@ -13,12 +13,22 @@ public:
 	virtual void Show() = 0; /*Show the window*/
 	virtual void Hide() = 0; /*Hide the window*/
 	virtual void HandleWindowEvents() = 0; /*Should be called every frame to handle the window events.*/
+
+	//Good to have
+	virtual bool ContainsMouse();
+	/*
+		@return True if the window is in focus.
+	*/
+	virtual bool IsInFocus();
 protected:
 	Window();
-private:
+
 	Int2 dimensions;
 	Int2 position;
 	//unsigned int handle;
 	const char* title;
+
+	bool mMouseInsideWindow;
+	bool mIsInFocus;
 
 };

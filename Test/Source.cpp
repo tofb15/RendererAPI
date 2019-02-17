@@ -44,9 +44,22 @@ int main() {
 	//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 	Window*	window = renderer->MakeWindow();
 	window->SetDimensions(640, 640);
-	window->SetTitle("Renderer API");
+	window->SetTitle("Window 1");
 	window->Create();
 	window->Show();
+
+	Window*	window2 = renderer->MakeWindow();
+	window2->SetDimensions(640, 640);
+	window2->SetTitle("Window 2");
+	window2->Create();
+	window2->Show();
+
+	while (true)
+	{
+		window->HandleWindowEvents();
+		window2->HandleWindowEvents();
+	}
+
 #pragma endregion
 
 //Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?

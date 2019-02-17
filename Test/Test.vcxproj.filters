@@ -116,5 +116,8 @@
     <ClInclude Include="D3D12\D3D12Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12\GlobalSettings.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

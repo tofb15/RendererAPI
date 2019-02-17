@@ -142,6 +142,7 @@
     <ClInclude Include="D3D12\D3D12Technique.hpp" />
     <ClInclude Include="D3D12\D3D12Texture.hpp" />
     <ClInclude Include="D3D12\D3D12Window.hpp" />
+    <ClInclude Include="D3D12\GlobalSettings.hpp" />
     <ClInclude Include="Material.hpp" />
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="Mesh.hpp" />

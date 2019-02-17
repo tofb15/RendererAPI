@@ -49,7 +49,12 @@ public:
 		@return a Renderer* to selected by the RendererBackend param
 	*/
 	static	Renderer*		MakeRenderer(RendererBackend backend);
+	/*
+		Initialize the specific renderer instance.
 
+		@return true if the instance was initialized successfully.
+	*/
+	virtual bool Initialize() = 0;
 	//Builder functions to create classes specific to the renderer instance created by MakeRenderer();
 #pragma region Renderers Builder Functions
 	virtual Camera*			MakeCamera() = 0;
@@ -70,10 +75,12 @@ public:
 	*/
 	virtual void			ClearSubmissions() = 0; //Should we have this?
 	/*
-		Render submited work to the back buffer. Call Present() to present the result to the screen.
+		Render submited work to the back buffer of the passed in window. Call Present() to present the result to the screen.
+
+		@param window, the window to render the scene to.
 		@See Present()
 	*/
-	virtual void			Frame() = 0; //How will this work with multi-threading? One thread to rule them all?
+	virtual void			Frame(Window* window) = 0; //How will this work with multi-threading? One thread to rule them all?
 	/*	
 		Present the last frame rendered by frame() to the window.
 		@See Frame()
