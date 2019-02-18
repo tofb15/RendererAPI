@@ -13,3 +13,7 @@ bool Window::IsInFocus()
 Window::Window()
 {
 }
+
+Window::~Window()
+{
+}

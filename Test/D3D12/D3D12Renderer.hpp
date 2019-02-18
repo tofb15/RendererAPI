@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Renderer.hpp"
+#include "GlobalSettings.hpp"
 #include <Windows.h>
 
 struct ID3D12Device4;
@@ -8,6 +9,7 @@ struct ID3D12CommandQueue;
 struct ID3D12CommandAllocator;
 struct IDXGISwapChain4;
 struct ID3D12GraphicsCommandList3;
+struct ID3D12DescriptorHeap;
 
 /*
 	Documentation goes here ^^
@@ -40,30 +42,25 @@ public:
 
 	virtual void Frame(Window* window) override;
 
-	virtual void Present() override;
+	virtual void Present(Window * w) override;
 
 	virtual void ClearFrame() override;
 
 	ID3D12Device4* GetDevice() const;
 private:
-	//Variables Here
-	static const unsigned int NUM_SWAP_BUFFERS = 2; //Number of buffers
 
 #pragma region InitailizeVariables
 	ID3D12Device4*				mDevice5			= nullptr;
-	ID3D12CommandQueue*			mCommandQueue		= nullptr;
 	ID3D12CommandAllocator*		mCommandAllocator	= nullptr;
-	IDXGISwapChain4*			mSwapChain4			= nullptr;
 	ID3D12GraphicsCommandList3*	mCommandList4		= nullptr;
 #pragma endregion
 
+	//ID3D12DescriptorHeap*	mDescriptorHeap[NUM_SWAP_BUFFERS] = {};
 
 	//Functions Here
 
-	bool InitializeDirect3DDevice(HWND wndHandle);					
-	bool InitializeCommandInterfacesAndSwapChain(HWND wndHandle);	
+	bool InitializeDirect3DDevice();					
+	bool InitializeCommandInterfaces();	
 	bool InitializeFenceAndEventHandle();							
-	bool InitializeRenderTargets();									
-	void InitializeViewportAndScissorRect(unsigned int width, unsigned int height);
 
 };

@@ -4,7 +4,20 @@
 //#include <d3dcompiler.h>
 //#include <DirectXMath.h>
 
+#include "D3D12Camera.hpp"
+#include "D3D12Texture.hpp"
+#include "D3D12Technique.hpp"
+#include "D3D12Material.hpp"
+#include "D3D12Mesh.hpp"
+#include "D3D12RenderState.hpp"
+
+
+
+
+
+
 #include "D3D12Window.hpp"
+#pragma comment(lib, "d3d12.lib")
 
 /*Release a Interface that will not be used anymore*/
 template<class Interface>
@@ -24,12 +37,18 @@ D3D12Renderer::D3D12Renderer()
 
 bool D3D12Renderer::Initialize()
 {
-	return false;
+	InitializeDirect3DDevice();
+
+	InitializeCommandInterfaces();
+
+	
+
+	return true;
 }
 
 Camera * D3D12Renderer::MakeCamera()
 {
-	return nullptr;
+	return new D3D12Camera();
 }
 
 Window * D3D12Renderer::MakeWindow()
@@ -39,31 +58,32 @@ Window * D3D12Renderer::MakeWindow()
 
 Texture * D3D12Renderer::MakeTexture()
 {
-	return nullptr;
+	return new D3D12Texture;
 }
 
 Mesh * D3D12Renderer::MakeMesh()
 {
-	return nullptr;
+	return new D3D12Mesh;
 }
 
 Material * D3D12Renderer::MakeMaterial()
 {
-	return nullptr;
+	return new D3D12Material;
 }
 
 RenderState * D3D12Renderer::MakeRenderState()
 {
-	return nullptr;
+	return new D3D12RenderState;
 }
 
-Technique * D3D12Renderer::MakeTechnique(Material *, RenderState *)
+Technique * D3D12Renderer::MakeTechnique(Material * m, RenderState * r)
 {
-	return nullptr;
+	return new D3D12Technique(static_cast<D3D12Material*>(m), static_cast<D3D12RenderState*>(r));
 }
 
 void D3D12Renderer::Submit(SubmissionItem item)
 {
+
 }
 
 void D3D12Renderer::ClearSubmissions()
@@ -73,13 +93,68 @@ void D3D12Renderer::ClearSubmissions()
 void D3D12Renderer::Frame(Window* w)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
-	//UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+	
+	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+
+	mCommandAllocator->Reset();
+	mCommandList4->Reset(mCommandAllocator, nullptr);
+
+	//Set constant buffer descriptor heap
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { mDescriptorHeap[backBufferIndex], mSamplerHeap };
+	//mCommandList4->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
+
+	//Set root signature
+	//mCommandList4->SetGraphicsRootSignature(mRootSignature);
+
+	//Set root descriptor table to index 0 in previously set root signature
+	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
+	//mCommandList4->SetGraphicsRootDescriptorTable(2, mSamplerHeap->GetGPUDescriptorHandleForHeapStart());
+
+	//Set necessary states.
+	mCommandList4->RSSetViewports(1, window->GetViewport());
+	mCommandList4->RSSetScissorRects(1, window->GetScissorRect());
+
+	////Indicate that the back buffer will be used as render target.
+#pragma region Barrier Swap Target
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+	mCommandList4->ResourceBarrier(1, &barrierDesc);
+#pragma endregion
+
+	window->ClearRenderTarget(mCommandList4);
 
 
+#pragma region Barrier Swap Target
+	barrierDesc = {};
+
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+	mCommandList4->ResourceBarrier(1, &barrierDesc);
+#pragma endregion
+	mCommandList4->Close();
 }
 
-void D3D12Renderer::Present()
+void D3D12Renderer::Present(Window * w)
 {
+	D3D12Window* window = static_cast<D3D12Window*>(w);
+
+	//Execute the command list.
+	ID3D12CommandList* listsToExecute[] = { mCommandList4 };
+	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+
+	//Present the frame.
+	DXGI_PRESENT_PARAMETERS pp = {};
+	window->GetSwapChain()->Present1(0, 0, &pp);
 }
 
 void D3D12Renderer::ClearFrame()
@@ -91,145 +166,77 @@ ID3D12Device4 * D3D12Renderer::GetDevice() const
 	return mDevice5;
 }
 
-bool D3D12Renderer::InitializeDirect3DDevice(HWND wndHandle)
+bool D3D12Renderer::InitializeDirect3DDevice()
 {
+	//dxgi1_6 is only needed for the initialization process using the adapter.
+	IDXGIFactory6*	factory = nullptr;
+	IDXGIAdapter1*	adapter = nullptr;
+	//First a factory is created to iterate through the adapters available.
+	CreateDXGIFactory(IID_PPV_ARGS(&factory));
+	for (UINT adapterIndex = 0;; ++adapterIndex)
+	{
+		adapter = nullptr;
+		if (DXGI_ERROR_NOT_FOUND == factory->EnumAdapters1(adapterIndex, &adapter))
+		{
+			return false;	//No more adapters to enumerate.
+		}
 
-	//IDXGIFactory6* factory = nullptr;
-	//IDXGIAdapter1* adapter = nullptr;
+		// Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+		if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device4), nullptr)))
+		{
+			break;
+		}
 
-	////First a factory is created to iterate through the adapters available
-	//CreateDXGIFactory(IID_PPV_ARGS(&factory));
-	//for (UINT adapterIndex = 0;; adapterIndex++)
-	//{
-	//	adapter = nullptr;
-	//	if (DXGI_ERROR_NOT_FOUND == factory->EnumAdapters1(adapterIndex, &adapter)) {
-	//		return false;
-	//	}
+		SafeRelease(&adapter);
+	}
+	if (adapter)
+	{
+		HRESULT hr = S_OK;
+		//Create the actual device.
+		if (!SUCCEEDED(hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&mDevice5))))
+		{
+			return false;
+		}
 
-	//	// Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-	//	//Since the last parameter is nullptr the device will not be created yet.
-	//	if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device4), nullptr))) {
-	//		break;
-	//	}
+		SafeRelease(&adapter);
+	}
+	else
+	{
+		return false;
+		////Create warp device if no adapter was found.
+		//factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
+		//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
+	}
 
-	//	SafeRelease(&adapter);
-	//}
-
-	//if (adapter)
-	//{
-	//	HRESULT hr = S_OK;
-	//	//Create the actual device.
-	//	if (!SUCCEEDED(hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&mDevice5))))
-	//	{
-	//		return false;
-	//	}
-
-	//	SafeRelease(&adapter);
-	//}
-	//else
-	//{
-	//	//If the current computer do not support D3D_FEATURE_LEVEL_12_1 another version could be created here. for exemple 12.0 or 11.0
-	//	return false;
-	//	////Create warp device if no adapter was found.
-	//	//factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
-	//	//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
-	//}
-
-	//SafeRelease(&factory);
-
+	SafeRelease(&factory);
 	return true;
 }
 
-bool D3D12Renderer::InitializeCommandInterfacesAndSwapChain(HWND wndHandle)
+bool D3D12Renderer::InitializeCommandInterfaces()
 {
 	HRESULT hr;
 
-//#pragma region CommandQueue, List and Allocator
-//	//Describe and create the command queue.
-//	D3D12_COMMAND_QUEUE_DESC cqd = {};
-//	hr = mDevice5->CreateCommandQueue(&cqd, IID_PPV_ARGS(&mCommandQueue));
-//	if (FAILED(hr))
-//	{
-//		return false;
-//	}
-//
-//	//Create command allocator. The command allocator object corresponds
-//	//to the underlying allocations in which GPU commands are stored.
-//	hr = mDevice5->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mCommandAllocator));
-//	if (FAILED(hr)) //Returns E_OUTOFMEMORY if the GPU has not enough memmory else S_OK
-//	{
-//		return false;
-//	}
-//
-//	//Create command list.
-//	hr = mDevice5->CreateCommandList(
-//		0,
-//		D3D12_COMMAND_LIST_TYPE_DIRECT,
-//		mCommandAllocator,
-//		nullptr,
-//		IID_PPV_ARGS(&mCommandList4));
-//	if (FAILED(hr)) //Returns E_OUTOFMEMORY if the GPU has not enough memmory else S_OK
-//	{
-//		return false;
-//	}
-//
-//	//Command lists are created in the recording state. Since there is nothing to
-//	//record right now and the main loop expects it to be closed, we close it.
-//	mCommandList4->Close();
-//
-//	IDXGIFactory5*	factory = nullptr;
-//	hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
-//	if (FAILED(hr))
-//	{
-//		return false;
-//	}
-//#pragma endregion
-//
-//#pragma region SwapChain
-//	//Create swap chain.
-//	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
-//	scDesc.Width = 0;
-//	scDesc.Height = 0;
-//	scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-//	scDesc.Stereo = FALSE;
-//	scDesc.SampleDesc.Count = 1;
-//	scDesc.SampleDesc.Quality = 0;
-//	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-//	scDesc.BufferCount = NUM_SWAP_BUFFERS;
-//	scDesc.Scaling = DXGI_SCALING_NONE;
-//	scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-//	scDesc.Flags = 0;
-//	scDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-//
-//	IDXGISwapChain1* swapChain1 = nullptr;
-//
-//	hr = factory->CreateSwapChainForHwnd(
-//		mCommandQueue,
-//		wndHandle,
-//		&scDesc,
-//		nullptr,
-//		nullptr,
-//		&swapChain1);
-//	if (SUCCEEDED(hr))
-//	{
-//		hr = swapChain1->QueryInterface(IID_PPV_ARGS(&mSwapChain4));
-//		if (SUCCEEDED(hr))
-//		{
-//			mSwapChain4->Release();
-//		}
-//		else
-//		{
-//			return false;
-//		}
-//	}
-//	else
-//	{
-//		return false;
-//	}
-//
-//	SafeRelease(&factory);
-//
-//#pragma endregion
+	hr = mDevice5->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mCommandAllocator));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	//Create command list.
+	hr = mDevice5->CreateCommandList(
+		0,
+		D3D12_COMMAND_LIST_TYPE_DIRECT,
+		mCommandAllocator,
+		nullptr,
+		IID_PPV_ARGS(&mCommandList4));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	//Command lists are created in the recording state. Since there is nothing to
+	//record right now and the main loop expects it to be closed, we close it.
+	mCommandList4->Close();
 
 	return true;
 }
@@ -237,13 +244,4 @@ bool D3D12Renderer::InitializeCommandInterfacesAndSwapChain(HWND wndHandle)
 bool D3D12Renderer::InitializeFenceAndEventHandle()
 {
 	return false;
-}
-
-bool D3D12Renderer::InitializeRenderTargets()
-{
-	return false;
-}
-
-void D3D12Renderer::InitializeViewportAndScissorRect(unsigned int width, unsigned int height)
-{
 }

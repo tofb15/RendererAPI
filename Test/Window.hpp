@@ -4,6 +4,8 @@
 
 class Window {
 public:
+	virtual ~Window();
+
 	virtual void SetDimensions(Int2 dimensions) = 0;
 	virtual void SetDimensions(int w, int h) = 0;
 	virtual void SetPosition(Int2 position) = 0;
@@ -13,7 +15,7 @@ public:
 	virtual void Show() = 0; /*Show the window*/
 	virtual void Hide() = 0; /*Hide the window*/
 	virtual void HandleWindowEvents() = 0; /*Should be called every frame to handle the window events.*/
-
+	virtual bool WindowClosed() = 0;
 	//Good to have
 	virtual bool ContainsMouse();
 	/*

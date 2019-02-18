@@ -120,6 +120,7 @@
     <ClCompile Include="D3D12\D3D12Material.cpp" />
     <ClCompile Include="D3D12\D3D12Mesh.cpp" />
     <ClCompile Include="D3D12\D3D12Renderer.cpp" />
+    <ClCompile Include="D3D12\D3D12RenderState.cpp" />
     <ClCompile Include="D3D12\D3D12Technique.cpp" />
     <ClCompile Include="D3D12\D3D12Texture.cpp" />
     <ClCompile Include="D3D12\D3D12Window.cpp" />

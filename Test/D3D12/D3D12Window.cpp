@@ -1,9 +1,15 @@
 #include "D3D12Window.hpp"
 #include <string>
 #include <iostream>
-#include <d3d12.h>
-#include <dxgi1_6.h>
+
+#include <DirectXMath.h>
+
 #include "D3D12Renderer.hpp"
+
+#pragma comment (lib, "DXGI.lib")
+//#pragma comment (lib, "d3d12.lib")
+
+static bool quit = false;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -13,7 +19,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		exit(0);
+		quit = true;
 		break;
 	}
 
@@ -23,6 +29,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 D3D12Window::D3D12Window(D3D12Renderer* renderer)
 {
 	mRenderer = renderer;
+
+	mViewport = new D3D12_VIEWPORT;
+	mScissorRect = new D3D12_RECT;
+
+	mViewport->TopLeftX = 0.0f;
+	mViewport->TopLeftY = 0.0f;
+	mViewport->Width = (float)0;
+	mViewport->Height = (float)0;
+	mViewport->MinDepth = 0.0f;
+	mViewport->MaxDepth = 1.0f;
+
+	mScissorRect->left = (long)0;
+	mScissorRect->right = (long)0;
+	mScissorRect->top = (long)0;
+	mScissorRect->bottom = (long)0;
+}
+
+D3D12Window::~D3D12Window()
+{
+	delete mViewport;
+	delete mScissorRect;
 }
 
 void D3D12Window::SetDimensions(Int2 dimensions)
@@ -33,6 +60,15 @@ void D3D12Window::SetDimensions(int w, int h)
 {
 	dimensions.x = w;
 	dimensions.y = h;
+
+	mViewport->Width = (float)dimensions.x;
+	mViewport->Height = (float)dimensions.y;
+
+	mScissorRect->right = (long)dimensions.x;
+	mScissorRect->bottom = (long)dimensions.y;
+
+	//TODO: Change Window Size
+	//if (mWnd != NULL)
 }
 
 void D3D12Window::SetPosition(Int2 position)
@@ -53,6 +89,9 @@ void D3D12Window::SetTitle(const char * title)
 bool D3D12Window::Create()
 {
 	if (!InitializeWindow())
+		return false;
+
+	if (!InitializeCommandQueue())
 		return false;
 
 	if (!InitializeSwapChain())
@@ -120,19 +159,54 @@ void D3D12Window::HandleWindowEvents()
 	}
 }
 
-HWND D3D12Window::GetHWND() const
+bool D3D12Window::WindowClosed()
+{
+	return quit;
+}
+
+void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
+{
+	//Get the handle for the current render target used as back buffer.
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	cdh.ptr += mRenderTargetDescriptorSize * mSwapChain4->GetCurrentBackBufferIndex();
+
+	//D3D12_CPU_DESCRIPTOR_HANDLE cdhds = mDepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
+	//mCommandList4->OMSetRenderTargets(1, &cdh, true, &cdhds);
+
+	float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	commandList->ClearRenderTargetView(cdh, clearColor, 0, nullptr);
+	//mCommandList4->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
+}
+
+HWND D3D12Window::GetHWND()
 {
 	return mWnd;
 }
 
-ID3D12CommandQueue * D3D12Window::GetCommandQueue() const
+ID3D12CommandQueue * D3D12Window::GetCommandQueue()
 {
 	return mCommandQueue;
 }
 
-IDXGISwapChain4 * D3D12Window::GetSwapChain() const
+IDXGISwapChain4 * D3D12Window::GetSwapChain()
 {
 	return mSwapChain4;
+}
+
+D3D12_VIEWPORT * D3D12Window::GetViewport()
+{
+	return mViewport;
+}
+
+D3D12_RECT * D3D12Window::GetScissorRect()
+{
+	return mScissorRect;
+}
+
+ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
+{
+	return mRenderTargets[mSwapChain4->GetCurrentBackBufferIndex()];
 }
 
 UINT D3D12Window::GetCurrentBackBufferIndex() const
@@ -282,8 +356,6 @@ bool D3D12Window::InitializeRenderTargets()
 		mRenderer->GetDevice()->CreateRenderTargetView(mRenderTargets[n], nullptr, cdh);
 		cdh.ptr += mRenderTargetDescriptorSize;
 	}
-
-	return true;
 
 	return true;
 }

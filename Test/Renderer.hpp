@@ -85,7 +85,7 @@ public:
 		Present the last frame rendered by frame() to the window.
 		@See Frame()
 	*/
-	virtual void			Present() = 0; //How will this work with multi-threading? One thread to rule them all?
+	virtual void			Present(Window * w) = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
 protected:
 	Renderer();
