@@ -6,6 +6,7 @@
 #include "Technique.hpp"
 #include "RenderState.hpp"
 #include "Texture.hpp"
+#include "ShaderManager.hpp"
 #include <iostream>
 
 #include <crtdbg.h>
@@ -66,7 +67,7 @@ public:
 			delete e;
 		}
 
-
+		delete renderer;
 	}
 
 	bool Initialize()
@@ -95,6 +96,20 @@ public:
 		window2->Create();
 		window2->Show();
 		windows.push_back(window2);
+
+		ShaderManager* sm = renderer->MakeShaderManager();
+		ShaderDescription sd = {};
+
+
+		sd.defines = "";
+		sd.name = "VertexShader";
+		sd.type = ShaderType::VS;
+		Shader vs = sm->CompileShader(sd);
+
+		sd.name = "FragmentShader";
+		sd.type = ShaderType::FS;
+		Shader fs = sm->CompileShader(sd);
+
 #pragma endregion
 
 		//Here we create the camera(s) that should/could be used in this scene
@@ -112,7 +127,10 @@ public:
 	//Load meshes and materials from file
 		Mesh* mesh = renderer->MakeMesh();
 		//mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
-		mesh->InitializePolygonList({ {}, {}, {} });
+		std::vector<Mesh::Polygon> polygons;
+		Mesh::Polygon polygon = { -0.5f, -0.5f, 1.0f, 0.0f, 0.5f, 1.0f, 0.5f, -0.5f, 1.0f };
+		polygons.push_back(polygon);
+		mesh->InitializePolygonList(polygons);
 		meshes.push_back(mesh);
 
 		//Create a material
@@ -120,12 +138,19 @@ public:
 		mat->LoadFromFile(".mtl");
 		materials.push_back(mat);
 
+
+
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
 		renderStates.push_back(renderState);
 
+		ShaderProgram sp = {};
+
+		sp.VS = vs;
+		sp.FS = fs;
+
 		//Create Technique from renderstate and material
-		Technique* tech = renderer->MakeTechnique(mat, renderState);
+		Technique* tech = renderer->MakeTechnique(renderState, &sp, sm);
 		techniques.push_back(tech);
 
 		//Attach Technique to mesh
@@ -139,7 +164,7 @@ public:
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
 		blueprint->technique = tech;
-		blueprint->mesh;
+		blueprint->mesh = mesh;
 		blueprint->textures.push_back(tex);
 		blueprints.push_back(blueprint);
 

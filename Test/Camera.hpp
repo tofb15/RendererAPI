@@ -3,6 +3,7 @@
 
 class Camera {
 public:
+	virtual ~Camera();
 
 	virtual void SetPosition(Float3 position) = 0;
 	virtual void SetTarget(Float3 target) = 0;

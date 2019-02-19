@@ -1,6 +1,10 @@
 #include "Renderer.hpp"
 #include "D3D12/D3D12Renderer.hpp"
 
+Renderer::~Renderer()
+{
+}
+
 Renderer * Renderer::MakeRenderer(RendererBackend backend)
 {
 	switch (backend)

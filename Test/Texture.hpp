@@ -4,6 +4,8 @@
 */
 class Texture {
 public:
+	virtual ~Texture();
+
 	virtual bool LoadFromFile(const char*) = 0;
 protected:
 	Texture();

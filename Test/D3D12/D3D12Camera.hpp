@@ -4,6 +4,8 @@
 class D3D12Camera : public Camera {
 public:
 	D3D12Camera();
+	virtual ~D3D12Camera();
+
 
 	// Inherited via Camera
 	virtual void SetPosition(Float3 position) override;

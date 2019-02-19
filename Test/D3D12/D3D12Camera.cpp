@@ -4,6 +4,10 @@ D3D12Camera::D3D12Camera()
 {
 }
 
+D3D12Camera::~D3D12Camera()
+{
+}
+
 void D3D12Camera::SetPosition(Float3 position)
 {
 }

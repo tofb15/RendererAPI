@@ -9,7 +9,9 @@
 #include "D3D12Technique.hpp"
 #include "D3D12Material.hpp"
 #include "D3D12Mesh.hpp"
+#include "D3D12VertexBuffer.hpp"
 #include "D3D12RenderState.hpp"
+#include "D3D12ShaderManager.hpp"
 
 
 
@@ -35,13 +37,17 @@ D3D12Renderer::D3D12Renderer()
 {
 }
 
+D3D12Renderer::~D3D12Renderer()
+{
+}
+
 bool D3D12Renderer::Initialize()
 {
 	InitializeDirect3DDevice();
 
 	InitializeCommandInterfaces();
 
-	
+	InitializeRootSignature();
 
 	return true;
 }
@@ -63,7 +69,7 @@ Texture * D3D12Renderer::MakeTexture()
 
 Mesh * D3D12Renderer::MakeMesh()
 {
-	return new D3D12Mesh;
+	return new D3D12Mesh(this);
 }
 
 Material * D3D12Renderer::MakeMaterial()
@@ -76,18 +82,30 @@ RenderState * D3D12Renderer::MakeRenderState()
 	return new D3D12RenderState;
 }
 
-Technique * D3D12Renderer::MakeTechnique(Material * m, RenderState * r)
+Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm)
 {
-	return new D3D12Technique(static_cast<D3D12Material*>(m), static_cast<D3D12RenderState*>(r));
+	D3D12Technique* tech = new D3D12Technique(this);
+	if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), sp, static_cast<D3D12ShaderManager*>(sm)))
+	{
+		delete tech;
+		return nullptr;
+	}
+	return tech;
+}
+
+D3D12VertexBuffer * D3D12Renderer::MakeVertexBuffer()
+{
+	return new D3D12VertexBuffer(this);
 }
 
 void D3D12Renderer::Submit(SubmissionItem item)
 {
-
+	items.push_back(item);
 }
 
 void D3D12Renderer::ClearSubmissions()
 {
+	items.clear();
 }
 
 void D3D12Renderer::Frame(Window* w)
@@ -104,13 +122,14 @@ void D3D12Renderer::Frame(Window* w)
 	//mCommandList4->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
 
 	//Set root signature
-	//mCommandList4->SetGraphicsRootSignature(mRootSignature);
+	mCommandList4->SetGraphicsRootSignature(mRootSignature);
+	mCommandList4->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//Set root descriptor table to index 0 in previously set root signature
 	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
 	//mCommandList4->SetGraphicsRootDescriptorTable(2, mSamplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	//Set necessary states.
+		//Set necessary states.
 	mCommandList4->RSSetViewports(1, window->GetViewport());
 	mCommandList4->RSSetScissorRects(1, window->GetScissorRect());
 
@@ -129,9 +148,25 @@ void D3D12Renderer::Frame(Window* w)
 
 	window->ClearRenderTarget(mCommandList4);
 
+	for (size_t i = 0; i < items.size(); i++)
+	{
+		items[i].blueprint->technique->Enable();
+
+		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
+
+		mCommandList4->IASetVertexBuffers(0, 1, buffers[0]->GetView());
+		mCommandList4->DrawInstanced(3, 1, 0, 0);
+		//mCommandList4->s
+	}
+
+}
+
+void D3D12Renderer::Present(Window * w)
+{
+	D3D12Window* window = static_cast<D3D12Window*>(w);
 
 #pragma region Barrier Swap Target
-	barrierDesc = {};
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
 
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
@@ -142,11 +177,6 @@ void D3D12Renderer::Frame(Window* w)
 	mCommandList4->ResourceBarrier(1, &barrierDesc);
 #pragma endregion
 	mCommandList4->Close();
-}
-
-void D3D12Renderer::Present(Window * w)
-{
-	D3D12Window* window = static_cast<D3D12Window*>(w);
 
 	//Execute the command list.
 	ID3D12CommandList* listsToExecute[] = { mCommandList4 };
@@ -155,6 +185,9 @@ void D3D12Renderer::Present(Window * w)
 	//Present the frame.
 	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
+
+	WaitForGpu();
+
 }
 
 void D3D12Renderer::ClearFrame()
@@ -164,6 +197,16 @@ void D3D12Renderer::ClearFrame()
 ID3D12Device4 * D3D12Renderer::GetDevice() const
 {
 	return mDevice5;
+}
+
+ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
+{
+	return mRootSignature;
+}
+
+ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
+{
+	return mCommandList4;
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()
@@ -244,4 +287,66 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 bool D3D12Renderer::InitializeFenceAndEventHandle()
 {
 	return false;
+}
+
+bool D3D12Renderer::InitializeRootSignature()
+{
+	HRESULT hr;
+
+	//create root parameter
+	D3D12_ROOT_PARAMETER rootParam[1];
+	rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParam[0].Constants.Num32BitValues = 8;		// 2 * float4
+	rootParam[0].Constants.RegisterSpace = 0;
+	rootParam[0].Constants.ShaderRegister = 0;
+	rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+
+	D3D12_ROOT_SIGNATURE_DESC rsDesc;
+	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rsDesc.NumParameters = 1;
+	rsDesc.pParameters = rootParam;
+	rsDesc.NumStaticSamplers = 0;
+	rsDesc.pStaticSamplers = nullptr;
+
+	ID3DBlob* sBlob;
+	hr = D3D12SerializeRootSignature(
+		&rsDesc,
+		D3D_ROOT_SIGNATURE_VERSION_1,
+		&sBlob,
+		nullptr);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	hr = mDevice5->CreateRootSignature(
+		0,
+		sBlob->GetBufferPointer(),
+		sBlob->GetBufferSize(),
+		IID_PPV_ARGS(&mRootSignature));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	//for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	//{
+	//	D3D12_DESCRIPTOR_HEAP_DESC heapDescriptorDesc = {};
+	//	heapDescriptorDesc.NumDescriptors = 1;		// Make room for (NOT one cb) and one srv
+	//	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	//	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	//	hr = mDevice5->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&mDescriptorHeap[i]));
+	//	if (FAILED(hr))
+	//		return false;
+	//}
+
+	return true;
+}
+
+ShaderManager * D3D12Renderer::MakeShaderManager()
+{
+	D3D12ShaderManager* sm = new D3D12ShaderManager(this);
+
+	return sm;
 }

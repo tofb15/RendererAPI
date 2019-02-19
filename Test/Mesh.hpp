@@ -8,6 +8,9 @@
 */
 class Mesh {
 public:
+
+	virtual ~Mesh();
+
 	struct Polygon {
 		Float3 p[3];
 	};
@@ -35,14 +38,15 @@ public:
 		and
 		@see Material
 	*/
-	virtual void InitializeCube() = 0;
-	virtual void InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) = 0;
-	virtual void InitializePolygonList(const std::vector<Polygon>& polygons) = 0;
+	virtual bool InitializeCube() = 0;
+	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) = 0;
+	virtual bool InitializePolygonList(std::vector<Polygon>& polygons) = 0;
 
 	//virtual void SetTechnique(Technique*);
 	//virtual const char* GetMaterialName();
 protected:
 	Mesh();
+	const char* defaultMaterialName;
 private:
 	bool isCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;

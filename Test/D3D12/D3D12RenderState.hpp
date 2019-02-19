@@ -8,4 +8,6 @@
 class D3D12RenderState : public RenderState {
 public:
 	D3D12RenderState();
+	virtual ~D3D12RenderState();
+
 };

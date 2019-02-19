@@ -1,5 +1,9 @@
 #include "Camera.hpp"
 
+Camera::~Camera()
+{
+}
+
 void Camera::SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane)
 {
 }

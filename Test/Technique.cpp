@@ -1,5 +1,9 @@
 #include "Technique.hpp"
 
-Technique::Technique(Material *, RenderState *)
+Technique::~Technique()
+{
+}
+
+Technique::Technique()
 {
 }

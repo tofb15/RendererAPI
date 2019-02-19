@@ -10,6 +10,8 @@ class Mesh;
 class Material;
 class RenderState;
 class Technique;
+class ShaderManager;
+struct ShaderProgram;
 
 
 /*
@@ -24,7 +26,7 @@ public:
 };
 
 struct SubmissionItem {
-	Blueprint* mesh;
+	Blueprint* blueprint;
 	Transform transform;
 };
 
@@ -40,6 +42,9 @@ public:
 		Vulcan,
 		OpenGL
 	};
+
+	virtual ~Renderer();
+
 
 	/*
 		Call to create a instance of a specific renderer class used through out the game.
@@ -63,7 +68,8 @@ public:
 	virtual Mesh*			MakeMesh() = 0;
 	virtual Material*		MakeMaterial() = 0;
 	virtual RenderState*	MakeRenderState() = 0;
-	virtual Technique*		MakeTechnique(Material*, RenderState*) = 0;
+	virtual Technique*		MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) = 0;
+	virtual ShaderManager*	MakeShaderManager() = 0;
 #pragma endregion
 
 	/*

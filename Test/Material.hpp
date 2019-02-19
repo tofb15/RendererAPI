@@ -9,6 +9,8 @@ class Texture;
 */
 class Material {
 public:
+		virtual ~Material();
+
 	/*
 		@param textureList, a pointer to a global texture list.
 
