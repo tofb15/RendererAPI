@@ -118,8 +118,8 @@ void D3D12Renderer::Frame(Window* w)
 	mCommandList4->Reset(mCommandAllocator, nullptr);
 
 	//Set constant buffer descriptor heap
-	//ID3D12DescriptorHeap* descriptorHeaps[] = { mDescriptorHeap[backBufferIndex], mSamplerHeap };
-	//mCommandList4->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
+	//ID3D12DescriptorHeap* descriptorHeaps[0];
+	//mCommandList4->SetDescriptorHeaps(0, NULL);
 
 	//Set root signature
 	mCommandList4->SetGraphicsRootSignature(mRootSignature);
@@ -147,6 +147,7 @@ void D3D12Renderer::Frame(Window* w)
 #pragma endregion
 
 	window->ClearRenderTarget(mCommandList4);
+	window->SetRenderTarget(mCommandList4);
 
 	for (size_t i = 0; i < items.size(); i++)
 	{
@@ -186,7 +187,7 @@ void D3D12Renderer::Present(Window * w)
 	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
 
-	WaitForGpu();
+	//window->WaitForGPU();
 
 }
 

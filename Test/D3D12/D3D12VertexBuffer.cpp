@@ -62,7 +62,6 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 	view->StrideInBytes = elementSize;
 	view->SizeInBytes = elementSize * nElements;
 
-
 	resource->SetName(L"vb heap");
 	return true;
 }

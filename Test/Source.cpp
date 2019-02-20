@@ -128,7 +128,7 @@ public:
 		Mesh* mesh = renderer->MakeMesh();
 		//mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
 		std::vector<Mesh::Polygon> polygons;
-		Mesh::Polygon polygon = { -0.5f, -0.5f, 1.0f, 0.0f, 0.5f, 1.0f, 0.5f, -0.5f, 1.0f };
+		Mesh::Polygon polygon = { -0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
 		polygons.push_back(polygon);
 		mesh->InitializePolygonList(polygons);
 		meshes.push_back(mesh);

@@ -100,6 +100,18 @@ bool D3D12Window::Create()
 	if (!InitializeRenderTargets())
 		return false;
 
+
+	//HRESULT hr;
+	//hr = mRenderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
+	//if (FAILED(hr))
+	//{
+	//	return false;
+	//}
+
+	//mFenceValue = 1;
+	////Create an event handle to use for GPU synchronization.
+	//mEventHandle = CreateEvent(0, false, false, 0);
+
 	return true;
 }
 
@@ -171,12 +183,18 @@ void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
 	cdh.ptr += mRenderTargetDescriptorSize * mSwapChain4->GetCurrentBackBufferIndex();
 
-	//D3D12_CPU_DESCRIPTOR_HANDLE cdhds = mDepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
-	//mCommandList4->OMSetRenderTargets(1, &cdh, true, &cdhds);
-
 	float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
 	commandList->ClearRenderTargetView(cdh, clearColor, 0, nullptr);
 	//mCommandList4->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
+}
+
+void D3D12Window::SetRenderTarget(ID3D12GraphicsCommandList3*	commandList)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	cdh.ptr += mRenderTargetDescriptorSize * mSwapChain4->GetCurrentBackBufferIndex();
+
+	//D3D12_CPU_DESCRIPTOR_HANDLE cdhds = mDepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
+	commandList->OMSetRenderTargets(1, &cdh, true, nullptr);
 }
 
 HWND D3D12Window::GetHWND()
@@ -358,4 +376,18 @@ bool D3D12Window::InitializeRenderTargets()
 	}
 
 	return true;
+}
+
+void D3D12Window::WaitForGPU()
+{
+	const UINT64 fence = mFenceValue;
+	mCommandQueue->Signal(mFence, fence);
+	mFenceValue++;
+
+	//Wait until command queue is done.
+	if (mFence->GetCompletedValue() < fence)
+	{
+		mFence->SetEventOnCompletion(fence, mEventHandle);
+		WaitForSingleObject(mEventHandle, INFINITE);
+	}
 }

@@ -42,16 +42,44 @@ public:
 	virtual bool WindowClosed() override;
 
 	//Specialised Functions
-	void ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList);
+	/*
+		Clears the current render target with the current backbuffer index.
+		The rendertarget does not have to be set with SetRenderTarget() to be cleared.
 
+		@see GetCurrentBackBufferIndex()
+	*/
+	void ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList);
+	/*
+		Set the current backbuffer to be used for rendering.
+
+		@see GetCurrentBackBufferIndex()
+	*/
+	void SetRenderTarget(ID3D12GraphicsCommandList3*	commandList);
 	HWND				GetHWND();
+	/*
+		@Return a pointer to the Command Queue Interface
+	*/
 	ID3D12CommandQueue* GetCommandQueue();
+	/*
+		@Return a pointer to the Swap Chain Interface
+	*/
 	IDXGISwapChain4*	GetSwapChain();
 	D3D12_VIEWPORT*		GetViewport();
 	D3D12_RECT*			GetScissorRect();
+	/*
+		@Return A ID3D12Resource1*, pointing to the current rendertarget with the index given by GetCurrentBackBufferIndex().
+		@See GetCurrentBackBufferIndex()
+	*/
 	ID3D12Resource1*	GetCurrentRenderTargetResource();
+	/*
+		Used to get the current back buffer index for this specific window. This can be used to syncronize other resources(like Constant Buffers) used to render this frame.
+		The Backbuffer index changes each time present() is called on the swap chain.
 
-	UINT		GetCurrentBackBufferIndex() const;
+		@Return current backbuffer index.
+	*/
+	UINT GetCurrentBackBufferIndex() const;
+	void WaitForGPU();
+
 private:
 	ID3D12CommandQueue*			mCommandQueue = nullptr;
 	IDXGISwapChain4*			mSwapChain4 = nullptr;
@@ -65,6 +93,11 @@ private:
 	D3D12_RECT*					mScissorRect;
 
 	D3D12Renderer* mRenderer;
+
+	//Fences for the render targets
+	ID3D12Fence1*				mFence = nullptr;
+	HANDLE						mEventHandle = nullptr;
+	UINT64						mFenceValue = 0;
 
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.
