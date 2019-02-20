@@ -9,6 +9,13 @@
 class Mesh {
 public:
 
+	enum VertexBufferFlag {
+		VERTEX_BUFFER_FLAG_POSITION = 1,
+		VERTEX_BUFFER_FLAG_NORMAL = 2,
+		VERTEX_BUFFER_FLAG_UV = 4,
+		VERTEX_BUFFER_FLAG_TANGENT_BINORMAL = 8
+	};
+
 	virtual ~Mesh();
 
 	struct Polygon {
@@ -37,16 +44,21 @@ public:
 		@see Texture
 		and
 		@see Material
+
+		@param vertexBufferFlag, specifies which buffers to create for the mesh.
+		@see Mesh::VertexBufferFlag
 	*/
-	virtual bool InitializeCube() = 0;
+	virtual bool InitializeCube(unsigned int vertexBufferFlags) = 0;
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) = 0;
 	virtual bool InitializePolygonList(std::vector<Polygon>& polygons) = 0;
 
+	unsigned GetVertexBufferFlags() const;
 	//virtual void SetTechnique(Technique*);
 	//virtual const char* GetMaterialName();
 protected:
 	Mesh();
 	const char* defaultMaterialName;
+	unsigned mVertexBufferFlags;
 private:
 	bool isCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;

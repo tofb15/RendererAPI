@@ -1,11 +1,11 @@
 #pragma once
 #include "../Camera.hpp"
+#include <DirectXMath.h>
 
 class D3D12Camera : public Camera {
 public:
 	D3D12Camera();
 	virtual ~D3D12Camera();
-
 
 	// Inherited via Camera
 	virtual void SetPosition(Float3 position) override;
@@ -16,4 +16,15 @@ public:
 
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) override;
 
+	DirectX::XMFLOAT4X4 GetViewPerspective() const;
+
+private:
+	mutable DirectX::XMFLOAT4X4 mViewMatrix;
+	DirectX::XMFLOAT4X4 mPerspectiveMatrix;
+	
+	Float3 mPosition;
+	Float3 mTarget;
+
+	mutable DirectX::XMFLOAT4X4 mViewPerspectiveMatrix;
+	mutable bool mHasChanged;
 };

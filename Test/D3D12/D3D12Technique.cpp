@@ -19,8 +19,8 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	bool hasPos = false, hasNorm = false, hasUV = false;
 	int n_inputs = 0;
 
-	std::string defines = "POSITION";// sm->GetVertexDefines(sp->VS.handle);
-	if (defines.find("POSITION") != defines.npos)
+	std::string defines = sm->GetVertexDefines(sp->VS.handle);
+	if (/*defines.find("POSITION") != defines.npos*/true)
 	{
 		if (!hasPos)
 			n_inputs++;

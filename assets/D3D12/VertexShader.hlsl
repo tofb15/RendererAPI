@@ -25,14 +25,13 @@ struct VSOut
 
 cbuffer CB : register(b0)
 {
-	float4 color;
-	float4 posOffset;
+    float4x4 viewPerspective;
 }
 
 VSOut main(VSIn input, uint index : SV_VertexID, uint instanceID : SV_InstanceID)
 {
 	VSOut output = (VSOut)0;
-	output.pos = float4(input.pos, 1.0f) + posOffset + float4(0.0f,0.0f,0.5f,0.0f);
+    output.pos = mul(float4(input.pos, 1.0f), viewPerspective);
 
 #ifdef NORMAL
 	output.normal = float4(input.normal, 0.0f);

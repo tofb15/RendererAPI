@@ -15,9 +15,6 @@
 
 
 
-
-
-
 #include "D3D12Window.hpp"
 #pragma comment(lib, "d3d12.lib")
 
@@ -108,7 +105,7 @@ void D3D12Renderer::ClearSubmissions()
 	items.clear();
 }
 
-void D3D12Renderer::Frame(Window* w)
+void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	
@@ -149,13 +146,21 @@ void D3D12Renderer::Frame(Window* w)
 	window->ClearRenderTarget(mCommandList4);
 	window->SetRenderTarget(mCommandList4);
 
+	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
+	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
+	mCommandList4->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
+
 	for (size_t i = 0; i < items.size(); i++)
 	{
 		items[i].blueprint->technique->Enable();
 
 		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
 
-		mCommandList4->IASetVertexBuffers(0, 1, buffers[0]->GetView());
+		for (size_t j = 0; j < buffers.size(); j++)
+		{
+			mCommandList4->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+		}
+
 		mCommandList4->DrawInstanced(buffers[0]->GetNumberOfElements(), 1, 0, 0);
 		//mCommandList4->s
 	}
@@ -187,7 +192,7 @@ void D3D12Renderer::Present(Window * w)
 	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
 
-	//window->WaitForGPU();
+	window->WaitForGPU();
 
 }
 
@@ -297,7 +302,7 @@ bool D3D12Renderer::InitializeRootSignature()
 	//create root parameter
 	D3D12_ROOT_PARAMETER rootParam[1];
 	rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParam[0].Constants.Num32BitValues = 8;		// 2 * float4
+	rootParam[0].Constants.Num32BitValues = 16;		// 1 * float4x4
 	rootParam[0].Constants.RegisterSpace = 0;
 	rootParam[0].Constants.ShaderRegister = 0;
 	rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -344,6 +349,7 @@ bool D3D12Renderer::InitializeRootSignature()
 
 	return true;
 }
+
 
 ShaderManager * D3D12Renderer::MakeShaderManager()
 {

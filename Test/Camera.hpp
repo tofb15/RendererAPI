@@ -20,11 +20,10 @@ public:
 	bool HasViewChanged() const;
 protected:
 	Camera();
-private:
-	int id;
-	int viewMatrixIndex;
-	int perspectiveMatrixIndex;
-	bool hasViewChanged;
 
-	Transform transform;
+	//int id;
+	//int viewMatrixIndex;
+	//int perspectiveMatrixIndex;
+	//bool hasViewChanged;
+
 };

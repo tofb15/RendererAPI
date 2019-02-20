@@ -48,7 +48,7 @@ public:
 
 	virtual void ClearSubmissions() override;
 
-	virtual void Frame(Window* window) override;
+	virtual void Frame(Window * window, Camera * c) override;
 
 	virtual void Present(Window * w) override;
 
@@ -77,7 +77,6 @@ private:
 	bool InitializeCommandInterfaces();	
 	bool InitializeFenceAndEventHandle();
 	bool InitializeRootSignature();
-
 
 
 };

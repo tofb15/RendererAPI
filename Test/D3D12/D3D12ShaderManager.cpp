@@ -62,7 +62,7 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 	}
 
 	// Create the complete shader text (defines + file data)
-	//completeShaderText += sd.defines;
+	completeShaderText += sd.defines;
 	completeShaderText += shaderText;
 
 	hr = D3DCompile(

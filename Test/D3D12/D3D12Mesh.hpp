@@ -15,7 +15,7 @@ public:
 
 	// Inherited via Mesh
 	virtual bool LoadFromFile(const char * fileName) override;
-	virtual bool InitializeCube() override;
+	virtual bool InitializeCube(unsigned int vertexBufferFlags) override;
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) override;
 	virtual bool InitializePolygonList(std::vector<Polygon>& polygons) override;
 

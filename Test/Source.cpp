@@ -102,7 +102,7 @@ public:
 		ShaderDescription sd = {};
 
 
-		sd.defines = "";
+		sd.defines = "#define NORMAL\n";
 		sd.name = "VertexShader";
 		sd.type = ShaderType::VS;
 		Shader vs = sm->CompileShader(sd);
@@ -117,8 +117,8 @@ public:
 #pragma region CreateCamera
 	//Create Camera
 		Camera* cam = renderer->MakeCamera();
-		cam->SetPosition(Float3());
-		cam->SetTarget(Float3());
+		cam->SetPosition(Float3(0, 5, -5));
+		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		cameras.push_back(cam);
 #pragma endregion
@@ -126,24 +126,29 @@ public:
 		//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
 #pragma region CreateUniqueBlueprint
 	//Load meshes and materials from file
-		Mesh* mesh = renderer->MakeMesh();
+		Mesh* meshRect	= renderer->MakeMesh();
+		Mesh* meshCube	= renderer->MakeMesh();
 		//mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
 		std::vector<Mesh::Polygon> polygons;
 
-		Mesh::Polygon polys[] = { 
-			{-0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f},
-			{0.5f, -0.5f, 0.0f,-0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.0f},
+		Mesh::Polygon polysRect[] = { 
+			{Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f)},
+			{Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f)},
 		};
 
-		int nPolys = sizeof(polys) / sizeof(Mesh::Polygon);
-		for (size_t i = 0; i < nPolys; i++)
-		{
-			polygons.push_back(polys[i]);
-		}
+		//Mesh::Polygon polysTri[] = {
+		//	{Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f)},
+		//};
 
+		int nPolys = sizeof(polysRect) / sizeof(Mesh::Polygon);
+		for (size_t i = 0; i < nPolys; i++){polygons.push_back(polysRect[i]);}
+		meshRect->InitializePolygonList(polygons);
 
-		mesh->InitializePolygonList(polygons);
-		meshes.push_back(mesh);
+		
+		meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL);
+
+		meshes.push_back(meshRect);
+		meshes.push_back(meshCube);
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
@@ -176,17 +181,27 @@ public:
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
 		blueprint->technique = tech;
-		blueprint->mesh = mesh;
+		blueprint->mesh = meshes[0];
 		blueprint->textures.push_back(tex);
 		blueprints.push_back(blueprint);
 
+		blueprint = new Blueprint;
+		blueprint->technique = tech;
+		blueprint->mesh = meshes[1];
+		blueprint->textures.push_back(tex);
+		blueprints.push_back(blueprint);
 #pragma endregion
 
 		Object* object = new Object;
-		object->blueprint = blueprint;
+		object->blueprint = blueprints[0];
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 1.0f, 1.0f, 1.0f };
+		objects.push_back(object);
 
+		object = new Object;
+		object->blueprint = blueprints[1];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 1.0f, 1.0f, 1.0f };
 		objects.push_back(object);
 
 		return true;
@@ -203,25 +218,30 @@ public:
 
 			//Render the scene.
 #pragma region Render
-	//Submit all meshes that should be rendered and the transformation on the mesh.
-		//for (size_t i = 0; i < objects.size(); i++)
-		//{
-		//	//Submit one mesh that should be rendered and the transformation on the mesh.
-		//	renderer->Submit({ objects[i].blueprint, objects[i].transform });
-		//}
 
 			renderer->ClearSubmissions();
 
-			for (size_t i = 0; i < objects.size(); i++)
-			{
-				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			}
+			//for (size_t i = 0; i < objects.size(); i++)
+			//{
+			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			//}
 
 
-			renderer->Frame(windows[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			time += 0.001;
+			cameras[0]->SetPosition(Float3(sin(time), sin(time)*2, -5));
+
+			//Render Window 1
+			renderer->ClearSubmissions();
+			renderer->Submit({ objects[0]->blueprint, objects[0]->transform });
+
+			renderer->Frame(windows[0], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[0]);//Present frame to screen
 
-			renderer->Frame(windows[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			//Render Window 2
+			renderer->ClearSubmissions();
+			renderer->Submit({ objects[1]->blueprint, objects[1]->transform });
+
+			renderer->Frame(windows[1], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion
@@ -242,6 +262,8 @@ private:
 	std::vector<RenderState*>	renderStates;
 	std::vector<Camera*>		cameras;
 	std::vector<Object*>		objects;
+
+	float time = 0;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

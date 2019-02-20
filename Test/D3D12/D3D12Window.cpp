@@ -100,17 +100,16 @@ bool D3D12Window::Create()
 	if (!InitializeRenderTargets())
 		return false;
 
+	HRESULT hr;
+	hr = mRenderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
+	if (FAILED(hr))
+	{
+		return false;
+	}
 
-	//HRESULT hr;
-	//hr = mRenderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
-	//if (FAILED(hr))
-	//{
-	//	return false;
-	//}
-
-	//mFenceValue = 1;
-	////Create an event handle to use for GPU synchronization.
-	//mEventHandle = CreateEvent(0, false, false, 0);
+	mFenceValue = 1;
+	//Create an event handle to use for GPU synchronization.
+	mEventHandle = CreateEvent(0, false, false, 0);
 
 	return true;
 }

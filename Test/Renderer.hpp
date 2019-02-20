@@ -86,7 +86,7 @@ public:
 		@param window, the window to render the scene to.
 		@See Present()
 	*/
-	virtual void			Frame(Window* window) = 0; //How will this work with multi-threading? One thread to rule them all?
+	virtual void			Frame(Window* window, Camera* c) = 0; //How will this work with multi-threading? One thread to rule them all?
 	/*	
 		Present the last frame rendered by frame() to the window.
 		@See Frame()
