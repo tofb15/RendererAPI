@@ -12,7 +12,13 @@ D3D12ShaderManager::D3D12ShaderManager(D3D12Renderer * renderer)
 
 D3D12ShaderManager::~D3D12ShaderManager()
 {
-	
+	for (auto& blobList : mShader_blobs)
+	{
+		for (auto& blob : blobList.second)
+		{
+			blob->Release();
+		}
+	}
 }
 
 Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)

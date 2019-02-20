@@ -68,6 +68,7 @@ public:
 		}
 
 		delete renderer;
+		delete sm;
 	}
 
 	bool Initialize()
@@ -97,7 +98,7 @@ public:
 		window2->Show();
 		windows.push_back(window2);
 
-		ShaderManager* sm = renderer->MakeShaderManager();
+		sm = renderer->MakeShaderManager();
 		ShaderDescription sd = {};
 
 
@@ -218,6 +219,7 @@ public:
 
 private:
 	Renderer*					renderer;
+	ShaderManager* sm;
 	std::vector<Window*>		windows;
 
 	//Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?

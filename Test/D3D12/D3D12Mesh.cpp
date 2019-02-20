@@ -9,6 +9,10 @@ D3D12Mesh::D3D12Mesh(D3D12Renderer* renderer)
 
 D3D12Mesh::~D3D12Mesh()
 {
+	for (D3D12VertexBuffer* buffer : vertexBuffers)
+	{
+		delete buffer;
+	}
 }
 
 bool D3D12Mesh::LoadFromFile(const char * fileName)
