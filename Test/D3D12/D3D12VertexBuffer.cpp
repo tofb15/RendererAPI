@@ -17,6 +17,9 @@ D3D12VertexBuffer::~D3D12VertexBuffer()
 
 bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 {
+	mNumOfElements = nElements;
+	mElementSize = elementSize;
+
 	//Note: using upload heaps to transfer static data like vert buffers is not 
 	//recommended. Every time the GPU needs it, the upload heap will be marshalled 
 	//over. Please read up on Default Heap usage. An upload heap is used here for 
@@ -74,4 +77,14 @@ ID3D12Resource1 * D3D12VertexBuffer::GetResource()
 D3D12_VERTEX_BUFFER_VIEW * D3D12VertexBuffer::GetView()
 {
 	return view;
+}
+
+int D3D12VertexBuffer::GetNumberOfElements() const
+{
+	return mNumOfElements;
+}
+
+int D3D12VertexBuffer::GetElementSize() const
+{
+	return mElementSize;
 }

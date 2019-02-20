@@ -156,7 +156,7 @@ void D3D12Renderer::Frame(Window* w)
 		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
 
 		mCommandList4->IASetVertexBuffers(0, 1, buffers[0]->GetView());
-		mCommandList4->DrawInstanced(3, 1, 0, 0);
+		mCommandList4->DrawInstanced(buffers[0]->GetNumberOfElements(), 1, 0, 0);
 		//mCommandList4->s
 	}
 

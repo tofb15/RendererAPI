@@ -14,10 +14,12 @@ public:
 
 	ID3D12Resource1* GetResource();
 	D3D12_VERTEX_BUFFER_VIEW* GetView();
+	int GetNumberOfElements() const;
+	int GetElementSize() const;
 
 private:
-	int nElements;
-	int elementSize;
+	int mNumOfElements;
+	int mElementSize;
 
 	D3D12Renderer* renderer;
 	ID3D12Resource1* resource;
