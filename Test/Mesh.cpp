@@ -11,7 +11,7 @@ unsigned Mesh::GetVertexBufferFlags() const
 
 const char * Mesh::GetMaterialName() const
 {
-	return defaultMaterialName;
+	return mDefaultMaterialName;
 }
 
 Mesh::Mesh()
