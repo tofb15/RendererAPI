@@ -9,6 +9,5 @@ public:
 	D3D12Material();
 	virtual ~D3D12Material();
 
-	// Inherited via Material
-	virtual bool LoadFromFile(const char *, std::vector<Texture*>* textureList = nullptr) override;
+	virtual bool LoadFromFile(const char * fileName) override;
 };

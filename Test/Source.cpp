@@ -152,7 +152,7 @@ public:
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
-		mat->LoadFromFile(".mtl");
+		mat->LoadFromFile("generator.mtl");
 		materials.push_back(mat);
 
 
