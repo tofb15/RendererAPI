@@ -66,7 +66,7 @@ public:
 
 	unsigned GetVertexBufferFlags() const;
 	//virtual void SetTechnique(Technique*);
-	//virtual const char* GetMaterialName();
+	const char* GetMaterialName() const;
 protected:
 	Mesh();
 	const char* mDefaultMaterialName;
