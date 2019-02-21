@@ -12,6 +12,7 @@
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
+#include "D3D12CopyQueueHandler.h"
 
 
 
@@ -61,7 +62,7 @@ Window * D3D12Renderer::MakeWindow()
 
 Texture * D3D12Renderer::MakeTexture()
 {
-	return new D3D12Texture;
+	return new D3D12Texture(this);
 }
 
 Mesh * D3D12Renderer::MakeMesh()
@@ -213,6 +214,16 @@ ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
 ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
 {
 	return mCommandList4;
+}
+
+D3D12CopyQueueHandler * D3D12Renderer::GetD3D12CopyQueueHandler()
+{
+	if (!mCqh) {
+		mCqh = new D3D12CopyQueueHandler(this);
+		mCqh->Initialize();
+	}
+
+	return mCqh;
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()

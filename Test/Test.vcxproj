@@ -116,6 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3D12\D3D12CopyQueueHandler.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
     <ClCompile Include="D3D12\D3D12Camera.cpp" />
     <ClCompile Include="D3D12\D3D12Material.cpp" />
@@ -126,6 +127,7 @@
     <ClCompile Include="D3D12\D3D12Texture.cpp" />
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
+    <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -138,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="D3D12\D3D12CopyQueueHandler.h" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
     <ClInclude Include="D3D12\D3D12Camera.hpp" />
     <ClInclude Include="D3D12\D3D12Material.hpp" />
@@ -147,6 +150,8 @@
     <ClInclude Include="D3D12\D3D12Technique.hpp" />
     <ClInclude Include="D3D12\D3D12Texture.hpp" />
     <ClInclude Include="D3D12\D3D12Window.hpp" />
+    <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
+    <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
     <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
     <ClInclude Include="Material.hpp" />

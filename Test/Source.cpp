@@ -175,7 +175,7 @@ public:
 
 		//Create a Texture
 		Texture* tex = renderer->MakeTexture();
-		tex->LoadFromFile(".png");
+		tex->LoadFromFile("../assets/Textures/testbild.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
