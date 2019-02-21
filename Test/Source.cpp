@@ -128,24 +128,17 @@ public:
 	//Load meshes and materials from file
 		Mesh* meshRect	= renderer->MakeMesh();
 		Mesh* meshCube	= renderer->MakeMesh();
-		//mesh->LoadFromFile(".obj"); //Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
-		std::vector<Mesh::Polygon> polygons;
-
-		Mesh::Polygon polysRect[] = { 
-			{Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f)},
-			{Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f)},
+		
+		Float3 rect[] = { 
+			Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f),
+			Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f),
 		};
 
-		//Mesh::Polygon polysTri[] = {
-		//	{Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f)},
-		//};
-
-		int nPolys = sizeof(polysRect) / sizeof(Mesh::Polygon);
-		for (size_t i = 0; i < nPolys; i++){polygons.push_back(polysRect[i]);}
-		meshRect->InitializePolygonList(polygons);
-
+		int nElems = sizeof(rect) / sizeof(Float3);
+		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
 		
-		meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL);
+		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
+		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL);
 
 		meshes.push_back(meshRect);
 		meshes.push_back(meshCube);
