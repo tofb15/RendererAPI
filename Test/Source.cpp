@@ -102,7 +102,7 @@ public:
 		ShaderDescription sd = {};
 
 
-		sd.defines = "#define NORMAL\n";
+		sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
 		sd.name = "VertexShader";
 		sd.type = ShaderType::VS;
 		Shader vs = sm->CompileShader(sd);
@@ -137,8 +137,8 @@ public:
 		int nElems = sizeof(rect) / sizeof(Float3);
 		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
 		
-		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
-		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL);
+		//meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
+		meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 
 		meshes.push_back(meshRect);
 		meshes.push_back(meshCube);
@@ -167,21 +167,26 @@ public:
 		//mesh->SetTechnique(tech); // A mesh could be renderer using more than one Technique. This is set in the blueprint insteed
 
 		//Create a Texture
-		Texture* tex = renderer->MakeTexture();
-		tex->LoadFromFile(".png");
+		Texture* tex;
+		tex = renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		textures.push_back(tex);
+
+		tex = renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
 		blueprint->technique = tech;
-		blueprint->mesh = meshes[0];
-		blueprint->textures.push_back(tex);
+		blueprint->mesh = meshes[1];
+		blueprint->textures.push_back(textures[0]);
 		blueprints.push_back(blueprint);
 
 		blueprint = new Blueprint;
 		blueprint->technique = tech;
 		blueprint->mesh = meshes[1];
-		blueprint->textures.push_back(tex);
+		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
 #pragma endregion
 
