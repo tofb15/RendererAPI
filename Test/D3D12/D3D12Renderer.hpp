@@ -13,7 +13,7 @@ struct ID3D12DescriptorHeap;
 struct ID3D12RootSignature;
 
 class D3D12VertexBuffer;
-class D3D12CopyQueueHandler;
+class D3D12TextureLoader;
 /*
 	Documentation goes here ^^
 */
@@ -57,12 +57,12 @@ public:
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
 	ID3D12GraphicsCommandList3* GetCommandList() const;
-	D3D12CopyQueueHandler* GetD3D12CopyQueueHandler();
+	D3D12TextureLoader* GetTextureLoader();
 
 private:
 
 	std::vector<SubmissionItem> items;
-	D3D12CopyQueueHandler* mCqh;
+	D3D12TextureLoader* mTextureLoader;
 
 
 #pragma region InitailizeVariables

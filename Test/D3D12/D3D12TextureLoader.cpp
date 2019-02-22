@@ -1,24 +1,23 @@
-#include "D3D12CopyQueueHandler.h"
+#include "D3D12TextureLoader.hpp"
 #include "External/D3DX12/d3dx12.h"
 #include "D3D12Renderer.hpp"
 #include "D3D12Texture.hpp"
 
-D3D12CopyQueueHandler::D3D12CopyQueueHandler(D3D12Renderer * renderer) : mRenderer(renderer)
+D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : mRenderer(renderer)
 {
 
 }
 
-D3D12CopyQueueHandler::~D3D12CopyQueueHandler()
+D3D12TextureLoader::~D3D12TextureLoader()
 {
 }
 
-bool D3D12CopyQueueHandler::Initialize()
+bool D3D12TextureLoader::Initialize()
 {
 	HRESULT hr;
 	//Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	cqd.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-
 	hr = mRenderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&mCommandQueue));
 	if (FAILED(hr))
 	{
@@ -56,10 +55,18 @@ bool D3D12CopyQueueHandler::Initialize()
 	//Create an event handle to use for GPU synchronization.
 	mEventHandle = CreateEvent(0, false, false, 0);
 
+	D3D12_DESCRIPTOR_HEAP_DESC heapDescriptorDesc = {};
+	heapDescriptorDesc.NumDescriptors = 1;		// Make room for (NOT one cb) and one srv
+	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	hr = mRenderer->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&mDescriptorHeap));
+	if (FAILED(hr))
+		return false;
+
 	return true;
 }
 
-void D3D12CopyQueueHandler::DoWork()
+void D3D12TextureLoader::DoWork()
 {
 
 	//while (true)
@@ -162,9 +169,10 @@ void D3D12CopyQueueHandler::DoWork()
 
 	//for (size_t i = 0; i < m->NUM_SWAP_BUFFERS; i++)
 	//{
-	//	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderer->mDescriptorHeap[i]->GetCPUDescriptorHandleForHeapStart();
-	//	//cdh.ptr += renderer->mCBV_SRV_UAV_DescriptorSize;
-	//	renderer->getDevice()->CreateShaderResourceView(resource, &srvDesc, cdh);
+		D3D12_CPU_DESCRIPTOR_HANDLE cdh = mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		//cdh.ptr += renderer->mCBV_SRV_UAV_DescriptorSize;
+		mRenderer->GetDevice()->CreateShaderResourceView(texture->mResource, &srvDesc, cdh);
+		//mCommandList4->SetGraphicsRootShaderResourceView(1, texture->mResource->GetGPUVirtualAddress());
 	//}
 
 	mCommandList4->Close();
@@ -177,12 +185,17 @@ void D3D12CopyQueueHandler::DoWork()
 	//}
 }
 
-void D3D12CopyQueueHandler::LoadTextureToGPU(D3D12Texture * texture)
+void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 {
 	mTextures.push_back(texture);
 }
 
-void D3D12CopyQueueHandler::WaitForCopy()
+ID3D12DescriptorHeap * D3D12TextureLoader::GetDescriptorHeap()
+{
+	return mDescriptorHeap;
+}
+
+void D3D12TextureLoader::WaitForCopy()
 {
 	const UINT64 fence = mFenceValue;
 	mCommandQueue->Signal(mFence, fence);

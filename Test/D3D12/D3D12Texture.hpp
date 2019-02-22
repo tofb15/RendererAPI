@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../Texture.hpp"
-#include "D3D12CopyQueueHandler.h"
+#include "D3D12TextureLoader.hpp"
 
 #include <vector>
 
 class D3D12Renderer;
-class D3D12CopyQueueHandler;
+class D3D12TextureLoader;
 
 struct ID3D12Resource;
-struct ID3D12DescriptorHeap;
+//struct ID3D12DescriptorHeap;
 
 /*
 	Contain a texture that could be applied to a mesh.
@@ -23,7 +23,7 @@ public:
 	virtual bool LoadFromFile(const char* fileName, unsigned flags) override;
 	bool IsLoaded();
 private:
-	friend D3D12CopyQueueHandler;
+	friend D3D12TextureLoader;
 
 	void load();
 	bool CreateGPUTextureResource();
@@ -34,5 +34,5 @@ private:
 	unsigned mFlags;
 	D3D12Renderer* mRenderer;
 	ID3D12Resource* mResource;
-	ID3D12DescriptorHeap* mDescriptorHeap;
+	//ID3D12DescriptorHeap* mDescriptorHeap;
 };

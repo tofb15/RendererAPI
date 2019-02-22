@@ -21,6 +21,7 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 
 	//decode
 	unsigned error = lodepng::decode(mImage_CPU, mWidth, mHeight, fileName);
+	mBytesPerPixel = 4;
 
 	//if there's an error, display it
 	if (error) {
@@ -31,8 +32,8 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 	//If GPU_USAGE_FLAG is set, create a texture recorce on the GPU.
 	if (flags & Texture_Load_Flags::TEXTURE_USAGE_GPU_FLAG) {
 		//This should be done by a copy queue on a seperate thread.
-		mRenderer->GetD3D12CopyQueueHandler()->LoadTextureToGPU(this);
-		mRenderer->GetD3D12CopyQueueHandler()->DoWork();
+		mRenderer->GetTextureLoader()->LoadTextureToGPU(this);
+		mRenderer->GetTextureLoader()->DoWork();
 	}
 
 	//If no CPU_USAGE_FLAG is set, remove cpu data to save RAM

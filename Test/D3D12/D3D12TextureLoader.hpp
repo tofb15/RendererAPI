@@ -11,17 +11,17 @@ class D3D12Renderer;
 
 //struct ID3D12Resource;
 
-class D3D12CopyQueueHandler
+class D3D12TextureLoader
 {
 public:
 
-	D3D12CopyQueueHandler(D3D12Renderer* renderer);
-	~D3D12CopyQueueHandler();
+	D3D12TextureLoader(D3D12Renderer* renderer);
+	~D3D12TextureLoader();
 
 	bool Initialize();
 	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
-
+	ID3D12DescriptorHeap* GetDescriptorHeap();
 private:
 	void WaitForCopy();
 
@@ -31,6 +31,8 @@ private:
 	ID3D12CommandQueue*	mCommandQueue = nullptr;
 	ID3D12CommandAllocator*		mCommandAllocator = nullptr;
 	ID3D12GraphicsCommandList3*	mCommandList4 = nullptr;
+
+	ID3D12DescriptorHeap*	mDescriptorHeap = nullptr;
 
 	//Fences for the render targets
 	ID3D12Fence1*				mFence = nullptr;

@@ -12,7 +12,7 @@
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
-#include "D3D12CopyQueueHandler.h"
+#include "D3D12TextureLoader.hpp"
 
 
 
@@ -116,12 +116,13 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	mCommandList4->Reset(mCommandAllocator, nullptr);
 
 	//Set constant buffer descriptor heap
-	//ID3D12DescriptorHeap* descriptorHeaps[0];
-	//mCommandList4->SetDescriptorHeaps(0, NULL);
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mTextureLoader->GetDescriptorHeap() };
+	mCommandList4->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
 
 	//Set root signature
 	mCommandList4->SetGraphicsRootSignature(mRootSignature);
 	mCommandList4->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 
 	//Set root descriptor table to index 0 in previously set root signature
 	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
@@ -150,6 +151,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	mCommandList4->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
+	mCommandList4->SetGraphicsRootDescriptorTable(1, mTextureLoader->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
 	for (size_t i = 0; i < items.size(); i++)
 	{
@@ -216,14 +218,14 @@ ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
 	return mCommandList4;
 }
 
-D3D12CopyQueueHandler * D3D12Renderer::GetD3D12CopyQueueHandler()
+D3D12TextureLoader * D3D12Renderer::GetTextureLoader()
 {
-	if (!mCqh) {
-		mCqh = new D3D12CopyQueueHandler(this);
-		mCqh->Initialize();
+	if (!mTextureLoader) {
+		mTextureLoader = new D3D12TextureLoader(this);
+		mTextureLoader->Initialize();
 	}
 
-	return mCqh;
+	return mTextureLoader;
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()
@@ -310,21 +312,47 @@ bool D3D12Renderer::InitializeRootSignature()
 {
 	HRESULT hr;
 
+	D3D12_STATIC_SAMPLER_DESC samp[1] = {};
+	samp[0].RegisterSpace = 0;
+	samp[0].ShaderRegister = 0;
+	samp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	samp[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samp[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samp[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samp[0].MinLOD = 0;
+	samp[0].MaxLOD = 1;
+	samp[0].MipLODBias = 0;
+	samp[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+
+
+	D3D12_DESCRIPTOR_RANGE dr[1] = {};
+	dr[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	dr[0].NumDescriptors = 1;
+	dr[0].BaseShaderRegister = 0;
+	dr[0].RegisterSpace = 0;
+
+	D3D12_ROOT_DESCRIPTOR_TABLE rdt = {};
+	rdt.NumDescriptorRanges = 1;
+	rdt.pDescriptorRanges = dr;
+
 	//create root parameter
-	D3D12_ROOT_PARAMETER rootParam[1];
+	D3D12_ROOT_PARAMETER rootParam[2];
 	rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
 	rootParam[0].Constants.Num32BitValues = 16;		// 1 * float4x4
 	rootParam[0].Constants.RegisterSpace = 0;
 	rootParam[0].Constants.ShaderRegister = 0;
 	rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
+	rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParam[1].DescriptorTable = rdt;
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc;
 	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsDesc.NumParameters = 1;
+	rsDesc.NumParameters = 2;
 	rsDesc.pParameters = rootParam;
-	rsDesc.NumStaticSamplers = 0;
-	rsDesc.pStaticSamplers = nullptr;
+	rsDesc.NumStaticSamplers = 1;
+	rsDesc.pStaticSamplers = samp;
 
 	ID3DBlob* sBlob;
 	hr = D3D12SerializeRootSignature(

@@ -78,7 +78,7 @@
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12\D3D12CopyQueueHandler.cpp">
+    <ClCompile Include="D3D12\D3D12TextureLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -152,7 +152,7 @@
     <ClInclude Include="D3D12\External\D3DX12\d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12\D3D12CopyQueueHandler.h">
+    <ClInclude Include="D3D12\D3D12TextureLoader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

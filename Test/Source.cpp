@@ -102,7 +102,7 @@ public:
 		ShaderDescription sd = {};
 
 
-		sd.defines = "#define NORMAL\n";
+		sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
 		sd.name = "VertexShader";
 		sd.type = ShaderType::VS;
 		Shader vs = sm->CompileShader(sd);
@@ -145,7 +145,7 @@ public:
 		meshRect->InitializePolygonList(polygons);
 
 		
-		meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL);
+		meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 
 		meshes.push_back(meshRect);
 		meshes.push_back(meshCube);
@@ -175,7 +175,7 @@ public:
 
 		//Create a Texture
 		Texture* tex = renderer->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/testbild.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.

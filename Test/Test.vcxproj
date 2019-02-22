@@ -116,7 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="D3D12\D3D12CopyQueueHandler.cpp" />
+    <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
     <ClCompile Include="D3D12\D3D12Camera.cpp" />
     <ClCompile Include="D3D12\D3D12Material.cpp" />
@@ -140,7 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="D3D12\D3D12CopyQueueHandler.h" />
+    <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
     <ClInclude Include="D3D12\D3D12Camera.hpp" />
     <ClInclude Include="D3D12\D3D12Material.hpp" />
