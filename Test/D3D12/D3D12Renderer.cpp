@@ -37,6 +37,8 @@ D3D12Renderer::D3D12Renderer()
 
 D3D12Renderer::~D3D12Renderer()
 {
+	if (mTextureLoader)
+		delete mTextureLoader;
 }
 
 bool D3D12Renderer::Initialize()
@@ -46,6 +48,9 @@ bool D3D12Renderer::Initialize()
 	InitializeCommandInterfaces();
 
 	InitializeRootSignature();
+
+	mTextureLoader = new D3D12TextureLoader(this);
+	mTextureLoader->Initialize();
 
 	return true;
 }
@@ -116,8 +121,20 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	mCommandList4->Reset(mCommandAllocator, nullptr);
 
 	//Set constant buffer descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mTextureLoader->GetDescriptorHeap() };
-	mCommandList4->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
+	int nTextureDescriptorHeaps = mTextureLoader->GetNumberOfHeaps();
+	ID3D12DescriptorHeap** textureHeaps = mTextureLoader->GetAllHeaps();
+
+	int nDescriptorHeapsTotal = nTextureDescriptorHeaps;
+
+	ID3D12DescriptorHeap** heapsToUse = new ID3D12DescriptorHeap*[nDescriptorHeapsTotal];
+
+	for (size_t i = 0; i < nTextureDescriptorHeaps; i++)
+	{
+		heapsToUse[i] = textureHeaps[i];
+	}
+
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { test/*mTextureLoader->GetDescriptorHeap()*/ };
+	mCommandList4->SetDescriptorHeaps(nDescriptorHeapsTotal, heapsToUse );
 
 	//Set root signature
 	mCommandList4->SetGraphicsRootSignature(mRootSignature);
@@ -151,11 +168,14 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	mCommandList4->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
-	mCommandList4->SetGraphicsRootDescriptorTable(1, mTextureLoader->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
 	for (size_t i = 0; i < items.size(); i++)
 	{
 		items[i].blueprint->technique->Enable();
+		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[0].blueprint->textures[0]));
+		handle.ptr += 0;
+
+		mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
 
 		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
 
@@ -168,6 +188,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		//mCommandList4->s
 	}
 
+	delete[] heapsToUse;
 }
 
 void D3D12Renderer::Present(Window * w)
@@ -218,13 +239,8 @@ ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
 	return mCommandList4;
 }
 
-D3D12TextureLoader * D3D12Renderer::GetTextureLoader()
+D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
-	if (!mTextureLoader) {
-		mTextureLoader = new D3D12TextureLoader(this);
-		mTextureLoader->Initialize();
-	}
-
 	return mTextureLoader;
 }
 

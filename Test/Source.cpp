@@ -174,21 +174,26 @@ public:
 		//mesh->SetTechnique(tech); // A mesh could be renderer using more than one Technique. This is set in the blueprint insteed
 
 		//Create a Texture
-		Texture* tex = renderer->MakeTexture();
+		Texture* tex;
+		tex = renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		textures.push_back(tex);
+
+		tex = renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
 		blueprint->technique = tech;
-		blueprint->mesh = meshes[0];
-		blueprint->textures.push_back(tex);
+		blueprint->mesh = meshes[1];
+		blueprint->textures.push_back(textures[0]);
 		blueprints.push_back(blueprint);
 
 		blueprint = new Blueprint;
 		blueprint->technique = tech;
 		blueprint->mesh = meshes[1];
-		blueprint->textures.push_back(tex);
+		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
 #pragma endregion
 

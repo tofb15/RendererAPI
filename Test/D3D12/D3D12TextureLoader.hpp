@@ -11,6 +11,8 @@ class D3D12Renderer;
 
 //struct ID3D12Resource;
 
+#include <vector>
+
 class D3D12TextureLoader
 {
 public:
@@ -21,18 +23,33 @@ public:
 	bool Initialize();
 	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
-	ID3D12DescriptorHeap* GetDescriptorHeap();
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);
+
+	//ID3D12DescriptorHeap* GetDescriptorHeap();
+	unsigned GetNumberOfHeaps();
+	ID3D12DescriptorHeap** GetAllHeaps();
+
 private:
 	void WaitForCopy();
+	bool AddDescriptorHeap();
 
-	std::vector<D3D12Texture*> mTextures;
+	//Temp Storage
+	std::vector<D3D12Texture*> mTexturesToLoadToGPU;
 
-	D3D12Renderer* mRenderer;
-	ID3D12CommandQueue*	mCommandQueue = nullptr;
+	//Permanent Storage
+	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 10;
+	unsigned mNrOfSRVs = 0;
+	std::vector<ID3D12DescriptorHeap*> m_DescriptorHeaps;
+	std::vector<ID3D12Resource*> m_TextureResources;
+
+	unsigned mCBV_SRV_UAV_DescriptorSize;
+
+	D3D12Renderer*				mRenderer;
+	ID3D12CommandQueue*			mCommandQueue = nullptr;
 	ID3D12CommandAllocator*		mCommandAllocator = nullptr;
 	ID3D12GraphicsCommandList3*	mCommandList4 = nullptr;
 
-	ID3D12DescriptorHeap*	mDescriptorHeap = nullptr;
+	//ID3D12DescriptorHeap*	mDescriptorHeap = nullptr;
 
 	//Fences for the render targets
 	ID3D12Fence1*				mFence = nullptr;

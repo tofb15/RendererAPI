@@ -51,11 +51,3 @@ bool D3D12Texture::IsLoaded()
 {
 	return mIsLoaded;
 }
-
-bool D3D12Texture::CreateGPUTextureResource()
-{
-
-
-	return true;
-}
-

@@ -25,14 +25,17 @@ public:
 private:
 	friend D3D12TextureLoader;
 
-	void load();
-	bool CreateGPUTextureResource();
-
+	//void load();
+	//bool CreateGPUTextureResource();
 
 	bool mIsLoaded = false;
 	std::vector<unsigned char> mImage_CPU; //the raw pixels stored on the CPU.
 	unsigned mFlags;
 	D3D12Renderer* mRenderer;
-	ID3D12Resource* mResource;
+
+	/*Used by the Texture loader to find the right GPU address for this specific texture*/
+	int mGPU_Loader_index = -1;
+
+	//ID3D12Resource* mResource;
 	//ID3D12DescriptorHeap* mDescriptorHeap;
 };
