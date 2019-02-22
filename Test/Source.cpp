@@ -152,6 +152,8 @@ public:
 
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
+		renderState->SetWireframe(true);
+		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderStates.push_back(renderState);
 
 		ShaderProgram sp = {};
