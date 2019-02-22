@@ -172,9 +172,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	for (size_t i = 0; i < items.size(); i++)
 	{
 		items[i].blueprint->technique->Enable();
-		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[0].blueprint->textures[0]));
-		handle.ptr += 0;
-
+		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[i].blueprint->textures[0]));
 		mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
 
 		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
