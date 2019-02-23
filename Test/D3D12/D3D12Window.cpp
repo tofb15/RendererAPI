@@ -26,6 +26,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYDOWN: {
 		short key = wParam;
+		//std::cout << std::dec << key << std::endl;
 		Window::GetGlobalWindowInputHandler().SetKeyDown(key, true);
 	}
 		break;

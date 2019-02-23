@@ -225,26 +225,26 @@ public:
 			windows[1]->HandleWindowEvents();
 
 			//Global Input
-			if (input_Global.IsKeyDown(65)) {
-				std::cout << "Global" << ": A is down" << std::endl;
-			}
-			if (input_Global.IsKeyPressed(65)) {
-				std::cout << "Global" << ": A was Pressed" << std::endl;
-			}
-			//Window 1 Input
-			if (input1.IsKeyDown(65)) {
-				std::cout << windows[0]->GetTitle() << ": A is down" << std::endl;
-			}
-			if (input1.IsKeyPressed(65)) {
-				std::cout << windows[0]->GetTitle() << ": A was Pressed" << std::endl;
-			}
-			//Window 2 Input
-			if (input2.IsKeyDown(65)) {
-				std::cout << windows[1]->GetTitle() << ": A is down" << std::endl;
-			}
-			if (input2.IsKeyPressed(65)) {
-				std::cout << windows[1]->GetTitle() << ": A was Pressed" << std::endl;
-			}
+			//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
+			//	std::cout << "Global" << ": \tA is down" << std::endl;
+			//}
+			//if (input_Global.IsKeyPressed(WindowInput::KEY_CODE_A)) {
+			//	std::cout << "Global" << ": \tA was Pressed" << std::endl;
+			//}
+			////Window 1 Input
+			//if (input1.IsKeyDown(WindowInput::KEY_CODE_A)) {
+			//	std::cout << windows[0]->GetTitle() << ": \tA is down" << std::endl;
+			//}
+			//if (input1.IsKeyPressed(WindowInput::KEY_CODE_A)) {
+			//	std::cout << windows[0]->GetTitle() << ": \tA was Pressed" << std::endl;
+			//}
+			////Window 2 Input
+			//if (input2.IsKeyDown(WindowInput::KEY_CODE_A)) {
+			//	std::cout << windows[1]->GetTitle() << ": \tA is down" << std::endl;
+			//}
+			//if (input2.IsKeyPressed(WindowInput::KEY_CODE_A)) {
+			//	std::cout << windows[1]->GetTitle() << ": \tA was Pressed" << std::endl;
+			//}
 
 
 			//Render the scene.

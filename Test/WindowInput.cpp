@@ -20,25 +20,36 @@ void WindowInput::Reset()
 
 void WindowInput::SetKeyDown(char key, bool isDown)
 {
-	m_isKeysDown[key] = isDown;
+	if(key < NUM_KEYS)
+		m_isKeysDown[key] = isDown;
 }
 
 void WindowInput::SetKeyPressed(char key, bool isPressed)
 {
-	m_isKeysPressed[key] = isPressed;
+	if (key < NUM_KEYS)
+		m_isKeysPressed[key] = isPressed;
 }
 
 bool WindowInput::IsKeyDown(char key) const
 {
-	return m_isKeysDown[key];
+	if (key < NUM_KEYS)
+		return m_isKeysDown[key];
+	else
+		return false;
 }
 
 bool WindowInput::IsKeyUp(char key) const
 {
-	return !m_isKeysDown[key];
+	if (key < NUM_KEYS)
+		return !m_isKeysDown[key];
+	else
+		return false;
 }
 
 bool WindowInput::IsKeyPressed(char key) const
 {
-	return m_isKeysPressed[key];
+	if (key < NUM_KEYS)
+		return m_isKeysPressed[key];
+	else
+		return false;
 }
