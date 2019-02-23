@@ -9,6 +9,11 @@ typedef union Float3
 	Float3() { x = y = z = 0; }
 	Float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
+	Float3 operator+(Float3 other) { return Float3(x + other.x, y + other.y, z + other.z); }
+	Float3 operator-(Float3 other) { return Float3(x - other.x, y - other.y, z - other.z); };
+	Float3 operator*(float other) { return Float3(x * other, y * other, z * other); };
+	Float3 operator/(float other) { return Float3(x / other, y / other, z / other); };
+
 } Float3;
 
 typedef union Float2
@@ -18,6 +23,11 @@ typedef union Float2
 	struct { float x; float y; };
 	struct { float u; float v; };
 	struct { float s; float t; };
+
+	Float2 operator+(Float2 other) { return Float2(x + other.x, y + other.y); }
+	Float2 operator-(Float2 other) { return Float2(x - other.x, y - other.y); };
+	Float2 operator*(float other) { return Float2(x * other, y * other); };
+	Float2 operator/(float other) { return Float2(x / other, y / other); };
 } Float2;
 
 
@@ -29,6 +39,11 @@ typedef union Int2
 	struct { int x; int y;};
 	struct { int u; int v;};
 	struct { int s; int t;};
+
+	Int2 operator+(Int2 other) { return Int2(x + other.x, y + other.y); }
+	Int2 operator-(Int2 other) { return Int2(x - other.x, y - other.y); };
+	Int2 operator*(float other) { return Int2(x * other, y * other); };
+	Int2 operator/(float other) { return Int2(x / other, y / other); };
 } Int2;
 
 struct Transform {

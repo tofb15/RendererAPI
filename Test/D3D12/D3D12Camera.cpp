@@ -14,6 +14,11 @@ void D3D12Camera::SetPosition(Float3 position)
 	mHasChanged = true;
 }
 
+void D3D12Camera::Move(Float3 position)
+{
+	SetPosition(mPosition + position);
+}
+
 void D3D12Camera::SetTarget(Float3 target)
 {
 	mTarget = target;

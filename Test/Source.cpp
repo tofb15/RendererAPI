@@ -121,6 +121,12 @@ public:
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		cameras.push_back(cam);
+
+		cam = renderer->MakeCamera();
+		cam->SetPosition(Float3(0, 5, -5));
+		cam->SetTarget(Float3(0, 0, 0));
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
+		cameras.push_back(cam);
 #pragma endregion
 
 		//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
@@ -153,6 +159,11 @@ public:
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
 		renderState->SetWireframe(true);
+		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
+		renderStates.push_back(renderState);
+
+		renderState = renderer->MakeRenderState();
+		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderStates.push_back(renderState);
 
@@ -162,8 +173,12 @@ public:
 		sp.FS = fs;
 
 		//Create Technique from renderstate and material
-		Technique* tech = renderer->MakeTechnique(renderState, &sp, sm);
+		Technique* tech = renderer->MakeTechnique(renderStates[0], &sp, sm);
 		techniques.push_back(tech);
+
+		tech = renderer->MakeTechnique(renderStates[1], &sp, sm);
+		techniques.push_back(tech);
+
 
 		//Attach Technique to mesh
 		//mesh->SetTechnique(tech); // A mesh could be renderer using more than one Technique. This is set in the blueprint insteed
@@ -180,13 +195,13 @@ public:
 
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
-		blueprint->technique = tech;
+		blueprint->technique = techniques[0];
 		blueprint->mesh = meshes[1];
 		blueprint->textures.push_back(textures[0]);
 		blueprints.push_back(blueprint);
 
 		blueprint = new Blueprint;
-		blueprint->technique = tech;
+		blueprint->technique = techniques[0];
 		blueprint->mesh = meshes[1];
 		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
@@ -216,6 +231,12 @@ public:
 		//Get the input handler for window 1. local input handlers is unique for each window!
 		WindowInput &input2 = windows[1]->GetLocalWindowInputHandler();
 
+		bool demoMovement[2];
+		demoMovement[0] = true;
+		demoMovement[1] = true;
+
+		int techniqueToUse = 0;
+
 		//Game Loop
 		while (!windows[0]->WindowClosed())
 		{
@@ -224,27 +245,79 @@ public:
 			windows[0]->HandleWindowEvents();
 			windows[1]->HandleWindowEvents();
 
+#pragma region INPUT_DEMO
 			//Global Input
-			//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-			//	std::cout << "Global" << ": \tA is down" << std::endl;
-			//}
-			//if (input_Global.IsKeyPressed(WindowInput::KEY_CODE_A)) {
-			//	std::cout << "Global" << ": \tA was Pressed" << std::endl;
-			//}
-			////Window 1 Input
-			//if (input1.IsKeyDown(WindowInput::KEY_CODE_A)) {
-			//	std::cout << windows[0]->GetTitle() << ": \tA is down" << std::endl;
-			//}
-			//if (input1.IsKeyPressed(WindowInput::KEY_CODE_A)) {
-			//	std::cout << windows[0]->GetTitle() << ": \tA was Pressed" << std::endl;
-			//}
-			////Window 2 Input
-			//if (input2.IsKeyDown(WindowInput::KEY_CODE_A)) {
-			//	std::cout << windows[1]->GetTitle() << ": \tA is down" << std::endl;
-			//}
-			//if (input2.IsKeyPressed(WindowInput::KEY_CODE_A)) {
-			//	std::cout << windows[1]->GetTitle() << ": \tA was Pressed" << std::endl;
-			//}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
+				cameras[0]->Move({0, 0, 0.1});
+				cameras[1]->Move({0, 0, 0.1});
+				demoMovement[0] = demoMovement[1] = false;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
+				cameras[0]->Move({ 0, 0, -0.1 });
+				cameras[1]->Move({ 0, 0, -0.1 });
+				demoMovement[0] = demoMovement[1] = false;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
+				cameras[0]->Move({ -0.1, 0, 0 });
+				cameras[1]->Move({ -0.1, 0, 0 });
+				demoMovement[0] = demoMovement[1] = false;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
+				cameras[0]->Move({ 0.1, 0, 0 });
+				cameras[1]->Move({ 0.1, 0, 0 });
+				demoMovement[0] = demoMovement[1] = false;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
+				demoMovement[0] = true;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_2)) {
+				demoMovement[1] = true;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_3)) {
+				demoMovement[0] = demoMovement[1] = true;
+			}
+			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
+				techniqueToUse = (techniqueToUse+1)%2;
+				blueprints[0]->technique = techniques[techniqueToUse];
+				blueprints[1]->technique = techniques[techniqueToUse];
+			}
+
+			//Window 1
+			if (input1.IsKeyDown(WindowInput::KEY_CODE_UP)) {
+				cameras[0]->Move({ 0, 0, 0.1 });
+				demoMovement[0] = false;
+			}
+			if (input1.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
+				cameras[0]->Move({ 0, 0, -0.1 });
+				demoMovement[0] = false;
+			}
+			if (input1.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
+				cameras[0]->Move({ -0.1, 0, 0 });
+				demoMovement[0] = false;
+			}
+			if (input1.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
+				cameras[0]->Move({ 0.1, 0, 0 });
+				demoMovement[0] = false;
+			}
+
+			//Window 1
+			if (input2.IsKeyDown(WindowInput::KEY_CODE_UP)) {
+				cameras[1]->Move({ 0, 0, 0.1 });
+				demoMovement[1] = false;
+			}
+			if (input2.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
+				cameras[1]->Move({ 0, 0, -0.1 });
+				demoMovement[1] = false;
+			}
+			if (input2.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
+				cameras[1]->Move({ -0.1, 0, 0 });
+				demoMovement[1] = false;
+			}
+			if (input2.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
+				cameras[1]->Move({ 0.1, 0, 0 });
+				demoMovement[1] = false;
+			}
+#pragma endregion
 
 
 			//Render the scene.
@@ -259,7 +332,11 @@ public:
 
 
 			time += 0.001;
-			cameras[0]->SetPosition(Float3(sin(time), sin(time)*2, -5));
+			if(demoMovement[0])
+				cameras[0]->SetPosition(Float3(sin(time), sin(time)*2, -5));
+			if (demoMovement[1])
+				cameras[1]->SetPosition(Float3(sin(time), sin(time) * 2, -5));
+
 
 			//Render Window 1
 			renderer->ClearSubmissions();
@@ -272,7 +349,7 @@ public:
 			renderer->ClearSubmissions();
 			renderer->Submit({ objects[1]->blueprint, objects[1]->transform });
 
-			renderer->Frame(windows[1], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion

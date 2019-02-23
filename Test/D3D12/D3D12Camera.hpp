@@ -9,6 +9,7 @@ public:
 
 	// Inherited via Camera
 	virtual void SetPosition(Float3 position) override;
+	virtual void Move(Float3 position) override;
 
 	virtual void SetTarget(Float3 target) override;
 
