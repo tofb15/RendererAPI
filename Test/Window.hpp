@@ -1,36 +1,72 @@
 #pragma once
 
 #include "Math.hpp"
+#include "WindowInput.hpp"
 
 class Window {
 public:
 	virtual ~Window();
 
+	const char* GetTitle() const;
+
 	virtual void SetDimensions(Int2 dimensions) = 0;
 	virtual void SetDimensions(int w, int h) = 0;
 	virtual void SetPosition(Int2 position) = 0;
 	virtual void SetPosition(int x, int y) = 0;
-	virtual void SetTitle(const char* title) = 0; /*Change the title of the window*/
-	virtual bool Create() = 0; /*This is where the window is actually created*/
-	virtual void Show() = 0; /*Show the window*/
-	virtual void Hide() = 0; /*Hide the window*/
-	virtual void HandleWindowEvents() = 0; /*Should be called every frame to handle the window events.*/
+	/*
+		Change the title of the window
+	*/
+	virtual void SetTitle(const char* title) = 0;
+	/*
+		This is where the window is actually created. Call once.
+	*/
+	virtual bool Create() = 0; 
+	 /*
+		Show the window
+	 */
+	virtual void Show() = 0;
+	/*
+		Hide the window
+	*/
+	virtual void Hide() = 0; 
+	/*
+		Call to handle all window events on the specific window, this Should be called every frame.
+		This function will also handle the mouse and keyboard input if the current window is active.
+
+		To get acces to the windowInput @see Window::GetWindowInputHandler();
+	*/
+	virtual void HandleWindowEvents() = 0;
+	/*
+		@return true if the window have been terminated.
+	*/
 	virtual bool WindowClosed() = 0;
-	//Good to have
+	/*
+		@return true if the window contains the mouse.
+	*/
 	virtual bool ContainsMouse();
 	/*
-		@return True if the window is in focus.
+		@return true if the window is in focus.
 	*/
 	virtual bool IsInFocus();
+	/*
+		Get Access to the windows input handler. This is unique to this specific window. 
+		Input data in this class is reseted each time HandleWindowEvents() is called and filled with the relavant input if the window is in focus.
+
+		@see Window::HandleWindowEvents()
+
+		@return an adress to the specific windows input handler
+	*/
+	WindowInput& GetWindowInputHandler();
 protected:
 	Window();
 
-	Int2 dimensions;
-	Int2 position;
+	Int2 m_dimensions;
+	Int2 m_position;
 	//unsigned int handle;
-	const char* title;
+	const char* m_title;
 
-	bool mMouseInsideWindow;
-	bool mIsInFocus;
+	bool m_MouseInsideWindow;
+	bool m_IsInFocus;
 
+	WindowInput m_input;
 };

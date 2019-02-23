@@ -13,7 +13,7 @@ static bool quit = false;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
+	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
 
 	switch (message)
 	{
@@ -58,14 +58,14 @@ void D3D12Window::SetDimensions(Int2 dimensions)
 
 void D3D12Window::SetDimensions(int w, int h)
 {
-	dimensions.x = w;
-	dimensions.y = h;
+	m_dimensions.x = w;
+	m_dimensions.y = h;
 
-	mViewport->Width = (float)dimensions.x;
-	mViewport->Height = (float)dimensions.y;
-
-	mScissorRect->right = (long)dimensions.x;
-	mScissorRect->bottom = (long)dimensions.y;
+	mViewport->Width = (float)   m_dimensions.x;
+	mViewport->Height = (float)  m_dimensions.y;
+								 
+	mScissorRect->right = (long) m_dimensions.x;
+	mScissorRect->bottom = (long)m_dimensions.y;
 
 	//TODO: Change Window Size
 	//if (mWnd != NULL)
@@ -81,7 +81,7 @@ void D3D12Window::SetPosition(int x, int y)
 
 void D3D12Window::SetTitle(const char * title)
 {
-	this->title = title;
+	this->m_title = title;
 	if (mWnd != NULL)
 		SetWindowText(mWnd, title);
 }
@@ -126,6 +126,9 @@ void D3D12Window::Hide()
 
 void D3D12Window::HandleWindowEvents()
 {
+	/*Reset Previus State*/
+	m_input.Reset();
+
 	MSG msg = { 0 };
 	bool CheckMessage = true;
 
@@ -139,8 +142,35 @@ void D3D12Window::HandleWindowEvents()
 #pragma region eventCatching
 
 			/*If Window events needs to change member variables or call functions it should be done here and not inside WndProc.*/
-			//switch (msg.message)
-			//{
+			switch (msg.message)
+			{
+
+			case WM_KEYDOWN: {
+
+				short key = msg.wParam;
+				m_input.SetKeyDown(key, true);
+
+				//std::cout << "Code: " << std::dec << key << std::endl;
+
+				//if (msg.lParam >> 30 & 1) {
+				//	std::cout << "Down b4" << std::endl;
+				//}
+
+			}
+			break;
+
+			case WM_KEYUP: {
+
+				short key = msg.wParam;
+				m_input.SetKeyDown(key, false);
+
+				if (msg.lParam >> 30 & 1) {
+					m_input.SetKeyPressed(key, true);
+				}
+
+			}
+							 break;
+
 			//case WM_MOUSELEAVE:
 			//case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
 
@@ -157,9 +187,9 @@ void D3D12Window::HandleWindowEvents()
 			//case WM_MOUSEACTIVATE:
 			//	mIsInFocus = true;
 			//	break;
-			//default:
-			//	break;
-			//}
+			default:
+				break;
+			}
 			//std::cout << title << ":	" << std::dec << msg.message << " " << std::hex << msg.message << std::endl;
 #pragma endregion
 
@@ -236,7 +266,7 @@ bool D3D12Window::InitializeWindow()
 	if (mWnd != NULL)
 		return false;
 
-	if (dimensions.x == 0 || dimensions.y == 0)
+	if (m_dimensions.x == 0 || m_dimensions.y == 0)
 		return false;
 
 	WNDCLASSEX wcex = { 0 };
@@ -250,13 +280,13 @@ bool D3D12Window::InitializeWindow()
 	}
 
 
-	RECT rc = { 0, 0, dimensions.x, dimensions.y };
+	RECT rc = { 0, 0, m_dimensions.x, m_dimensions.y };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
 
 	mWnd = CreateWindowEx(
 		WS_EX_OVERLAPPEDWINDOW,
 		"D3D12 Works!",
-		title,
+		m_title,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,

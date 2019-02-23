@@ -209,12 +209,34 @@ public:
 
 	void Run()
 	{
+
+		//Get the input handler for window 1. input handlers is unique for each window!
+		WindowInput &input1 = windows[0]->GetWindowInputHandler();
+		//Get the input handler for window 1. input handlers is unique for each window!
+		WindowInput &input2 = windows[1]->GetWindowInputHandler();
+
 		//Game Loop
 		while (!windows[0]->WindowClosed())
 		{
 			//Handle window events to detect window movement, window destruction etc. 
 			windows[0]->HandleWindowEvents();
 			windows[1]->HandleWindowEvents();
+
+			//Window 1
+			if (input1.IsKeyDown(65)) {
+				std::cout << windows[0]->GetTitle() << ": A is down" << std::endl;
+			}
+			if (input1.IsKeyPressed(65)) {
+				std::cout << windows[0]->GetTitle() << ": A was Pressed" << std::endl;
+			}
+			//Window 2
+			if (input2.IsKeyDown(65)) {
+				std::cout << windows[1]->GetTitle() << ": A is down" << std::endl;
+			}
+			if (input2.IsKeyPressed(65)) {
+				std::cout << windows[1]->GetTitle() << ": A was Pressed" << std::endl;
+			}
+
 
 			//Render the scene.
 #pragma region Render
