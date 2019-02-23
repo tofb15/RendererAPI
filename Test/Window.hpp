@@ -3,6 +3,13 @@
 #include "Math.hpp"
 #include "WindowInput.hpp"
 
+
+/*
+	Used to store global input, dont use this directly.
+	For info about this variable @See Window::GetGlobalWindowInputHandler()
+*/
+static WindowInput __GLOBAL_WINODW_INPUT_HANDLER;
+
 class Window {
 public:
 	virtual ~Window();
@@ -50,13 +57,28 @@ public:
 	virtual bool IsInFocus();
 	/*
 		Get Access to the windows input handler. This is unique to this specific window. 
-		Input data in this class is reseted each time HandleWindowEvents() is called and filled with the relavant input if the window is in focus.
+		Input data in this class is reseted each time HandleWindowEvents() is called and filled with the new input if the window is in focus.
+		To Get Access to a Global inputhandler @See Window::GetGlobalWindowInputHandler();
 
 		@see Window::HandleWindowEvents()
 
 		@return an adress to the specific windows input handler
 	*/
-	WindowInput& GetWindowInputHandler();
+	WindowInput& GetLocalWindowInputHandler();
+	/*
+		Get Access to the Global input handler. This is shared by all created windows (within this application).
+		To record the global input FIRST call WindowInput::Reset() on the global WindowInput class, then call HandleWindowEvents() on each window. This should be done each frame.
+
+		@see WindowInput::Reset()
+		@see Window::HandleWindowEvents()
+
+		To get access to window specific input only, call GetLocalWindowInputHandler() insteed of this one.
+
+		@See Window::GetLocalWindowInputHandler()
+
+		@return an adress to the specific windows input handler
+	*/
+	static WindowInput& GetGlobalWindowInputHandler();
 protected:
 	Window();
 

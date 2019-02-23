@@ -209,27 +209,36 @@ public:
 
 	void Run()
 	{
-
-		//Get the input handler for window 1. input handlers is unique for each window!
-		WindowInput &input1 = windows[0]->GetWindowInputHandler();
-		//Get the input handler for window 1. input handlers is unique for each window!
-		WindowInput &input2 = windows[1]->GetWindowInputHandler();
+		//Get the Global input handler for all window. global input handlers is shared by all windows!
+		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+		//Get the input handler for window 1. local input handlers is unique for each window!
+		WindowInput &input1 = windows[0]->GetLocalWindowInputHandler();
+		//Get the input handler for window 1. local input handlers is unique for each window!
+		WindowInput &input2 = windows[1]->GetLocalWindowInputHandler();
 
 		//Game Loop
 		while (!windows[0]->WindowClosed())
 		{
-			//Handle window events to detect window movement, window destruction etc. 
+			//Handle window events to detect window movement, window destruction, input etc. 
+			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
 			windows[0]->HandleWindowEvents();
 			windows[1]->HandleWindowEvents();
 
-			//Window 1
+			//Global Input
+			if (input_Global.IsKeyDown(65)) {
+				std::cout << "Global" << ": A is down" << std::endl;
+			}
+			if (input_Global.IsKeyPressed(65)) {
+				std::cout << "Global" << ": A was Pressed" << std::endl;
+			}
+			//Window 1 Input
 			if (input1.IsKeyDown(65)) {
 				std::cout << windows[0]->GetTitle() << ": A is down" << std::endl;
 			}
 			if (input1.IsKeyPressed(65)) {
 				std::cout << windows[0]->GetTitle() << ": A was Pressed" << std::endl;
 			}
-			//Window 2
+			//Window 2 Input
 			if (input2.IsKeyDown(65)) {
 				std::cout << windows[1]->GetTitle() << ": A is down" << std::endl;
 			}

@@ -15,11 +15,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
 
+	/*
+		Catch Global Winodw Events.
+	*/
 	switch (message)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		quit = true;
+		break;
+	case WM_KEYDOWN: {
+		short key = wParam;
+		Window::GetGlobalWindowInputHandler().SetKeyDown(key, true);
+	}
+		break;
+	case WM_KEYUP: {
+
+		short key = wParam;
+		Window::GetGlobalWindowInputHandler().SetKeyDown(key, false);
+
+		if (lParam >> 30 & 1) {
+			Window::GetGlobalWindowInputHandler().SetKeyPressed(key, true);
+		}
+
+	}
 		break;
 	}
 
@@ -61,10 +80,10 @@ void D3D12Window::SetDimensions(int w, int h)
 	m_dimensions.x = w;
 	m_dimensions.y = h;
 
-	mViewport->Width = (float)   m_dimensions.x;
-	mViewport->Height = (float)  m_dimensions.y;
-								 
-	mScissorRect->right = (long) m_dimensions.x;
+	mViewport->Width = (float)m_dimensions.x;
+	mViewport->Height = (float)m_dimensions.y;
+
+	mScissorRect->right = (long)m_dimensions.x;
 	mScissorRect->bottom = (long)m_dimensions.y;
 
 	//TODO: Change Window Size
@@ -139,9 +158,11 @@ void D3D12Window::HandleWindowEvents()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
-#pragma region eventCatching
+#pragma region localEventCatching
 
-			/*If Window events needs to change member variables or call functions it should be done here and not inside WndProc.*/
+			/*
+				Update the local input handler for each window
+			*/
 			switch (msg.message)
 			{
 
@@ -149,15 +170,8 @@ void D3D12Window::HandleWindowEvents()
 
 				short key = msg.wParam;
 				m_input.SetKeyDown(key, true);
-
-				//std::cout << "Code: " << std::dec << key << std::endl;
-
-				//if (msg.lParam >> 30 & 1) {
-				//	std::cout << "Down b4" << std::endl;
-				//}
-
 			}
-			break;
+							 break;
 
 			case WM_KEYUP: {
 
@@ -169,24 +183,24 @@ void D3D12Window::HandleWindowEvents()
 				}
 
 			}
-							 break;
+						   break;
 
-			//case WM_MOUSELEAVE:
-			//case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
+						   //case WM_MOUSELEAVE:
+						   //case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
 
-			//	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
-			//	mMouseInsideWindow = false;
-			//	break;
-			//case WM_MOUSEMOVE:
-			//case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
+						   //	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
+						   //	mMouseInsideWindow = false;
+						   //	break;
+						   //case WM_MOUSEMOVE:
+						   //case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
 
-			//	/*Set all other windows mMouseInsideWindow to false here maybe?*/
-			//	mMouseInsideWindow = true;
-			//	break;
-			//case WM_SETFOCUS:
-			//case WM_MOUSEACTIVATE:
-			//	mIsInFocus = true;
-			//	break;
+						   //	/*Set all other windows mMouseInsideWindow to false here maybe?*/
+						   //	mMouseInsideWindow = true;
+						   //	break;
+						   //case WM_SETFOCUS:
+						   //case WM_MOUSEACTIVATE:
+						   //	mIsInFocus = true;
+						   //	break;
 			default:
 				break;
 			}
