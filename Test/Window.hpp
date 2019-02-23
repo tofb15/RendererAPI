@@ -15,6 +15,8 @@ public:
 	virtual ~Window();
 
 	const char* GetTitle() const;
+	Int2 GetDimensions() const;
+	Int2 GetPosition() const;
 
 	virtual void SetDimensions(Int2 dimensions) = 0;
 	virtual void SetDimensions(int w, int h) = 0;

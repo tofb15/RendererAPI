@@ -17,7 +17,7 @@ WindowInput & Window::GetLocalWindowInputHandler()
 
 WindowInput & Window::GetGlobalWindowInputHandler()
 {
-	return GLOBAL_WINODW_INPUT_HANDLER;
+	return __GLOBAL_WINODW_INPUT_HANDLER;
 }
 
 Window::Window()
@@ -31,4 +31,14 @@ Window::~Window()
 const char * Window::GetTitle() const
 {
 	return m_title;
+}
+
+Int2 Window::GetDimensions() const
+{
+	return m_dimensions;
+}
+
+Int2 Window::GetPosition() const
+{
+	return m_position;
 }
