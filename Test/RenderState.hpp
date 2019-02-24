@@ -15,11 +15,32 @@ public:
 	virtual ~RenderState();
 
 	// Sets the wireframe variable to true or false.
-	void SetWireframe(const bool wf);	
-	void SetFaceCulling(const FaceCulling fc);
+	/*
+		@param wf, set this to true if objects should be rendered as wireframe, else to false.
+	*/
+	void SetWireframe(const bool wf);
+	/*
+		Tell the renderstate how it should cull faces relative to the camera.
+		@param fc, FaceCulling enum.
 
+		@see RenderState::FaceCulling
+	*/
+	void SetFaceCulling(const FaceCulling fc);
+	/*
+		@param depthBuffer, set this to true if objects should be rendered with depthbuffer enabled, else to false.
+	*/
+	void SetUsingDepthBuffer(const bool depthBuffer);
+
+	/*
+		@Return true if the render state is using wireframe.
+	*/
 	bool GetWireframe() const;
+
 	FaceCulling GetFaceCulling() const;
+	/*
+		@Return true if the render state is using depthbuffer.
+	*/
+	bool GetIsUsingDepthBuffer() const;
 
 protected:
 	RenderState();
@@ -27,6 +48,5 @@ protected:
 private:
 	bool m_wireframe;
 	FaceCulling m_faceCulling;
-
-	//bool useDepthBuffer; //Should this be here maybe?
+	bool m_useDepthBuffer;
 };

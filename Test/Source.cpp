@@ -164,7 +164,8 @@ public:
 
 		renderState = renderer->MakeRenderState();
 		renderState->SetWireframe(false);
-		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
+		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
+		renderState->SetUsingDepthBuffer(true);
 		renderStates.push_back(renderState);
 
 		ShaderProgram sp = {};

@@ -83,7 +83,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	//gpsd.RasterizerState.DepthClipEnable = true;
 
 	//dsd.dep
-	gpsd.DepthStencilState.DepthEnable = true;
+	gpsd.DepthStencilState.DepthEnable = rs->GetIsUsingDepthBuffer();
 	gpsd.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	gpsd.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	gpsd.DepthStencilState.StencilEnable = false;
