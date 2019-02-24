@@ -48,28 +48,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 D3D12Window::D3D12Window(D3D12Renderer* renderer)
 {
-	mRenderer = renderer;
+	m_Renderer = renderer;
+	m_Viewport = new D3D12_VIEWPORT;
+	m_ScissorRect = new D3D12_RECT;
 
-	mViewport = new D3D12_VIEWPORT;
-	mScissorRect = new D3D12_RECT;
+	m_Viewport->TopLeftX = 0.0f;
+	m_Viewport->TopLeftY = 0.0f;
+	m_Viewport->Width = (float)0;
+	m_Viewport->Height = (float)0;
+	m_Viewport->MinDepth = 0.0f;
+	m_Viewport->MaxDepth = 1.0f;
 
-	mViewport->TopLeftX = 0.0f;
-	mViewport->TopLeftY = 0.0f;
-	mViewport->Width = (float)0;
-	mViewport->Height = (float)0;
-	mViewport->MinDepth = 0.0f;
-	mViewport->MaxDepth = 1.0f;
-
-	mScissorRect->left = (long)0;
-	mScissorRect->right = (long)0;
-	mScissorRect->top = (long)0;
-	mScissorRect->bottom = (long)0;
+	m_ScissorRect->left = (long)0;
+	m_ScissorRect->right = (long)0;
+	m_ScissorRect->top = (long)0;
+	m_ScissorRect->bottom = (long)0;
 }
 
 D3D12Window::~D3D12Window()
 {
-	delete mViewport;
-	delete mScissorRect;
+	delete m_Viewport;
+	delete m_ScissorRect;
 }
 
 void D3D12Window::SetDimensions(Int2 dimensions)
@@ -81,11 +80,11 @@ void D3D12Window::SetDimensions(int w, int h)
 	m_dimensions.x = w;
 	m_dimensions.y = h;
 
-	mViewport->Width = (float)m_dimensions.x;
-	mViewport->Height = (float)m_dimensions.y;
+	m_Viewport->Width = (float)m_dimensions.x;
+	m_Viewport->Height = (float)m_dimensions.y;
 
-	mScissorRect->right = (long)m_dimensions.x;
-	mScissorRect->bottom = (long)m_dimensions.y;
+	m_ScissorRect->right = (long)m_dimensions.x;
+	m_ScissorRect->bottom = (long)m_dimensions.y;
 
 	//TODO: Change Window Size
 	//if (mWnd != NULL)
@@ -102,8 +101,8 @@ void D3D12Window::SetPosition(int x, int y)
 void D3D12Window::SetTitle(const char * title)
 {
 	this->m_title = title;
-	if (mWnd != NULL)
-		SetWindowText(mWnd, title);
+	if (m_Wnd != NULL)
+		SetWindowText(m_Wnd, title);
 }
 
 bool D3D12Window::Create()
@@ -120,24 +119,27 @@ bool D3D12Window::Create()
 	if (!InitializeRenderTargets())
 		return false;
 
+	if (!InitializeDepthBuffer())
+		return false;
+
 	HRESULT hr;
-	hr = mRenderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
+	hr = m_Renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	mFenceValue = 1;
+	m_FenceValue = 1;
 	//Create an event handle to use for GPU synchronization.
-	mEventHandle = CreateEvent(0, false, false, 0);
+	m_EventHandle = CreateEvent(0, false, false, 0);
 
 	return true;
 }
 
 void D3D12Window::Show()
 {
-	if (mWnd != NULL)
-		ShowWindow(mWnd, 1);
+	if (m_Wnd != NULL)
+		ShowWindow(m_Wnd, 1);
 }
 
 void D3D12Window::Hide()
@@ -154,7 +156,7 @@ void D3D12Window::HandleWindowEvents()
 
 	while (CheckMessage)
 	{
-		if (PeekMessage(&msg, mWnd, 0, 0, PM_REMOVE))
+		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -224,61 +226,63 @@ void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
 {
 	//Get the handle for the current render target used as back buffer.
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	cdh.ptr += mRenderTargetDescriptorSize * mSwapChain4->GetCurrentBackBufferIndex();
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	cdh.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cdhds = m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
 
 	float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
 	commandList->ClearRenderTargetView(cdh, clearColor, 0, nullptr);
-	//mCommandList4->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
+	commandList->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
 }
 
 void D3D12Window::SetRenderTarget(ID3D12GraphicsCommandList3*	commandList)
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	cdh.ptr += mRenderTargetDescriptorSize * mSwapChain4->GetCurrentBackBufferIndex();
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	cdh.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
 
-	//D3D12_CPU_DESCRIPTOR_HANDLE cdhds = mDepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
-	commandList->OMSetRenderTargets(1, &cdh, true, nullptr);
+	D3D12_CPU_DESCRIPTOR_HANDLE cdhds = m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
+	commandList->OMSetRenderTargets(1, &cdh, true, &cdhds);
 }
 
 HWND D3D12Window::GetHWND()
 {
-	return mWnd;
+	return m_Wnd;
 }
 
 ID3D12CommandQueue * D3D12Window::GetCommandQueue()
 {
-	return mCommandQueue;
+	return m_CommandQueue;
 }
 
 IDXGISwapChain4 * D3D12Window::GetSwapChain()
 {
-	return mSwapChain4;
+	return m_SwapChain4;
 }
 
 D3D12_VIEWPORT * D3D12Window::GetViewport()
 {
-	return mViewport;
+	return m_Viewport;
 }
 
 D3D12_RECT * D3D12Window::GetScissorRect()
 {
-	return mScissorRect;
+	return m_ScissorRect;
 }
 
 ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
 {
-	return mRenderTargets[mSwapChain4->GetCurrentBackBufferIndex()];
+	return m_RenderTargets[m_SwapChain4->GetCurrentBackBufferIndex()];
 }
 
 UINT D3D12Window::GetCurrentBackBufferIndex() const
 {
-	return mSwapChain4->GetCurrentBackBufferIndex();
+	return m_SwapChain4->GetCurrentBackBufferIndex();
 }
 
 bool D3D12Window::InitializeWindow()
 {
-	if (mWnd != NULL)
+	if (m_Wnd != NULL)
 		return false;
 
 	if (m_dimensions.x == 0 || m_dimensions.y == 0)
@@ -298,7 +302,7 @@ bool D3D12Window::InitializeWindow()
 	RECT rc = { 0, 0, m_dimensions.x, m_dimensions.y };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
 
-	mWnd = CreateWindowEx(
+	m_Wnd = CreateWindowEx(
 		WS_EX_OVERLAPPEDWINDOW,
 		"D3D12 Works!",
 		m_title,
@@ -321,7 +325,7 @@ bool D3D12Window::InitializeCommandQueue()
 	HRESULT hr;
 	//Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
-	hr = mRenderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&mCommandQueue));
+	hr = m_Renderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue));
 	if (FAILED(hr))
 	{
 		return false;
@@ -359,18 +363,18 @@ bool D3D12Window::InitializeSwapChain()
 	IDXGISwapChain1* swapChain1 = nullptr;
 
 	hr = factory->CreateSwapChainForHwnd(
-		mCommandQueue,
-		mWnd,
+		m_CommandQueue,
+		m_Wnd,
 		&scDesc,
 		nullptr,
 		nullptr,
 		&swapChain1);
 	if (SUCCEEDED(hr))
 	{
-		hr = swapChain1->QueryInterface(IID_PPV_ARGS(&mSwapChain4));
+		hr = swapChain1->QueryInterface(IID_PPV_ARGS(&m_SwapChain4));
 		if (SUCCEEDED(hr))
 		{
-			mSwapChain4->Release();
+			m_SwapChain4->Release();
 		}
 		else
 		{
@@ -394,44 +398,109 @@ bool D3D12Window::InitializeRenderTargets()
 	dhd.NumDescriptors = NUM_SWAP_BUFFERS;
 	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-	HRESULT hr = mRenderer->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&mRenderTargetsHeap));
+	HRESULT hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_RenderTargetsHeap));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	//Create resources for the render targets.
-	mRenderTargetDescriptorSize = mRenderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_RenderTargetDescriptorSize = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//mCBV_SRV_UAV_DescriptorSize = mDevice5->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE cdh = mRenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
 
 	//One RTV for each frame.
 	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
 	{
-		hr = mSwapChain4->GetBuffer(n, IID_PPV_ARGS(&mRenderTargets[n]));
+		hr = m_SwapChain4->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n]));
 		if (FAILED(hr))
 		{
 			return false;
 		}
 
-		mRenderer->GetDevice()->CreateRenderTargetView(mRenderTargets[n], nullptr, cdh);
-		cdh.ptr += mRenderTargetDescriptorSize;
+		m_Renderer->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
+		cdh.ptr += m_RenderTargetDescriptorSize;
 	}
+
+	return true;
+}
+
+bool D3D12Window::InitializeDepthBuffer()
+{
+
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.CreationNodeMask = 1; //used when multi-gpu
+	heapProperties.VisibleNodeMask = 1; //used when multi-gpu
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	D3D12_RESOURCE_DESC resourceDesc = {};
+	resourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	resourceDesc.Width =  m_dimensions.x; //Use the dimensions of the window
+	resourceDesc.Height = m_dimensions.y; //Use the dimensions of the window
+	resourceDesc.DepthOrArraySize = 1;
+	resourceDesc.MipLevels = 0;
+	resourceDesc.SampleDesc.Count = 1;
+	resourceDesc.SampleDesc.Quality = 0;
+	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+	D3D12_DEPTH_STENCIL_DESC dsd = {};
+	dsd.DepthEnable = true;
+
+	D3D12_CLEAR_VALUE cv = {};
+	cv.Format = DXGI_FORMAT_D32_FLOAT;
+	cv.DepthStencil.Depth = 1.0f;
+	cv.DepthStencil.Stencil = 0;
+
+	HRESULT hr = m_Renderer->GetDevice()->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&cv,
+		IID_PPV_ARGS(&m_DepthStencil)
+	);
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	D3D12_DESCRIPTOR_HEAP_DESC dhd = {};
+	dhd.NumDescriptors = 1;
+	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dhd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+	hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_DepthStencilHeap));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvd = { };
+	dsvd.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvd.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvd.Flags = D3D12_DSV_FLAG_NONE;
+	dsvd.Texture2D.MipSlice = 0;
+
+	m_Renderer->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return true;
 }
 
 void D3D12Window::WaitForGPU()
 {
-	const UINT64 fence = mFenceValue;
-	mCommandQueue->Signal(mFence, fence);
-	mFenceValue++;
+	const UINT64 fence = m_FenceValue;
+	m_CommandQueue->Signal(m_Fence, fence);
+	m_FenceValue++;
 
 	//Wait until command queue is done.
-	if (mFence->GetCompletedValue() < fence)
+	if (m_Fence->GetCompletedValue() < fence)
 	{
-		mFence->SetEventOnCompletion(fence, mEventHandle);
-		WaitForSingleObject(mEventHandle, INFINITE);
+		m_Fence->SetEventOnCompletion(fence, m_EventHandle);
+		WaitForSingleObject(m_EventHandle, INFINITE);
 	}
 }

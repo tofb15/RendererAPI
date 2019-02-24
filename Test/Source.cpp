@@ -321,7 +321,7 @@ public:
 
 
 			//Render the scene.
-#pragma region Render
+#pragma region Rendera
 
 			renderer->ClearSubmissions();
 
@@ -333,9 +333,9 @@ public:
 
 			time += 0.001;
 			if(demoMovement[0])
-				cameras[0]->SetPosition(Float3(sin(time), sin(time)*2, -5));
+				cameras[0]->SetPosition(Float3(sin(time) * 4, 3, cos(time) * 4));
 			if (demoMovement[1])
-				cameras[1]->SetPosition(Float3(sin(time), sin(time) * 2, -5));
+				cameras[1]->SetPosition(Float3(sin(time) * 4, 3, cos(time) * 4));
 
 
 			//Render Window 1

@@ -21,16 +21,32 @@ public:
 	virtual ~D3D12Window();
 
 	// Inherited via Window
+	/*
+		Set the dimensions for the window.
+	*/
 	virtual void SetDimensions(Int2 dimensions) override;
-
+	/*
+		Set the dimensions for the window.
+	*/
 	virtual void SetDimensions(int w, int h) override;
-
+	/*
+		Set the position of the window.
+	*/
 	virtual void SetPosition(Int2 position) override;
-
+	/*
+		Set the position of the window.
+	*/
 	virtual void SetPosition(int x, int y) override;
-
+	/*
+		Set the title of the window.
+	*/
 	virtual void SetTitle(const char * title) override;
+	/*
+		Initialize and create the window.
+		Call Show() to show the window.
 
+		@see Winodw::Show()
+	*/
 	virtual bool Create() override;
 
 	virtual void Show() override;
@@ -81,26 +97,30 @@ public:
 	void WaitForGPU();
 
 private:
-	ID3D12CommandQueue*			mCommandQueue = nullptr;
-	IDXGISwapChain4*			mSwapChain4 = nullptr;
-	HWND						mWnd;
+	ID3D12CommandQueue*			m_CommandQueue = nullptr;
+	IDXGISwapChain4*			m_SwapChain4 = nullptr;
+	HWND						m_Wnd;
 
-	ID3D12DescriptorHeap*		mRenderTargetsHeap = nullptr;
-	ID3D12Resource1*			mRenderTargets[NUM_SWAP_BUFFERS] = {};
-	UINT						mRenderTargetDescriptorSize = 0;
+	ID3D12DescriptorHeap*		m_RenderTargetsHeap = nullptr;
+	ID3D12Resource1*			m_RenderTargets[NUM_SWAP_BUFFERS] = {};
+	UINT						m_RenderTargetDescriptorSize = 0;
 
-	D3D12_VIEWPORT*				mViewport;
-	D3D12_RECT*					mScissorRect;
+	ID3D12DescriptorHeap*		m_DepthStencilHeap = nullptr;
+	ID3D12Resource1*			m_DepthStencil = nullptr;
 
-	D3D12Renderer* mRenderer;
+	D3D12_VIEWPORT*				m_Viewport;
+	D3D12_RECT*					m_ScissorRect;
+
+	D3D12Renderer* m_Renderer;
 
 	//Fences for the render targets
-	ID3D12Fence1*				mFence = nullptr;
-	HANDLE						mEventHandle = nullptr;
-	UINT64						mFenceValue = 0;
+	ID3D12Fence1*				m_Fence = nullptr;
+	HANDLE						m_EventHandle = nullptr;
+	UINT64						m_FenceValue = 0;
 
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.
 	bool InitializeSwapChain();		//3.
 	bool InitializeRenderTargets();	//4.
+	bool InitializeDepthBuffer();	//5.
 };
