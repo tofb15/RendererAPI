@@ -23,6 +23,14 @@ float4 main(VSOut input) : SV_TARGET0
 	//float4 finalColor = float4(input.uv.x, input.uv.y, 0, 1);
 	//float4 finalColor = float4(g_texture.Load(int3(60100, 0, 0)).xyz, 1);
 	float4 finalColor = g_texture.Sample(samp, input.uv);
+	
+	#ifdef NORMAL
+		float3 lightDir = float3(-1.0f, 1.0f, -0.5f);
+		
+		finalColor = saturate(finalColor * dot(lightDir, input.normal.xyz)) + finalColor*0.1;
+		finalColor.w = 1.0f;
+	#endif
+	
 #elif defined(NORMAL)
     float4 finalColor = -1*float4(input.normal.xyz, 1.0f);
 #else
