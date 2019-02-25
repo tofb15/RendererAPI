@@ -3,6 +3,7 @@
 #include "../Renderer.hpp"
 #include "GlobalSettings.hpp"
 #include <Windows.h>
+#include <thread>
 
 struct ID3D12Device4;
 struct ID3D12CommandQueue;
@@ -63,7 +64,7 @@ private:
 
 	std::vector<SubmissionItem> items;
 	D3D12TextureLoader* mTextureLoader;
-
+	std::thread thread_texture;
 
 #pragma region InitailizeVariables
 	ID3D12Device4*				mDevice5			= nullptr;

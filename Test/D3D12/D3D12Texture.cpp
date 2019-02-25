@@ -33,7 +33,7 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 	if (flags & Texture_Load_Flags::TEXTURE_USAGE_GPU_FLAG) {
 		//This should be done by a copy queue on a seperate thread.
 		mRenderer->GetTextureLoader()->LoadTextureToGPU(this);
-		mRenderer->GetTextureLoader()->DoWork();
+		mRenderer->GetTextureLoader()->SynchronizeWork();//Force this thread to wait until all work is done.
 	}
 
 	//If no CPU_USAGE_FLAG is set, remove cpu data to save RAM

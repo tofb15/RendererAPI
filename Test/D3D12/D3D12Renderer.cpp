@@ -37,9 +37,13 @@ D3D12Renderer::D3D12Renderer()
 
 D3D12Renderer::~D3D12Renderer()
 {
+	mTextureLoader->Kill();	//Notify the other thread to stop.
+	thread_texture.join();	//Wait for the other thread to stop.
 	if (mTextureLoader)
 		delete mTextureLoader;
 }
+
+#include <iostream>
 
 bool D3D12Renderer::Initialize()
 {
@@ -51,6 +55,13 @@ bool D3D12Renderer::Initialize()
 
 	mTextureLoader = new D3D12TextureLoader(this);
 	mTextureLoader->Initialize();
+
+	//Start new Texture loading thread
+	std::cout << thread_texture.get_id() << std::endl;
+
+	thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*mTextureLoader);
+
+	std::cout << thread_texture.get_id() << std::endl;
 
 	return true;
 }
