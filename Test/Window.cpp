@@ -22,10 +22,12 @@ WindowInput & Window::GetGlobalWindowInputHandler()
 
 Window::Window()
 {
+
 }
 
 Window::~Window()
 {
+
 }
 
 const char * Window::GetTitle() const

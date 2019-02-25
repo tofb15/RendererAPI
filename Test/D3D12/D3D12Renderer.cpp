@@ -151,7 +151,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	mCommandList4->SetGraphicsRootSignature(mRootSignature);
 	mCommandList4->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-
 	//Set root descriptor table to index 0 in previously set root signature
 	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
 	//mCommandList4->SetGraphicsRootDescriptorTable(2, mSamplerHeap->GetGPUDescriptorHandleForHeapStart());
@@ -159,7 +158,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		//Set necessary states.
 	mCommandList4->RSSetViewports(1, window->GetViewport());
 	mCommandList4->RSSetScissorRects(1, window->GetScissorRect());
-
+	//mCommandList4->SetGraphicsRootConstantBufferView(2, );
 	////Indicate that the back buffer will be used as render target.
 #pragma region Barrier Swap Target
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
@@ -371,6 +370,7 @@ bool D3D12Renderer::InitializeRootSignature()
 	rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParam[1].DescriptorTable = rdt;
+
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc;
 	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;

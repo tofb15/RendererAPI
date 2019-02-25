@@ -82,7 +82,10 @@ void D3D12TextureLoader::DoWork()
 
 	while (!stop)
 	{
-		std::this_thread::sleep_for(std::chrono::seconds(10));
+		if(atLeastOneTextureIsLoaded)
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+		
+		
 		D3D12Texture* texture;
 		//Critical Region.
 		{
