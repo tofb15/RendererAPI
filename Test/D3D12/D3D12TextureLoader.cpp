@@ -2,6 +2,7 @@
 #include "External/D3DX12/d3dx12.h"
 #include "D3D12Renderer.hpp"
 #include "D3D12Texture.hpp"
+#include <chrono>
 
 D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : m_Renderer(renderer)
 {
@@ -81,6 +82,7 @@ void D3D12TextureLoader::DoWork()
 
 	while (!stop)
 	{
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 		D3D12Texture* texture;
 		//Critical Region.
 		{
@@ -206,10 +208,9 @@ void D3D12TextureLoader::DoWork()
 		WaitForCopy();
 		texture->mGPU_Loader_index = mNrOfSRVs++;
 		m_TextureResources.push_back(textureResource);
-		atLeastOneTextureIsLoaded = true;
-
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
+			atLeastOneTextureIsLoaded = true;
 			if (mTexturesToLoadToGPU.empty()) {
 				m_cv_empty.notify_all();//Only used for D3D12TextureLoader::SynchronizeWork() to wake waiting threads
 				m_cv_not_empty.wait(lock, [this]() {return !mTexturesToLoadToGPU.empty() || stop; });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
@@ -220,11 +221,13 @@ void D3D12TextureLoader::DoWork()
 
 void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 {
-	std::unique_lock<std::mutex> guard(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
+	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
 	mTexturesToLoadToGPU.push_back(texture);
 	m_cv_not_empty.notify_one();//Wake up the loader thread
-	/*if (!atLeastOneTextureIsLoaded)
-		SynchronizeWork();*/
+	if (!atLeastOneTextureIsLoaded) {
+		lock.unlock();
+		SynchronizeWork();
+	}
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D12Texture * texture)
