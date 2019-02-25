@@ -76,7 +76,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 
 	gpsd.SampleDesc.Count = 1;
 	gpsd.SampleMask = UINT_MAX;
-
+	
 	// Specify rasterizer behaviour
 	gpsd.RasterizerState.FillMode = (rs->GetWireframe() ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID);
 	gpsd.RasterizerState.CullMode = static_cast<D3D12_CULL_MODE>(rs->GetFaceCulling());

@@ -53,6 +53,8 @@ bool D3D12Renderer::Initialize()
 
 	InitializeRootSignature();
 
+	InitializeBigConstantBuffer();
+
 	mTextureLoader = new D3D12TextureLoader(this);
 	mTextureLoader->Initialize();
 
@@ -151,6 +153,29 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	mCommandList4->SetGraphicsRootSignature(mRootSignature);
 	mCommandList4->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+	D3D12_RANGE readRange = { 0, 0 };
+	void* data = nullptr;
+	m_constantBufferResource[backBufferIndex]->Map(0, &readRange, &data);
+
+	static float time = 0;
+	time += 0.001f;
+
+	for (int i = 0; i < items.size(); i++)
+	{
+		Float3 pos = items[i].transform.pos;
+		Float3 scal = items[i].transform.scale;
+		DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		//DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
+
+		DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(posMat/* * scalMat*/);
+		//DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslation(5 * sin(time), 5 * sin(time), 0));
+		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
+	}
+	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * items.size() };
+	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
+
+	mCommandList4->SetGraphicsRootConstantBufferView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
+
 	//Set root descriptor table to index 0 in previously set root signature
 	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
 	//mCommandList4->SetGraphicsRootDescriptorTable(2, mSamplerHeap->GetGPUDescriptorHandleForHeapStart());
@@ -184,6 +209,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		items[i].blueprint->technique->Enable();
 		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[i].blueprint->textures[0]));
 		mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
+
+		mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
 
 		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
 
@@ -360,9 +387,9 @@ bool D3D12Renderer::InitializeRootSignature()
 	rdt.pDescriptorRanges = dr;
 
 	//create root parameter
-	D3D12_ROOT_PARAMETER rootParam[2];
+	D3D12_ROOT_PARAMETER rootParam[3];
 	rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParam[0].Constants.Num32BitValues = 16;		// 1 * float4x4
+	rootParam[0].Constants.Num32BitValues = 16 + 4;		// 1 * float4x4 + 1 * int
 	rootParam[0].Constants.RegisterSpace = 0;
 	rootParam[0].Constants.ShaderRegister = 0;
 	rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -371,10 +398,14 @@ bool D3D12Renderer::InitializeRootSignature()
 	rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParam[1].DescriptorTable = rdt;
 
+	rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParam[2].Descriptor.ShaderRegister = 1;
+	rootParam[2].Descriptor.RegisterSpace = 0;
 
 	D3D12_ROOT_SIGNATURE_DESC rsDesc;
 	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsDesc.NumParameters = 2;
+	rsDesc.NumParameters = sizeof(rootParam) / sizeof(D3D12_ROOT_PARAMETER);
 	rsDesc.pParameters = rootParam;
 	rsDesc.NumStaticSamplers = 1;
 	rsDesc.pStaticSamplers = samp;
@@ -410,6 +441,41 @@ bool D3D12Renderer::InitializeRootSignature()
 	//	if (FAILED(hr))
 	//		return false;
 	//}
+
+	return true;
+}
+
+bool D3D12Renderer::InitializeBigConstantBuffer()
+{
+	D3D12_HEAP_PROPERTIES hp = {};
+	hp.Type = D3D12_HEAP_TYPE_UPLOAD;
+	hp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	hp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	hp.CreationNodeMask = 1;
+	hp.VisibleNodeMask = 1;
+
+	D3D12_RESOURCE_DESC rd = { };
+	rd.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	rd.Width = 10240 * 16 * 4;
+	rd.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+
+	rd.Height = 1;
+	rd.DepthOrArraySize = 1;
+	rd.MipLevels = 1;
+	rd.Format = DXGI_FORMAT_UNKNOWN;
+	rd.SampleDesc.Count = 1;
+	rd.SampleDesc.Quality = 0;
+	rd.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	rd.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		HRESULT hr = mDevice5->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_constantBufferResource[i]));
+		if (FAILED(hr))
+		{
+			return false;
+		}
+	}
 
 	return true;
 }

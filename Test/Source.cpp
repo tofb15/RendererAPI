@@ -208,17 +208,21 @@ public:
 		blueprints.push_back(blueprint);
 #pragma endregion
 
-		Object* object = new Object;
-		object->blueprint = blueprints[0];
-		object->transform.scale = { 1.0f, 1.0f, 1.0f };
-		object->transform.pos = { 1.0f, 1.0f, 1.0f };
-		objects.push_back(object);
+		for (int i = 0; i < 5000; i++)
+		{
+			Object* object = new Object;
+			object->blueprint = blueprints[i % 2];
+			object->transform.scale = { 1.0f, 1.0f, 1.0f };
+			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
+			objects.push_back(object);
+		}
 
-		object = new Object;
-		object->blueprint = blueprints[1];
-		object->transform.scale = { 1.0f, 1.0f, 1.0f };
-		object->transform.pos = { 1.0f, 1.0f, 1.0f };
-		objects.push_back(object);
+		//object = new Object;
+		//object->blueprint = blueprints[1];
+		//object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		////object->transform.pos = { 1.0f, 1.0f, 1.0f };
+		//object->transform.pos = { 0.0f, 0.0f, 0.0f };
+		//objects.push_back(object);
 
 		return true;
 	}
@@ -332,7 +336,7 @@ public:
 			//}
 
 
-			time += 0.001;
+			time += 0.05;
 			if(demoMovement[0])
 				cameras[0]->SetPosition(Float3(sin(time) * 4, 3, cos(time) * 4));
 			if (demoMovement[1])
@@ -341,14 +345,20 @@ public:
 
 			//Render Window 1
 			renderer->ClearSubmissions();
-			renderer->Submit({ objects[0]->blueprint, objects[0]->transform });
+			for (int i = 0; i < objects.size(); i++)
+			{
+				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			}
 
 			renderer->Frame(windows[0], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[0]);//Present frame to screen
 
 			//Render Window 2
 			renderer->ClearSubmissions();
-			renderer->Submit({ objects[1]->blueprint, objects[1]->transform });
+			for (int i = 0; i < objects.size(); i++)
+			{
+				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			}
 
 			renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[1]);//Present frame to screen
