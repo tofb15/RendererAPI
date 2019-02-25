@@ -11,6 +11,7 @@ struct IDXGISwapChain4;
 struct ID3D12GraphicsCommandList3;
 struct ID3D12DescriptorHeap;
 struct ID3D12RootSignature;
+struct ID3D12Resource;
 
 class D3D12VertexBuffer;
 class D3D12TextureLoader;
@@ -25,7 +26,7 @@ public:
 
 	// Inherited via Renderer
 	virtual bool Initialize() override;
-
+	
 	virtual Camera * MakeCamera() override;
 
 	virtual Window * MakeWindow() override;
@@ -74,12 +75,15 @@ private:
 
 	//ID3D12DescriptorHeap*	mDescriptorHeap[NUM_SWAP_BUFFERS] = {};
 
+	ID3D12Resource*				m_constantBufferResource[NUM_SWAP_BUFFERS] = { nullptr };
+
 	//Functions Here
 
 	bool InitializeDirect3DDevice();					
 	bool InitializeCommandInterfaces();	
 	bool InitializeFenceAndEventHandle();
 	bool InitializeRootSignature();
+	bool InitializeBigConstantBuffer();
 
 
 };
