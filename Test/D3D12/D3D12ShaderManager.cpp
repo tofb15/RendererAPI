@@ -29,6 +29,7 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 		mVertexDefines.push_back(sd.defines);
 
 	ID3DBlob* blob;
+	ID3DBlob* blob_err;
 
 	HRESULT hr;
 
@@ -43,9 +44,9 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 	// Set entry point and model based on type
 	switch (sd.type)
 	{
-	case ShaderType::VS: model = "vs_5_0"; break;
-	case ShaderType::FS: model = "ps_5_0"; break;
-	case ShaderType::GS: model = "gs_5_0"; break;
+	case ShaderType::VS: model = "vs_5_1"; break;
+	case ShaderType::FS: model = "ps_5_1"; break;
+	case ShaderType::GS: model = "gs_5_1"; break;
 	//case ShaderType::CS: entry = "main"; model = "cs_5_0"; break;
 	default: break;
 	}
@@ -73,13 +74,14 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 		nullptr,
 		entry.c_str(),
 		model.c_str(),
-		0U,
+		D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
 		0U,
 		&blob,
-		nullptr
+		&blob_err
 	);
 	if (FAILED(hr))
 	{
+		OutputDebugStringA((char*)blob_err->GetBufferPointer());
 		return { ShaderType::UNKNOWN , -1 };
 	}
 

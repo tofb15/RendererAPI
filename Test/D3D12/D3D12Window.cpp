@@ -123,15 +123,18 @@ bool D3D12Window::Create()
 		return false;
 
 	HRESULT hr;
-	hr = m_Renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
-	if (FAILED(hr))
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
-		return false;
-	}
+		hr = m_Renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence[i]));
+		if (FAILED(hr))
+		{
+			return false;
+		}
 
-	m_FenceValue = 1;
-	//Create an event handle to use for GPU synchronization.
-	m_EventHandle = CreateEvent(0, false, false, 0);
+		m_FenceValue[i] = 1;
+		//Create an event handle to use for GPU synchronization.
+		m_EventHandle[i] = CreateEvent(0, false, false, 0);
+	}
 
 	return true;
 }
@@ -493,14 +496,49 @@ bool D3D12Window::InitializeDepthBuffer()
 
 void D3D12Window::WaitForGPU()
 {
-	const UINT64 fence = m_FenceValue;
-	m_CommandQueue->Signal(m_Fence, fence);
-	m_FenceValue++;
+	static int numWaits = 0;
+	static int frames = 0;
+	frames++;
+
+	//const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
+	//const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
+
+	////Tell last frame to signal when done
+	//const UINT64 fence = m_FenceValue[0];
+	//m_CommandQueue->Signal(m_Fence[0], fence);
+	//m_FenceValue[0]++;
+
+	////Wait until command queue is done.
+	//if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
+	//{
+	//	numWaits++;
+	//	m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
+	//	WaitForSingleObject(m_EventHandle[0], INFINITE);
+	//}
+
+
+
+	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
+	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
+	
+	// Tell last frame to signal when done
+	const UINT64 fence = m_FenceValue[previousFrame];
+	m_CommandQueue->Signal(m_Fence[previousFrame], fence);
+	m_FenceValue[previousFrame]++;
+
 
 	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < fence)
+	if (m_Fence[nextFrame]->GetCompletedValue() < m_FenceValue[nextFrame] - 1)
 	{
-		m_Fence->SetEventOnCompletion(fence, m_EventHandle);
-		WaitForSingleObject(m_EventHandle, INFINITE);
+		numWaits++;
+		m_Fence[nextFrame]->SetEventOnCompletion(m_FenceValue[nextFrame] - 1, m_EventHandle[nextFrame]);
+		WaitForSingleObject(m_EventHandle[nextFrame], INFINITE);
+	}
+
+	if (frames > 1000) {
+		std::string s = std::to_string(numWaits);
+		s += "\n";
+		OutputDebugString(s.c_str());
+		frames = 0;
 	}
 }

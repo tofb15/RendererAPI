@@ -1,9 +1,12 @@
-Texture2D g_texture : register(t0);
+Texture2D g_texture[] : register(t0);
+
 sampler samp : register(s0);
 
 struct VSOut
 {
     float4 pos : SV_POSITION;
+	uint instanceID : INSTANCE;
+
 #ifdef NORMAL
 	float4 normal	: NORM;
 #endif
@@ -13,6 +16,7 @@ struct VSOut
 #ifdef DIFFUSE_TINT
 	float4 color	: COL;
 #endif
+
 };
 
 
@@ -22,7 +26,7 @@ float4 main(VSOut input) : SV_TARGET0
 #ifdef TEXTCOORD
 	//float4 finalColor = float4(input.uv.x, input.uv.y, 0, 1);
 	//float4 finalColor = float4(g_texture.Load(int3(60100, 0, 0)).xyz, 1);
-	float4 finalColor = g_texture.Sample(samp, input.uv);
+	float4 finalColor = g_texture[input.instanceID % 2].Sample(samp, input.uv);
 	
 	#ifdef NORMAL
 		float3 lightDir = float3(-1.0f, 1.0f, -0.5f);

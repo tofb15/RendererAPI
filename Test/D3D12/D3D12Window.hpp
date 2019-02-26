@@ -114,9 +114,9 @@ private:
 	D3D12Renderer* m_Renderer;
 
 	//Fences for the render targets
-	ID3D12Fence1*				m_Fence = nullptr;
-	HANDLE						m_EventHandle = nullptr;
-	UINT64						m_FenceValue = 0;
+	ID3D12Fence1*				m_Fence[NUM_SWAP_BUFFERS] = { nullptr };
+	HANDLE						m_EventHandle[NUM_SWAP_BUFFERS] = { nullptr };
+	UINT64						m_FenceValue[NUM_SWAP_BUFFERS] = { 0 };
 
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.

@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include <crtdbg.h>
+#include <chrono>
 
 //class Renderer;
 
@@ -29,6 +30,11 @@ struct Object {
 	*/
 	static Object* CreateObjectFromBlueprint(Blueprint* bp) { return nullptr; };
 };
+
+
+typedef std::chrono::steady_clock Clock;
+typedef std::chrono::time_point<std::chrono::steady_clock> Time;
+
 
 class Game
 {
@@ -208,7 +214,7 @@ public:
 		blueprints.push_back(blueprint);
 #pragma endregion
 
-		for (int i = 0; i < 5000; i++)
+		for (int i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
 			object->blueprint = blueprints[i % 2];
@@ -245,6 +251,21 @@ public:
 		//Game Loop
 		while (!windows[0]->WindowClosed())
 		{
+			static Time t1, t2;
+
+			static int frame = 0;
+			frame++;
+
+			if (frame > 1000)
+			{
+				t2 = t1;
+				t1 = Clock::now();
+
+				std::string str = "FPS: " + std::to_string(1000000 / ((t1 - t2).count() / 1000 / 1000));
+				windows[0]->SetTitle(str.c_str());
+				frame = 0;
+			}
+
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
 			windows[0]->HandleWindowEvents();
@@ -354,14 +375,14 @@ public:
 			renderer->Present(windows[0]);//Present frame to screen
 
 			//Render Window 2
-			renderer->ClearSubmissions();
-			for (int i = 0; i < objects.size(); i++)
-			{
-				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			}
+			//renderer->ClearSubmissions();
+			//for (int i = 0; i < objects.size(); i++)
+			//{
+			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			//}
 
-			renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-			renderer->Present(windows[1]);//Present frame to screen
+			//renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			//renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion
 		}

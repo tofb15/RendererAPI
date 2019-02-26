@@ -83,7 +83,7 @@ void D3D12TextureLoader::DoWork()
 	while (!stop)
 	{
 		if(atLeastOneTextureIsLoaded)
-			std::this_thread::sleep_for(std::chrono::seconds(5));
+			std::this_thread::sleep_for(std::chrono::seconds(2));
 		
 		
 		D3D12Texture* texture;
@@ -202,6 +202,7 @@ void D3D12TextureLoader::DoWork()
 		D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
 		cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
 		m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+
 
 
 		m_CommandList4->Close();

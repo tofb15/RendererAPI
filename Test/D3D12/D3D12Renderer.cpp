@@ -160,12 +160,13 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	static float time = 0;
 	time += 0.001f;
 
+	DirectX::XMFLOAT4X4 mat = {};
 	for (int i = 0; i < items.size(); i++)
 	{
 		Float3 pos = items[i].transform.pos;
 		Float3 scal = items[i].transform.scale;
 		DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		//DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
+		DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
 
 		DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(posMat/* * scalMat*/);
 		//DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslation(5 * sin(time), 5 * sin(time), 0));
@@ -174,7 +175,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * items.size() };
 	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
 
-	mCommandList4->SetGraphicsRootConstantBufferView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
+	mCommandList4->SetGraphicsRootShaderResourceView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
 
 	//Set root descriptor table to index 0 in previously set root signature
 	//mCommandList4->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
@@ -204,22 +205,22 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	mCommandList4->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
 
-	for (size_t i = 0; i < items.size(); i++)
+	// Offset between instanced draws
+	//mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
+	for (size_t i = 0; i < 1; i++)
 	{
 		items[i].blueprint->technique->Enable();
 		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[i].blueprint->textures[0]));
 		mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
 
-		mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
-
-		std::vector<D3D12VertexBuffer*> buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
+		std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
 
 		for (size_t j = 0; j < buffers.size(); j++)
 		{
 			mCommandList4->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 		}
 
-		mCommandList4->DrawInstanced(buffers[0]->GetNumberOfElements(), 1, 0, 0);
+		mCommandList4->DrawInstanced(buffers[0]->GetNumberOfElements(), items.size(), 0, 0);
 		//mCommandList4->s
 	}
 
@@ -250,7 +251,6 @@ void D3D12Renderer::Present(Window * w)
 	//Present the frame.
 	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
-
 	window->WaitForGPU();
 
 }
@@ -378,9 +378,10 @@ bool D3D12Renderer::InitializeRootSignature()
 
 	D3D12_DESCRIPTOR_RANGE dr[1] = {};
 	dr[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	dr[0].NumDescriptors = 1;
+	dr[0].NumDescriptors = -1; //No bounds (bindless)
 	dr[0].BaseShaderRegister = 0;
 	dr[0].RegisterSpace = 0;
+
 
 	D3D12_ROOT_DESCRIPTOR_TABLE rdt = {};
 	rdt.NumDescriptorRanges = 1;
@@ -398,7 +399,7 @@ bool D3D12Renderer::InitializeRootSignature()
 	rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParam[1].DescriptorTable = rdt;
 
-	rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
 	rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParam[2].Descriptor.ShaderRegister = 1;
 	rootParam[2].Descriptor.RegisterSpace = 0;
