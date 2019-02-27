@@ -170,7 +170,7 @@ public:
 
 		renderState = renderer->MakeRenderState();
 		renderState->SetWireframe(false);
-		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
+		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderState->SetUsingDepthBuffer(true);
 		renderStates.push_back(renderState);
 
@@ -274,23 +274,25 @@ public:
 #pragma region INPUT_DEMO
 			//Global Input
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
-				cameras[0]->Move({0, 0, 0.1});
-				cameras[1]->Move({0, 0, 0.1});
+				
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * 1.5f);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * 1.5f);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
-				cameras[0]->Move({ 0, 0, -0.1 });
-				cameras[1]->Move({ 0, 0, -0.1 });
+
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -1.5f);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -1.5f);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-				cameras[0]->Move({ -0.1, 0, 0 });
-				cameras[1]->Move({ -0.1, 0, 0 });
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * -1.5f);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * -1.5f);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
-				cameras[0]->Move({ 0.1, 0, 0 });
-				cameras[1]->Move({ 0.1, 0, 0 });
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * 1.5f);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * 1.5f);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
@@ -375,14 +377,14 @@ public:
 			renderer->Present(windows[0]);//Present frame to screen
 
 			//Render Window 2
-			//renderer->ClearSubmissions();
-			//for (int i = 0; i < objects.size(); i++)
-			//{
-			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			//}
+			renderer->ClearSubmissions();
+			for (int i = 0; i < objects.size(); i++)
+			{
+				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			}
 
-			//renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-			//renderer->Present(windows[1]);//Present frame to screen
+			renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion
 		}

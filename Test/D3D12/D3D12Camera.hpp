@@ -22,9 +22,6 @@ public:
 private:
 	mutable DirectX::XMFLOAT4X4 mViewMatrix;
 	DirectX::XMFLOAT4X4 mPerspectiveMatrix;
-	
-	Float3 mPosition;
-	Float3 mTarget;
 
 	mutable DirectX::XMFLOAT4X4 mViewPerspectiveMatrix;
 	mutable bool mHasChanged;

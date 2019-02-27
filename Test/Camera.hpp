@@ -14,6 +14,7 @@ public:
 	Float3 GetPosition() const;
 	Float3 GetTarget() const;
 	Float3 GetTargetDirection() const;
+	Float3 GetRight() const;
 
 	/*
 		@return True if any of the cameras properties have changed since it was last used for rendering.
@@ -21,6 +22,9 @@ public:
 	bool HasViewChanged() const;
 protected:
 	Camera();
+
+	Float3 m_position;
+	Float3 m_target;
 
 	//int id;
 	//int viewMatrixIndex;
