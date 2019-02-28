@@ -44,7 +44,7 @@ DirectX::XMFLOAT4X4 D3D12Camera::GetViewPerspective() const
 	if (mHasChanged) {
 		DirectX::XMStoreFloat4x4(&mViewMatrix, DirectX::XMMatrixLookAtLH({ m_position.x, m_position.y, m_position.z }, { m_target.x, m_target.y, m_target.z }, { 0,1,0 }));
 	
-		DirectX::XMStoreFloat4x4(&mViewPerspectiveMatrix, DirectX::XMMatrixTranspose(DirectX::XMLoadFloat4x4(&mViewMatrix) * DirectX::XMLoadFloat4x4(&mPerspectiveMatrix)));
+		DirectX::XMStoreFloat4x4(&mViewPerspectiveMatrix, DirectX::XMLoadFloat4x4(&mViewMatrix)*DirectX::XMLoadFloat4x4(&mPerspectiveMatrix));
 
 		mHasChanged = false;
 	}

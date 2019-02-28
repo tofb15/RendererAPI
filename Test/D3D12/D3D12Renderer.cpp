@@ -166,10 +166,10 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		Float3 pos = items[i].transform.pos;
 		Float3 scal = items[i].transform.scale;
 		DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
+		DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(4 * scal.x, scal.y, scal.z);
 
-		DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(posMat/* * scalMat*/);
-		//DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslation(5 * sin(time), 5 * sin(time), 0));
+		// This order is wrong, but becomes automatically transposed when sent to the shader
+		DirectX::XMMATRIX mat = scalMat * posMat;
 		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
 	}
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * items.size() };
