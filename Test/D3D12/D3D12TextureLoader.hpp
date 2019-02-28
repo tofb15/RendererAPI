@@ -6,6 +6,7 @@
 
 class D3D12Texture;
 class D3D12Renderer;
+struct ID3D12Resource;
 
 #include <vector>
 
@@ -21,6 +22,7 @@ public:
 	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);
+	ID3D12Resource* GetResource(int index);
 
 	//ID3D12DescriptorHeap* GetDescriptorHeap();
 	unsigned GetNumberOfHeaps();
@@ -43,7 +45,7 @@ private:
 
 	//Permanent Storage
 	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 10;
-	unsigned mNrOfSRVs = 0;
+	unsigned m_nrOfTextures = 0;
 	std::vector<ID3D12DescriptorHeap*> m_DescriptorHeaps;
 	std::vector<ID3D12Resource*> m_TextureResources;
 

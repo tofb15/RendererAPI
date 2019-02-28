@@ -22,6 +22,7 @@ public:
 	// Inherited via Texture
 	virtual bool LoadFromFile(const char* fileName, unsigned flags) override;
 	bool IsLoaded();
+	int GetTextureIndex() const;
 private:
 	friend D3D12TextureLoader;
 
@@ -34,7 +35,7 @@ private:
 	D3D12Renderer* mRenderer;
 
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/
-	int mGPU_Loader_index = -1;
+	int m_GPU_Loader_index = -1;
 
 	//ID3D12Resource* mResource;
 	//ID3D12DescriptorHeap* mDescriptorHeap;

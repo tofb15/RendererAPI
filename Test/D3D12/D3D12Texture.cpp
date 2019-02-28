@@ -49,5 +49,10 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 
 bool D3D12Texture::IsLoaded()
 {
-	return mIsLoaded;
+	return m_GPU_Loader_index != -1;
+}
+
+int D3D12Texture::GetTextureIndex() const
+{
+	return m_GPU_Loader_index;
 }

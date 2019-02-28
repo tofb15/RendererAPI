@@ -63,20 +63,24 @@ public:
 
 private:
 
-	std::vector<SubmissionItem> items;
-	D3D12TextureLoader* mTextureLoader;
+	std::vector<SubmissionItem> m_items;
+	D3D12TextureLoader* m_textureLoader;
 	std::thread thread_texture;
 
 #pragma region InitailizeVariables
-	ID3D12Device4*				mDevice5			= nullptr;
+	ID3D12Device4*				m_device			= nullptr;
 	ID3D12CommandAllocator*		mCommandAllocator	= nullptr;
-	ID3D12GraphicsCommandList3*	mCommandList4		= nullptr;
+	ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
 	ID3D12RootSignature*		mRootSignature		= nullptr;
 #pragma endregion
 
 	//ID3D12DescriptorHeap*	mDescriptorHeap[NUM_SWAP_BUFFERS] = {};
 
 	ID3D12Resource*				m_constantBufferResource[NUM_SWAP_BUFFERS] = { nullptr };
+	
+	// Big descriptor heap resources
+	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
+	unsigned int				m_descriptorHeapSize;
 
 	//Functions Here
 
@@ -85,6 +89,7 @@ private:
 	bool InitializeFenceAndEventHandle();
 	bool InitializeRootSignature();
 	bool InitializeBigConstantBuffer();
+	bool InitializeBigDescriptorHeap();
 
 
 };

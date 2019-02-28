@@ -192,6 +192,7 @@ void D3D12TextureLoader::DoWork()
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
 
+#ifdef OLD_DESCRIPTOR_HEAP
 		//if max SRV capacity is reached, Allocate a new DescriptorHeap. 
 		unsigned localHeapIndex = mNrOfSRVs % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 		if (localHeapIndex == 0) {
@@ -202,7 +203,7 @@ void D3D12TextureLoader::DoWork()
 		D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
 		cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
 		m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
-
+#endif
 
 
 		m_CommandList4->Close();
@@ -210,7 +211,7 @@ void D3D12TextureLoader::DoWork()
 		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
 
 		WaitForCopy();
-		texture->mGPU_Loader_index = mNrOfSRVs++;
+		texture->m_GPU_Loader_index = m_nrOfTextures++;
 		m_TextureResources.push_back(textureResource);
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
@@ -236,7 +237,7 @@ void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 
 D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D12Texture * texture)
 {
-	int index = texture->mGPU_Loader_index;
+	int index = texture->m_GPU_Loader_index;
 	if (index == -1)
 		index = 0;
 
@@ -247,6 +248,11 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D1
 	handle.ptr += localIndex * mCBV_SRV_UAV_DescriptorSize;
 
 	return handle;
+}
+
+ID3D12Resource * D3D12TextureLoader::GetResource(int index)
+{
+	return m_TextureResources[index];
 }
 
 unsigned D3D12TextureLoader::GetNumberOfHeaps()
