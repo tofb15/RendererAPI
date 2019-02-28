@@ -52,7 +52,7 @@ VSOut main(VSIn input, uint index : SV_VertexID, uint instanceID : SV_InstanceID
 	VSOut output = (VSOut)0;
  
 	// output.pos = mul(float4(input.pos, 1.0f), viewPerspective);
-	output.pos = mul(mul(float4(input.pos, 1.0f), sr[instanceID]), viewPerspective);
+	output.pos = mul(mul(float4(input.pos, 1.0f), sr[matrixIndex + instanceID]), viewPerspective);
 	output.instanceID = instanceID;
 #ifdef NORMAL
 	output.normal = float4(input.normal, 0.0f);
