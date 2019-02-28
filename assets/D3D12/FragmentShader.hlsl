@@ -26,7 +26,7 @@ float4 main(VSOut input) : SV_TARGET0
 #ifdef TEXTCOORD
 	//float4 finalColor = float4(input.uv.x, input.uv.y, 0, 1);
 	//float4 finalColor = float4(g_texture.Load(int3(60100, 0, 0)).xyz, 1);
-	float4 finalColor = g_texture[input.instanceID % 2].Sample(samp, input.uv);
+	float4 finalColor = g_texture[input.instanceID].Sample(samp, input.uv);
 	
 	#ifdef NORMAL
 		float3 lightDir = float3(-1.0f, 1.0f, -0.5f);

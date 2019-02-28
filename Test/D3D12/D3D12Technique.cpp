@@ -5,8 +5,9 @@
 #include "D3D12Renderer.hpp"
 #include <d3d12.h>
 
-D3D12Technique::D3D12Technique(D3D12Renderer * renderer) : mRenderer(renderer)
+D3D12Technique::D3D12Technique(D3D12Renderer * renderer, unsigned short id) : mRenderer(renderer), m_id(id)
 {
+
 }
 
 bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12ShaderManager* sm)
@@ -134,4 +135,9 @@ bool D3D12Technique::Enable()
 	mRenderer->GetCommandList()->SetPipelineState(mPipelineState);
 
 	return true;
+}
+
+unsigned short D3D12Technique::GetID() const
+{
+	return m_id;
 }

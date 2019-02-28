@@ -14,7 +14,8 @@
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
 
-
+#include <algorithm>
+#include <functional>
 
 #include "D3D12Window.hpp"
 #pragma comment(lib, "d3d12.lib")
@@ -81,7 +82,10 @@ Texture * D3D12Renderer::MakeTexture()
 
 Mesh * D3D12Renderer::MakeMesh()
 {
-	return new D3D12Mesh(this);
+	if (++m_meshesCreated == 0)
+		return nullptr;
+
+	return new D3D12Mesh(this, m_meshesCreated);
 }
 
 Material * D3D12Renderer::MakeMaterial()
@@ -96,7 +100,10 @@ RenderState * D3D12Renderer::MakeRenderState()
 
 Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm)
 {
-	D3D12Technique* tech = new D3D12Technique(this);
+	if (++m_techniquesCreated == 0)
+		return nullptr;
+
+	D3D12Technique* tech = new D3D12Technique(this, m_techniquesCreated);
 	if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), sp, static_cast<D3D12ShaderManager*>(sm)))
 	{
 		delete tech;
@@ -112,7 +119,16 @@ D3D12VertexBuffer * D3D12Renderer::MakeVertexBuffer()
 
 void D3D12Renderer::Submit(SubmissionItem item)
 {
-	m_items.push_back(item);
+
+	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
+	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
+
+	unsigned int sortIndex = techIndex << (sizeof(unsigned short) * 8);//
+	sortIndex += meshIndex;
+
+	unsigned short test = sortIndex;
+
+	m_items.push_back({sortIndex, techIndex, meshIndex, item });//pushing a SortingItem struct
 }
 
 void D3D12Renderer::ClearSubmissions()
@@ -122,6 +138,15 @@ void D3D12Renderer::ClearSubmissions()
 
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
+
+	int breakpoint = 0;
+
+	std::sort(m_items.begin(), m_items.end(),
+		[](const SortingItem & a, const SortingItem & b) -> bool
+	{
+		return a.sortingIndex > b.sortingIndex;
+	});
+
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
@@ -158,28 +183,28 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	size_t nItems = m_items.size();
-	for (size_t itemIndex = 0; itemIndex < nItems; itemIndex++)
-	{
-		// Retrieve this mesh's textures
-		std::vector<Texture*>& textures = m_items[itemIndex].blueprint->textures;
-		size_t nTextures = textures.size();
+	//size_t nItems = m_items.size();
+	//for (size_t itemIndex = 0; itemIndex < nItems; itemIndex++)
+	//{
+	//	// Retrieve this mesh's textures
+	//	std::vector<Texture*>& textures = m_items[itemIndex].item.blueprint->textures;
+	//	size_t nTextures = textures.size();
 
-		// Create a shader resource view for each texture
-		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
-		{
-			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
-			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
+	//	// Create a shader resource view for each texture
+	//	for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
+	//	{
+	//		D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
+	//		int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
 
-			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
-			m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+	//		ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
+	//		m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
 
-			// Move the pointer forward in memory
-			cdh.ptr += descriptorSize;
-		}
-	}
+	//		// Move the pointer forward in memory
+	//		cdh.ptr += descriptorSize;
+	//	}
+	//}
 
-	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	//m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 #endif
 #pragma endregion
 
@@ -194,12 +219,62 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	static float time = 0;
 	time += 0.001f;
 
-	DirectX::XMFLOAT4X4 mat = {};
-	for (int i = 0; i < m_items.size(); i++)
+	std::vector<int> renderInstructions; //-1 means new technique. everything else is number of instances to draw.
+
+	unsigned short meshID_last = m_items[0].meshIndex;
+	unsigned short techID_last = m_items[0].techniqueIndex;
+	unsigned short meshID_curr;
+	unsigned short techID_curr;
+	unsigned int nOfInstances = 0;
+
+	renderInstructions.push_back(-1);//Start with setting new technique
+
+	size_t nItems = m_items.size();
+	for (int i = 0; i < nItems; i++)
 	{
-		Float3 pos = m_items[i].transform.pos;
-		Float3 scal = m_items[i].transform.scale;
-		
+
+		// Retrieve this mesh's textures
+		std::vector<Texture*>& textures = m_items[i].item.blueprint->textures;
+		size_t nTextures = textures.size();
+
+		// Create a shader resource view for each texture
+		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
+		{
+			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
+			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
+
+			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
+			m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+
+			// Move the pointer forward in memory
+			cdh.ptr += descriptorSize;
+		}
+
+		//Check Mesh and Tech
+		techID_curr = m_items[i].techniqueIndex;
+		meshID_curr = m_items[i].meshIndex;
+
+		if (techID_curr != techID_last) {
+			techID_last = techID_curr;
+			renderInstructions.push_back(nOfInstances);
+			renderInstructions.push_back(-1);
+			nOfInstances = 0;
+
+			if (meshID_curr != meshID_last) {
+				meshID_last = meshID_curr;
+			}
+		}
+		else if (meshID_curr != meshID_last) {
+			meshID_last = meshID_curr;
+			renderInstructions.push_back(nOfInstances);
+			nOfInstances = 0;
+		}
+		nOfInstances++;
+
+//update structured buffer
+		Float3 pos = m_items[i].item.transform.pos;
+		Float3 scal = m_items[i].item.transform.scale;
+
 		// Set no rotation
 		DirectX::XMMATRIX mat = DirectX::XMMatrixIdentity();
 
@@ -218,8 +293,10 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
 	}
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * m_items.size() };
-	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
+	renderInstructions.push_back(nOfInstances);//Start with setting new technique
 
+	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
+	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 	m_commandList->SetGraphicsRootShaderResourceView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
 
 	//Set necessary states.
@@ -246,34 +323,36 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	m_commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
 
-	// Offset between instanced draws
-	//mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
-
-	for (size_t i = 0; i < 1; i++)
+	int itemIndex = 0;
+	for (size_t instIndex = 0; instIndex < renderInstructions.size(); instIndex++)
 	{
-		m_items[i].blueprint->technique->Enable();
-		
-#ifdef OLD_DESCRIPTOR_HEAP
-		D3D12_GPU_DESCRIPTOR_HANDLE handle = m_textureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(m_items[i].blueprint->textures[0]));
-		m_commandList->SetGraphicsRootDescriptorTable(1, handle);
-#else
-		D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
-		m_commandList->SetGraphicsRootDescriptorTable(1, handle);
-#endif
-
-		std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[i].blueprint->mesh)->GetVertexBuffers();
-
-		for (size_t j = 0; j < buffers.size(); j++)
-		{
-			m_commandList->IASetVertexBuffers(static_cast<UINT>(j), 1, buffers[j]->GetView());
+		int instruction = renderInstructions[instIndex];
+		if (instruction == -1) {
+			m_items[itemIndex].item.blueprint->technique->Enable();
+			continue;
 		}
+		else {
+			m_commandList->SetGraphicsRoot32BitConstants(0, 1, &itemIndex, 16);
 
-		m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), static_cast<UINT>(m_items.size()), 0, 0);
+			//Set TExture
+			//D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[itemIndex].item.blueprint->textures[0]));
+			//mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
+			handle.ptr += itemIndex * descriptorSize;
+			m_commandList->SetGraphicsRootDescriptorTable(1, handle);
+
+			//Set Vertex Buffers
+			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[itemIndex].item.blueprint->mesh)->GetVertexBuffers();
+			for (size_t j = 0; j < buffers.size(); j++)
+			{
+				m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+			}
+			//Draw
+			m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+			itemIndex += instruction;
+		}
 	}
-
-#ifdef OLD_DESCRIPTOR_HEAP
-	delete[] heapsToUse;
-#endif
 }
 
 void D3D12Renderer::Present(Window * w)

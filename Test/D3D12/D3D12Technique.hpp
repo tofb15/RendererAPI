@@ -14,15 +14,16 @@ struct ID3D12PipelineState;
 */
 class D3D12Technique : public Technique{
 public:
-	D3D12Technique(D3D12Renderer* renderer);
+	D3D12Technique(D3D12Renderer* renderer, unsigned short id);
 	virtual bool Initialize(D3D12RenderState*, ShaderProgram* sp, D3D12ShaderManager* sm);
 
 	virtual ~D3D12Technique();
 
 	// Inherited via Technique
 	virtual bool Enable() override;
-
+	unsigned short GetID() const;
 private:
+	unsigned short m_id;
 	D3D12Renderer* mRenderer;
 	ID3D12PipelineState* mPipelineState = nullptr;
 

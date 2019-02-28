@@ -4,6 +4,7 @@
 #include "GlobalSettings.hpp"
 #include <Windows.h>
 #include <thread>
+#include <map>
 
 struct ID3D12Device4;
 struct ID3D12CommandQueue;
@@ -16,6 +17,7 @@ struct ID3D12Resource;
 
 class D3D12VertexBuffer;
 class D3D12TextureLoader;
+
 /*
 	Documentation goes here ^^
 */
@@ -63,9 +65,20 @@ public:
 
 private:
 
-	std::vector<SubmissionItem> m_items;
+	struct SortingItem
+	{
+		unsigned int sortingIndex;
+		unsigned short techniqueIndex;
+		unsigned short meshIndex;
+		SubmissionItem item;
+	};
+
+	std::vector<SortingItem> m_items;
 	D3D12TextureLoader* m_textureLoader;
 	std::thread thread_texture;
+
+	unsigned short m_meshesCreated = 0;
+	unsigned short m_techniquesCreated = 0;
 
 #pragma region InitailizeVariables
 	ID3D12Device4*				m_device			= nullptr;

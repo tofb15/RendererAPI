@@ -123,13 +123,13 @@ public:
 #pragma region CreateCamera
 	//Create Camera
 		Camera* cam = renderer->MakeCamera();
-		cam->SetPosition(Float3(0, 5, -5));
+		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		cameras.push_back(cam);
 
 		cam = renderer->MakeCamera();
-		cam->SetPosition(Float3(0, 5, -5));
+		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		cameras.push_back(cam);
@@ -147,8 +147,8 @@ public:
 		};
 
 		int nElems = sizeof(rect) / sizeof(Float3);
-		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
-		
+		//meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
+		meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
 		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 
@@ -159,8 +159,6 @@ public:
 		Material* mat = renderer->MakeMaterial();
 		mat->LoadFromFile("generator.mtl");
 		materials.push_back(mat);
-
-
 
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
@@ -202,14 +200,14 @@ public:
 
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
-		blueprint->technique = techniques[0];
-		blueprint->mesh = meshes[1];
+		blueprint->technique = techniques[1];
+		blueprint->mesh = meshes[0];
 		blueprint->textures.push_back(textures[0]);
 		blueprints.push_back(blueprint);
 
 		blueprint = new Blueprint;
-		blueprint->technique = techniques[0];
-		blueprint->mesh = meshes[1];
+		blueprint->technique = techniques[1];
+		blueprint->mesh = meshes[0];
 		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
 #pragma endregion
@@ -236,8 +234,8 @@ public:
 		WindowInput &input2 = windows[1]->GetLocalWindowInputHandler();
 
 		bool demoMovement[2];
-		demoMovement[0] = true;
-		demoMovement[1] = true;
+		demoMovement[0] = false;
+		demoMovement[1] = false;
 
 		int techniqueToUse = 0;
 
