@@ -1,3 +1,3 @@
 #pragma once
 
-const unsigned int NUM_SWAP_BUFFERS = 6;
+const unsigned int NUM_SWAP_BUFFERS = 2;

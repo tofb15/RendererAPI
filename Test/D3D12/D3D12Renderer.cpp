@@ -281,6 +281,20 @@ D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 
 bool D3D12Renderer::InitializeDirect3DDevice()
 {
+#ifdef _DEBUG
+	//Enable the D3D12 debug layer.
+	ID3D12Debug* debugController = nullptr;
+
+	HMODULE mD3D12 = GetModuleHandle("D3D12.dll");
+	PFN_D3D12_GET_DEBUG_INTERFACE f = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(mD3D12, "D3D12GetDebugInterface");
+	if (SUCCEEDED(f(IID_PPV_ARGS(&debugController))))
+	{
+		debugController->EnableDebugLayer();
+	}
+	debugController->Release();
+#endif
+
+
 	//dxgi1_6 is only needed for the initialization process using the adapter.
 	IDXGIFactory6*	factory = nullptr;
 	IDXGIAdapter1*	adapter = nullptr;
