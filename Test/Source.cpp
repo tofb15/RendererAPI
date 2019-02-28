@@ -160,8 +160,6 @@ public:
 		mat->LoadFromFile("generator.mtl");
 		materials.push_back(mat);
 
-
-
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
 		renderState->SetWireframe(true);
@@ -203,7 +201,7 @@ public:
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
 		blueprint->technique = techniques[0];
-		blueprint->mesh = meshes[1];
+		blueprint->mesh = meshes[0];
 		blueprint->textures.push_back(textures[0]);
 		blueprints.push_back(blueprint);
 

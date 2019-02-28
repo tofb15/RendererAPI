@@ -5,7 +5,7 @@
 #include <sstream>
 #include <fstream>
 
-D3D12Mesh::D3D12Mesh(D3D12Renderer* renderer)
+D3D12Mesh::D3D12Mesh(D3D12Renderer* renderer, unsigned short id) : m_id(id)
 {
 	this->renderer = renderer;
 }
@@ -289,4 +289,9 @@ bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh
 std::vector<D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers()
 {
 	return &vertexBuffers;
+}
+
+unsigned short D3D12Mesh::GetID() const
+{
+	return m_id;
 }

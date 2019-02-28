@@ -14,7 +14,8 @@
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
 
-
+#include <algorithm>
+#include <functional>
 
 #include "D3D12Window.hpp"
 #pragma comment(lib, "d3d12.lib")
@@ -85,7 +86,10 @@ Texture * D3D12Renderer::MakeTexture()
 
 Mesh * D3D12Renderer::MakeMesh()
 {
-	return new D3D12Mesh(this);
+	if (++m_meshesCreated == 0)
+		return nullptr;
+
+	return new D3D12Mesh(this, m_meshesCreated);
 }
 
 Material * D3D12Renderer::MakeMaterial()
@@ -100,7 +104,10 @@ RenderState * D3D12Renderer::MakeRenderState()
 
 Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm)
 {
-	D3D12Technique* tech = new D3D12Technique(this);
+	if (++m_techniquesCreated == 0)
+		return nullptr;
+
+	D3D12Technique* tech = new D3D12Technique(this, m_techniquesCreated);
 	if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), sp, static_cast<D3D12ShaderManager*>(sm)))
 	{
 		delete tech;
@@ -116,7 +123,15 @@ D3D12VertexBuffer * D3D12Renderer::MakeVertexBuffer()
 
 void D3D12Renderer::Submit(SubmissionItem item)
 {
-	items.push_back(item);
+	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
+	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
+
+	unsigned int sortIndex = techIndex << (sizeof(unsigned short) * 8);//
+	sortIndex += meshIndex;
+
+	unsigned short test = sortIndex;
+
+	items.push_back({sortIndex, techIndex, meshIndex, item });//pushing a SortingItem struct
 }
 
 void D3D12Renderer::ClearSubmissions()
@@ -126,6 +141,15 @@ void D3D12Renderer::ClearSubmissions()
 
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
+
+	int breakpoint = 0;
+
+	std::sort(items.begin(), items.end(),
+		[](const SortingItem & a, const SortingItem & b) -> bool
+	{
+		return a.sortingIndex > b.sortingIndex;
+	});
+
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
@@ -161,10 +185,41 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	time += 0.001f;
 
 	DirectX::XMFLOAT4X4 mat = {};
+
+	std::vector<int> renderInstructions; //-1 means new technique. everything else is number of instances to draw.
+
+	unsigned short meshID_last = 0;
+	unsigned short techID_last = 0;
+	unsigned short meshID_curr;
+	unsigned short techID_curr;
+	unsigned int nOfInstances;
+
+	renderInstructions.push_back(-1);//Start with setting new technique
+
 	for (int i = 0; i < items.size(); i++)
 	{
-		Float3 pos = items[i].transform.pos;
-		Float3 scal = items[i].transform.scale;
+		techID_curr = items[i].techniqueIndex;
+		meshID_curr = items[i].meshIndex;
+		nOfInstances++;
+
+		if (techID_curr != techID_last) {
+			techID_last = techID_curr;
+			renderInstructions.push_back(nOfInstances);
+			renderInstructions.push_back(-1);
+			nOfInstances = 0;
+
+			if (meshID_curr != meshID_last) {
+				meshID_last = meshID_curr;
+			}
+		}
+		else if (meshID_curr != meshID_last) {
+			meshID_last = meshID_curr;
+			renderInstructions.push_back(nOfInstances);
+			nOfInstances = 0;
+		}
+
+		Float3 pos = items[i].item.transform.pos;
+		Float3 scal = items[i].item.transform.scale;
 		DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 		DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
 
@@ -172,6 +227,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		//DirectX::XMMATRIX mat = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslation(5 * sin(time), 5 * sin(time), 0));
 		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
 	}
+
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * items.size() };
 	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
 
@@ -207,13 +263,25 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	// Offset between instanced draws
 	//mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
-	for (size_t i = 0; i < 1; i++)
+
+	int itemIndex = 0;
+	for (size_t instIndex = 0; instIndex < renderInstructions.size(); instIndex++)
 	{
-		items[i].blueprint->technique->Enable();
-		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[i].blueprint->textures[0]));
+		int instruction = renderInstructions[instIndex];
+		if (instruction == -1) {
+			items[itemIndex].item.blueprint->technique->Enable();
+			continue;
+		}
+	}
+
+	for (size_t i = 0; i < newTechniqueStart.size(); i++)
+	{
+		items[newTechniqueStart[i]].item.blueprint->technique->Enable();
+
+		D3D12_GPU_DESCRIPTOR_HANDLE handle = mTextureLoader->GetSpecificTextureGPUAdress(static_cast<D3D12Texture*>(items[i].item.blueprint->textures[0]));
 		mCommandList4->SetGraphicsRootDescriptorTable(1, handle);
 
-		std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(items[i].blueprint->mesh)->GetVertexBuffers();
+		std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(items[i].item.blueprint->mesh)->GetVertexBuffers();
 
 		for (size_t j = 0; j < buffers.size(); j++)
 		{
