@@ -164,23 +164,18 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	unsigned int nItems = m_items.size();
-	for (int itemIndex = 0; itemIndex < nItems; itemIndex++)
+	size_t nItems = m_items.size();
+	for (size_t itemIndex = 0; itemIndex < nItems; itemIndex++)
 	{
 		// Retrieve this mesh's textures
 		std::vector<Texture*>& textures = m_items[itemIndex].blueprint->textures;
-		unsigned int nTextures = textures.size();
+		size_t nTextures = textures.size();
 
 		// Create a shader resource view for each texture
-		for (int textureIndex = 0; textureIndex < nTextures; textureIndex++)
+		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
 		{
 			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
 			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
-
-			if (textureIndexOnGPU != 0)
-			{
-				int apa = 0;
-			}
 
 			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
 			m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
@@ -189,8 +184,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			cdh.ptr += descriptorSize;
 		}
 	}
-
-
 
 	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 #endif
@@ -254,6 +247,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	// Offset between instanced draws
 	//mCommandList4->SetGraphicsRoot32BitConstants(0, 1, &i, 16);
+
 	for (size_t i = 0; i < 1; i++)
 	{
 		m_items[i].blueprint->technique->Enable();
@@ -270,11 +264,10 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 		for (size_t j = 0; j < buffers.size(); j++)
 		{
-			m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+			m_commandList->IASetVertexBuffers(static_cast<UINT>(j), 1, buffers[j]->GetView());
 		}
 
-		m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), m_items.size(), 0, 0);
-		//m_commandList->s
+		m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), static_cast<UINT>(m_items.size()), 0, 0);
 	}
 
 #ifdef OLD_DESCRIPTOR_HEAP

@@ -211,8 +211,12 @@ void D3D12TextureLoader::DoWork()
 		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
 
 		WaitForCopy();
+		{
+			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
+			m_TextureResources.push_back(textureResource);
+		}
 		texture->m_GPU_Loader_index = m_nrOfTextures++;
-		m_TextureResources.push_back(textureResource);
+
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
 			atLeastOneTextureIsLoaded = true;
@@ -252,12 +256,13 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D1
 
 ID3D12Resource * D3D12TextureLoader::GetResource(int index)
 {
+	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
 	return m_TextureResources[index];
 }
 
 unsigned D3D12TextureLoader::GetNumberOfHeaps()
 {
-	return m_DescriptorHeaps.size();
+	return static_cast<unsigned>(m_DescriptorHeaps.size());
 }
 
 ID3D12DescriptorHeap ** D3D12TextureLoader::GetAllHeaps()

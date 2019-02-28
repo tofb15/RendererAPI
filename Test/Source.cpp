@@ -312,37 +312,37 @@ public:
 
 			//Window 1
 			if (input1.IsKeyDown(WindowInput::KEY_CODE_UP)) {
-				cameras[0]->Move({ 0, 0, 0.1 });
+				cameras[0]->Move({ 0.0f, 0.0f, 0.1f });
 				demoMovement[0] = false;
 			}
 			if (input1.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
-				cameras[0]->Move({ 0, 0, -0.1 });
+				cameras[0]->Move({ 0.0f, 0.0f, -0.1f });
 				demoMovement[0] = false;
 			}
 			if (input1.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
-				cameras[0]->Move({ -0.1, 0, 0 });
+				cameras[0]->Move({ -0.1f, 0.0f, 0.0f });
 				demoMovement[0] = false;
 			}
 			if (input1.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
-				cameras[0]->Move({ 0.1, 0, 0 });
+				cameras[0]->Move({ 0.1f, 0.0f, 0.0f });
 				demoMovement[0] = false;
 			}
 
 			//Window 1
 			if (input2.IsKeyDown(WindowInput::KEY_CODE_UP)) {
-				cameras[1]->Move({ 0, 0, 0.1 });
+				cameras[1]->Move({ 0.0f, 0.0f, 0.1f });
 				demoMovement[1] = false;
 			}
 			if (input2.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
-				cameras[1]->Move({ 0, 0, -0.1 });
+				cameras[1]->Move({ 0.0f, 0.0f, -0.1f });
 				demoMovement[1] = false;
 			}
 			if (input2.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
-				cameras[1]->Move({ -0.1, 0, 0 });
+				cameras[1]->Move({ -0.1f, 0.0f, 0.0f });
 				demoMovement[1] = false;
 			}
 			if (input2.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
-				cameras[1]->Move({ 0.1, 0, 0 });
+				cameras[1]->Move({ 0.1f, 0.0f, 0.0f });
 				demoMovement[1] = false;
 			}
 #pragma endregion
@@ -359,11 +359,11 @@ public:
 			//}
 
 
-			time += 0.05;
+			time += 0.05f;
 			if(demoMovement[0])
-				cameras[0]->SetPosition(Float3(sin(time) * 4, 3, cos(time) * 4));
+				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 			if (demoMovement[1])
-				cameras[1]->SetPosition(Float3(sin(time) * 4, 3, cos(time) * 4));
+				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 
 
 			//Render Window 1

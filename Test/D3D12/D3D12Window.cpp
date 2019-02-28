@@ -25,18 +25,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		quit = true;
 		break;
 	case WM_KEYDOWN: {
-		short key = wParam;
+		short key = static_cast<short>(wParam);
 		//std::cout << std::dec << key << std::endl;
-		Window::GetGlobalWindowInputHandler().SetKeyDown(key, true);
+		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), true);
 	}
 		break;
 	case WM_KEYUP: {
-
-		short key = wParam;
-		Window::GetGlobalWindowInputHandler().SetKeyDown(key, false);
+		
+		short key = static_cast<short>(wParam);
+		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), false);
 
 		if (lParam >> 30 & 1) {
-			Window::GetGlobalWindowInputHandler().SetKeyPressed(key, true);
+			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
 
 	}
@@ -174,39 +174,37 @@ void D3D12Window::HandleWindowEvents()
 
 			case WM_KEYDOWN: {
 
-				short key = msg.wParam;
-				m_input.SetKeyDown(key, true);
+				short key = static_cast<short>(msg.wParam);
+				m_input.SetKeyDown(static_cast<char>(key), true);
 			}
-							 break;
-
+				break;
 			case WM_KEYUP: {
 
-				short key = msg.wParam;
-				m_input.SetKeyDown(key, false);
+				short key = static_cast<short>(msg.wParam);
+				m_input.SetKeyDown(static_cast<char>(key), false);
 
 				if (msg.lParam >> 30 & 1) {
-					m_input.SetKeyPressed(key, true);
+					m_input.SetKeyPressed(static_cast<char>(key), true);
 				}
-
 			}
-						   break;
+				break;
 
-						   //case WM_MOUSELEAVE:
-						   //case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
+			//case WM_MOUSELEAVE:
+			//case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
 
-						   //	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
-						   //	mMouseInsideWindow = false;
-						   //	break;
-						   //case WM_MOUSEMOVE:
-						   //case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
+			//	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
+			//	mMouseInsideWindow = false;
+			//	break;
+			//case WM_MOUSEMOVE:
+			//case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
 
-						   //	/*Set all other windows mMouseInsideWindow to false here maybe?*/
-						   //	mMouseInsideWindow = true;
-						   //	break;
-						   //case WM_SETFOCUS:
-						   //case WM_MOUSEACTIVATE:
-						   //	mIsInFocus = true;
-						   //	break;
+			//	/*Set all other windows mMouseInsideWindow to false here maybe?*/
+			//	mMouseInsideWindow = true;
+			//	break;
+			//case WM_SETFOCUS:
+			//case WM_MOUSEACTIVATE:
+			//	mIsInFocus = true;
+			//	break;
 			default:
 				break;
 			}

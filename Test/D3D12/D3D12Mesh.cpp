@@ -142,17 +142,17 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 
 	if (facePositions.size() > 0)
 	{
-		if (!AddVertexBuffer(facePositions.size(), sizeof(Float3), facePositions.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION))
+		if (!AddVertexBuffer(static_cast<int>(facePositions.size()), sizeof(Float3), facePositions.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION))
 			return false;
 	}
 	if (faceNormals.size() > 0)
 	{
-		if (!AddVertexBuffer(faceNormals.size(), sizeof(Float3), faceNormals.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL))
+		if (!AddVertexBuffer(static_cast<int>(faceNormals.size()), sizeof(Float3), faceNormals.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL))
 			return false;
 	}
 	if (faceUVs.size() > 0)
 	{
-		if (!AddVertexBuffer(faceUVs.size(), sizeof(Float2), faceUVs.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV))
+		if (!AddVertexBuffer(static_cast<int>(faceUVs.size()), sizeof(Float2), faceUVs.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV))
 			return false;
 	}
 
