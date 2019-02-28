@@ -43,8 +43,6 @@ D3D12Renderer::~D3D12Renderer()
 		delete m_textureLoader;
 }
 
-#include <iostream>
-
 bool D3D12Renderer::Initialize()
 {
 	InitializeDirect3DDevice();
@@ -61,11 +59,7 @@ bool D3D12Renderer::Initialize()
 	m_textureLoader->Initialize();
 
 	//Start new Texture loading thread
-	std::cout << thread_texture.get_id() << std::endl;
-
 	thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
-
-	std::cout << thread_texture.get_id() << std::endl;
 
 	return true;
 }
@@ -205,11 +199,22 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	{
 		Float3 pos = m_items[i].transform.pos;
 		Float3 scal = m_items[i].transform.scale;
-		DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
+		
+		// Set no rotation
+		DirectX::XMMATRIX mat = DirectX::XMMatrixIdentity();
 
-		// This order is wrong, but becomes automatically transposed when sent to the shader
-		DirectX::XMMATRIX mat = scalMat * posMat;
+		// Apply position
+		mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
+
+		// Apply scale
+		mat.r[0].m128_f32[0] *= scal.x;
+		mat.r[1].m128_f32[1] *= scal.y;
+		mat.r[2].m128_f32[2] *= scal.z;
+
+		// This order is incorrect, but becomes automatically transposed when sent to the shader which makes it correct there
+		//DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		//DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
+		//DirectX::XMMATRIX mat = scalMat * posMat;
 		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
 	}
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * m_items.size() };
@@ -217,11 +222,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	m_commandList->SetGraphicsRootShaderResourceView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
 
-	//Set root descriptor table to index 0 in previously set root signature
-	//m_commandList->SetGraphicsRootDescriptorTable(0, mDescriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart());
-	//m_commandList->SetGraphicsRootDescriptorTable(2, mSamplerHeap->GetGPUDescriptorHandleForHeapStart());
-
-		//Set necessary states.
+	//Set necessary states.
 	m_commandList->RSSetViewports(1, window->GetViewport());
 	m_commandList->RSSetScissorRects(1, window->GetScissorRect());
 	//m_commandList->SetGraphicsRootConstantBufferView(2, );

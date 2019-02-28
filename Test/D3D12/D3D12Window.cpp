@@ -533,7 +533,7 @@ void D3D12Window::WaitForGPU()
 		WaitForSingleObject(m_EventHandle[nextFrame], INFINITE);
 	}
 
-	if (frames > 1000) {
+	if (frames > 100) {
 		std::string s = std::to_string(numWaits);
 		s += "\n";
 		OutputDebugString(s.c_str());

@@ -218,17 +218,10 @@ public:
 		{
 			Object* object = new Object;
 			object->blueprint = blueprints[i % 2];
-			object->transform.scale = { 1.0f, 1.0f, 1.0f };
+			object->transform.scale = { 1.0f, 2.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
 			objects.push_back(object);
 		}
-
-		//object = new Object;
-		//object->blueprint = blueprints[1];
-		//object->transform.scale = { 1.0f, 1.0f, 1.0f };
-		////object->transform.pos = { 1.0f, 1.0f, 1.0f };
-		//object->transform.pos = { 0.0f, 0.0f, 0.0f };
-		//objects.push_back(object);
 
 		return true;
 	}
@@ -256,7 +249,7 @@ public:
 			static int frame = 0;
 			frame++;
 
-			if (frame > 1000)
+			if (frame > 100)
 			{
 				t2 = t1;
 				t1 = Clock::now();
