@@ -2,14 +2,11 @@
 
 #include "../Renderer.hpp"
 #include "GlobalSettings.hpp"
-#include <Windows.h>
 #include <thread>
-#include <map>
+#include <mutex>
 
 struct ID3D12Device4;
-struct ID3D12CommandQueue;
 struct ID3D12CommandAllocator;
-struct IDXGISwapChain4;
 struct ID3D12GraphicsCommandList3;
 struct ID3D12DescriptorHeap;
 struct ID3D12RootSignature;
@@ -31,32 +28,20 @@ public:
 	virtual bool Initialize() override;
 	
 	virtual Camera * MakeCamera() override;
-
 	virtual Window * MakeWindow() override;
-
 	virtual Texture * MakeTexture() override;
-
 	virtual Mesh * MakeMesh() override;
-
 	virtual Material * MakeMaterial() override;
-
 	virtual RenderState * MakeRenderState() override;
-
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
-
+	virtual ShaderManager * MakeShaderManager() override;
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
 
-	virtual ShaderManager * MakeShaderManager() override;
-
-	virtual void Submit(SubmissionItem item) override;
-
-	virtual void ClearSubmissions() override;
-
-	virtual void Frame(Window * window, Camera * c) override;
-
-	virtual void Present(Window * w) override;
-
 	virtual void ClearFrame() override;
+	virtual void ClearSubmissions() override;
+	virtual void Submit(SubmissionItem item) override;
+	virtual void Frame(Window * window, Camera * c) override;
+	virtual void Present(Window * w) override;
 
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
@@ -64,7 +49,6 @@ public:
 	D3D12TextureLoader* GetTextureLoader() const;
 
 private:
-
 	struct SortingItem
 	{
 		unsigned int sortingIndex;
@@ -73,36 +57,43 @@ private:
 		SubmissionItem item;
 	};
 
+	bool InitializeDirect3DDevice();
+	bool InitializeCommandInterfaces();
+	bool InitializeRootSignature();
+	bool InitializeMatrixStructuredBuffer();
+	bool InitializeTextureDescriptorHeap();
+	void SetUpRenderInstructions();
+	void RecordRenderInstructions(int backBufferIndex, int firstInstructionIdx, int lastInstructionIdx);
+
+
+	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
+	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
+	static const unsigned NUM_THREADS_FOR_RECORDING = 2U;
+
+	unsigned int m_cbv_srv_uav_size;
+
 	std::vector<SortingItem> m_items;
 	D3D12TextureLoader* m_textureLoader;
-	std::thread thread_texture;
+	std::thread m_thread_texture;
 
 	unsigned short m_meshesCreated = 0;
 	unsigned short m_techniquesCreated = 0;
-
-#pragma region InitailizeVariables
-	ID3D12Device4*				m_device			= nullptr;
-	ID3D12CommandAllocator*		mCommandAllocator	= nullptr;
-	ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
-	ID3D12RootSignature*		mRootSignature		= nullptr;
-#pragma endregion
-
-	//ID3D12DescriptorHeap*	mDescriptorHeap[NUM_SWAP_BUFFERS] = {};
-
-	ID3D12Resource*				m_constantBufferResource[NUM_SWAP_BUFFERS] = { nullptr };
 	
-	// Big descriptor heap resources
+	//-1 means new technique. everything else is number of instances to draw.
+	std::vector<int> m_renderInstructions;
+	std::vector<int> m_instanceOffsets;
+
+	ID3D12Device4*				m_device			= nullptr;
+	ID3D12CommandAllocator*		m_commandAllocator	= nullptr;
+	ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
+	ID3D12RootSignature*		m_rootSignature		= nullptr;
+
+	// Structured buffer for matrices
+	ID3D12Resource*				m_structuredBufferResources[NUM_SWAP_BUFFERS] = { nullptr };
+	
+	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
-	unsigned int				m_descriptorHeapSize;
 
-	//Functions Here
-
-	bool InitializeDirect3DDevice();					
-	bool InitializeCommandInterfaces();	
-	bool InitializeFenceAndEventHandle();
-	bool InitializeRootSignature();
-	bool InitializeBigConstantBuffer();
-	bool InitializeBigDescriptorHeap();
-
-
+	//std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
+	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
 };

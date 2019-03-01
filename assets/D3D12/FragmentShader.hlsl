@@ -20,6 +20,15 @@ struct VSOut
 };
 
 
+float timeWaster(float input)
+{
+	float output = input;
+	output += sin(input / sqrt(17));
+	output *= cos(output / sqrt(17)) / 13;
+	return output;
+}
+
+
 float4 main(VSOut input) : SV_TARGET0
 {
 
@@ -33,6 +42,14 @@ float4 main(VSOut input) : SV_TARGET0
 		
 		finalColor = saturate(finalColor * dot(lightDir, input.normal.xyz)) + finalColor*0.1;
 		finalColor.w = 1.0f;
+
+		
+		/*for (int i = 0; i < 100000; i++)
+		{
+			finalColor.w += timeWaster(finalColor.w);
+		}
+		saturate(finalColor);*/
+
 	#endif
 	
 #elif defined(NORMAL)
