@@ -151,8 +151,17 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	mCommandAllocator->Reset();
-	m_commandList->Reset(mCommandAllocator, nullptr);
+	HRESULT hr = mCommandAllocator->Reset();
+	if (!SUCCEEDED(hr))
+	{
+		printf("Error: Command allocator reset\n");
+	}
+
+	hr = m_commandList->Reset(mCommandAllocator, nullptr);
+	if (!SUCCEEDED(hr))
+	{
+		printf("Error: Command list reset\n");
+	}
 
 #pragma region Descriptor Heaps
 #ifdef OLD_DESCRIPTOR_HEAP
@@ -286,10 +295,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		mat.r[1].m128_f32[1] *= scal.y;
 		mat.r[2].m128_f32[2] *= scal.z;
 
-		// This order is incorrect, but becomes automatically transposed when sent to the shader which makes it correct there
-		//DirectX::XMMATRIX posMat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		//DirectX::XMMATRIX scalMat = DirectX::XMMatrixScaling(scal.x, scal.y, scal.z);
-		//DirectX::XMMATRIX mat = scalMat * posMat;
 		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
 	}
 	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * m_items.size() };
@@ -380,7 +385,6 @@ void D3D12Renderer::Present(Window * w)
 	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
 	window->WaitForGPU();
-
 }
 
 void D3D12Renderer::ClearFrame()
@@ -405,6 +409,10 @@ ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
 D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
 	return m_textureLoader;
+}
+
+void D3D12Renderer::RecordTechniqueDrawCommands(int firstTechIdx, int lastTechIdx)
+{
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()

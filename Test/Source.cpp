@@ -12,6 +12,9 @@
 #include <crtdbg.h>
 #include <chrono>
 
+
+const bool SINGLE_WINDOW = true;
+
 //class Renderer;
 
 /*
@@ -97,12 +100,15 @@ public:
 		window->Show();
 		windows.push_back(window);
 
-		Window*	window2 = renderer->MakeWindow();
-		window2->SetDimensions(640, 640);
-		window2->SetTitle("Window 2");
-		window2->Create();
-		window2->Show();
-		windows.push_back(window2);
+		if (!SINGLE_WINDOW)
+		{
+			Window*	window2 = renderer->MakeWindow();
+			window2->SetDimensions(640, 640);
+			window2->SetTitle("Window 2");
+			window2->Create();
+			window2->Show();
+			windows.push_back(window2);
+		}
 
 		sm = renderer->MakeShaderManager();
 		ShaderDescription sd = {};
@@ -212,7 +218,7 @@ public:
 		blueprints.push_back(blueprint);
 #pragma endregion
 
-		for (int i = 0; i < 10240; i++)
+		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
 			object->blueprint = blueprints[i % 2];
@@ -228,10 +234,14 @@ public:
 	{
 		//Get the Global input handler for all window. global input handlers is shared by all windows!
 		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
-		//Get the input handler for window 1. local input handlers is unique for each window!
-		WindowInput &input1 = windows[0]->GetLocalWindowInputHandler();
-		//Get the input handler for window 1. local input handlers is unique for each window!
-		WindowInput &input2 = windows[1]->GetLocalWindowInputHandler();
+		
+		std::vector<WindowInput*> inputs;
+		//Get the input handler for window 0. local input handlers is unique for each window!
+		
+		for (size_t i = 0; i < windows.size(); i++)
+		{
+			inputs.push_back(&windows[i]->GetLocalWindowInputHandler());
+		}
 
 		bool demoMovement[2];
 		demoMovement[0] = false;
@@ -247,7 +257,7 @@ public:
 			static int frame = 0;
 			frame++;
 
-			int frameCheckLimit = 100;
+			const int frameCheckLimit = 100;
 
 			if (frame > frameCheckLimit)
 			{
@@ -267,8 +277,11 @@ public:
 
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
-			windows[0]->HandleWindowEvents();
-			//windows[1]->HandleWindowEvents();
+			
+			for (size_t i = 0; i < windows.size(); i++)
+			{
+				windows[i]->HandleWindowEvents();
+			}
 
 #pragma region INPUT_DEMO
 			//Global Input
@@ -309,41 +322,27 @@ public:
 				blueprints[1]->technique = techniques[techniqueToUse];
 			}
 
-			//Window 1
-			if (input1.IsKeyDown(WindowInput::KEY_CODE_UP)) {
-				cameras[0]->Move({ 0.0f, 0.0f, 0.1f });
-				demoMovement[0] = false;
+			// Each window
+			for (size_t i = 0; i < windows.size(); i++)
+			{
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
+					cameras[i]->Move({ 0.0f, 0.0f, 0.1f });
+					demoMovement[i] = false;
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
+					cameras[i]->Move({ 0.0f, 0.0f, -0.1f });
+					demoMovement[i] = false;
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
+					cameras[i]->Move({ -0.1f, 0.0f, 0.0f });
+					demoMovement[i] = false;
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
+					cameras[i]->Move({ 0.1f, 0.0f, 0.0f });
+					demoMovement[i] = false;
+				}
 			}
-			if (input1.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
-				cameras[0]->Move({ 0.0f, 0.0f, -0.1f });
-				demoMovement[0] = false;
-			}
-			if (input1.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
-				cameras[0]->Move({ -0.1f, 0.0f, 0.0f });
-				demoMovement[0] = false;
-			}
-			if (input1.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
-				cameras[0]->Move({ 0.1f, 0.0f, 0.0f });
-				demoMovement[0] = false;
-			}
-
-			//Window 1
-			if (input2.IsKeyDown(WindowInput::KEY_CODE_UP)) {
-				cameras[1]->Move({ 0.0f, 0.0f, 0.1f });
-				demoMovement[1] = false;
-			}
-			if (input2.IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
-				cameras[1]->Move({ 0.0f, 0.0f, -0.1f });
-				demoMovement[1] = false;
-			}
-			if (input2.IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
-				cameras[1]->Move({ -0.1f, 0.0f, 0.0f });
-				demoMovement[1] = false;
-			}
-			if (input2.IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
-				cameras[1]->Move({ 0.1f, 0.0f, 0.0f });
-				demoMovement[1] = false;
-			}
+			
 #pragma endregion
 
 
@@ -365,25 +364,18 @@ public:
 				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 
 
-			//Render Window 1
-			renderer->ClearSubmissions();
-			for (int i = 0; i < objects.size(); i++)
+			//Render Windows
+			for (int i = 0; i < windows.size(); i++)
 			{
-				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+				renderer->ClearSubmissions();
+				for (int i = 0; i < objects.size(); i++)
+				{
+					renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+				}
+
+				renderer->Frame(windows[i], cameras[i]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+				renderer->Present(windows[i]);//Present frame to screen
 			}
-
-			renderer->Frame(windows[0], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-			renderer->Present(windows[0]);//Present frame to screen
-
-			////Render Window 2
-			//renderer->ClearSubmissions();
-			//for (int i = 0; i < objects.size(); i++)
-			//{
-			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			//}
-
-			//renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-			//renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion
 		}

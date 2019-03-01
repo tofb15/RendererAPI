@@ -4,6 +4,7 @@
 #include "GlobalSettings.hpp"
 #include <Windows.h>
 #include <thread>
+#include <mutex>
 #include <map>
 
 struct ID3D12Device4;
@@ -87,22 +88,24 @@ private:
 	ID3D12RootSignature*		mRootSignature		= nullptr;
 #pragma endregion
 
-	//ID3D12DescriptorHeap*	mDescriptorHeap[NUM_SWAP_BUFFERS] = {};
-
 	ID3D12Resource*				m_constantBufferResource[NUM_SWAP_BUFFERS] = { nullptr };
 	
 	// Big descriptor heap resources
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 	unsigned int				m_descriptorHeapSize;
 
-	//Functions Here
+	// Multithreaded command list recording resources
+	// For now, there is only one list per thread
+	static const unsigned NUM_THREADS_FOR_RECORDING = 2U;
+	std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
+	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
+	void RecordTechniqueDrawCommands(int firstTechIdx, int lastTechIdx);
 
+	//Functions Here
 	bool InitializeDirect3DDevice();					
 	bool InitializeCommandInterfaces();	
 	bool InitializeFenceAndEventHandle();
 	bool InitializeRootSignature();
 	bool InitializeBigConstantBuffer();
 	bool InitializeBigDescriptorHeap();
-
-
 };
