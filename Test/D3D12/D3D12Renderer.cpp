@@ -1,9 +1,8 @@
 #include "D3D12Renderer.hpp"
 #include <d3d12.h>
 #include <dxgi1_6.h> //Only used for initialization of the device and swap chain.
-//#include <d3dcompiler.h>
-//#include <DirectXMath.h>
 
+#include "D3D12Window.hpp"
 #include "D3D12Camera.hpp"
 #include "D3D12Texture.hpp"
 #include "D3D12Technique.hpp"
@@ -17,7 +16,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "D3D12Window.hpp"
 #pragma comment(lib, "d3d12.lib")
 
 /*Release a Interface that will not be used anymore*/
@@ -35,32 +33,52 @@ inline void SafeRelease(Interface **ppInterfaceToRelease)
 D3D12Renderer::D3D12Renderer()
 {
 }
-
 D3D12Renderer::~D3D12Renderer()
 {
 	m_textureLoader->Kill();	//Notify the other thread to stop.
-	thread_texture.join();	//Wait for the other thread to stop.
+	m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
 		delete m_textureLoader;
 }
 
 bool D3D12Renderer::Initialize()
 {
-	InitializeDirect3DDevice();
+	if (!InitializeDirect3DDevice())
+	{
+		printf("Error: Could not initialize device\n");
+		return false;
+	}
+	if (!InitializeCommandInterfaces())
+	{
+		printf("Error: Could not initialize command interfaces\n");
+		return false;
+	}
+	if (!InitializeRootSignature())
+	{
+		printf("Error: Could not initialize root signature\n");
+		return false;
+	}
+	if (!InitializeMatrixStructuredBuffer())
+	{
+		printf("Error: Could not initialize structured buffer\n");
+		return false;
+	}
+	if (!InitializeTextureDescriptorHeap())
+	{
+		printf("Error: Could not initialize descriptor heap\n");
+		return false;
+	}
 
-	InitializeCommandInterfaces();
-
-	InitializeRootSignature();
-
-	InitializeBigConstantBuffer();
-
-	InitializeBigDescriptorHeap();
 
 	m_textureLoader = new D3D12TextureLoader(this);
-	m_textureLoader->Initialize();
+	if (!m_textureLoader->Initialize())
+	{
+		printf("Error: Could not initialize texture loader\n");
+		return false;
+	}
 
 	//Start new Texture loading thread
-	thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
+	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
 	return true;
 }
@@ -69,17 +87,14 @@ Camera * D3D12Renderer::MakeCamera()
 {
 	return new D3D12Camera();
 }
-
 Window * D3D12Renderer::MakeWindow()
 {
 	return new D3D12Window(this);
 }
-
 Texture * D3D12Renderer::MakeTexture()
 {
 	return new D3D12Texture(this);
 }
-
 Mesh * D3D12Renderer::MakeMesh()
 {
 	if (++m_meshesCreated == 0)
@@ -87,17 +102,14 @@ Mesh * D3D12Renderer::MakeMesh()
 
 	return new D3D12Mesh(this, m_meshesCreated);
 }
-
 Material * D3D12Renderer::MakeMaterial()
 {
 	return new D3D12Material;
 }
-
 RenderState * D3D12Renderer::MakeRenderState()
 {
 	return new D3D12RenderState;
 }
-
 Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm)
 {
 	if (++m_techniquesCreated == 0)
@@ -111,12 +123,23 @@ Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, Sha
 	}
 	return tech;
 }
-
+ShaderManager * D3D12Renderer::MakeShaderManager()
+{
+	D3D12ShaderManager* sm = new D3D12ShaderManager(this);
+	return sm;
+}
 D3D12VertexBuffer * D3D12Renderer::MakeVertexBuffer()
 {
 	return new D3D12VertexBuffer(this);
 }
 
+void D3D12Renderer::ClearFrame()
+{
+}
+void D3D12Renderer::ClearSubmissions()
+{
+	m_items.clear();
+}
 void D3D12Renderer::Submit(SubmissionItem item)
 {
 
@@ -130,16 +153,11 @@ void D3D12Renderer::Submit(SubmissionItem item)
 
 	m_items.push_back({sortIndex, techIndex, meshIndex, item });//pushing a SortingItem struct
 }
-
-void D3D12Renderer::ClearSubmissions()
-{
-	m_items.clear();
-}
-
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
-
-	int breakpoint = 0;
+	HRESULT hr;
+	D3D12Window* window = static_cast<D3D12Window*>(w);
+	UINT backBufferIndex;
 
 	std::sort(m_items.begin(), m_items.end(),
 		[](const SortingItem & a, const SortingItem & b) -> bool
@@ -147,43 +165,17 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		return a.sortingIndex > b.sortingIndex;
 	});
 
-	D3D12Window* window = static_cast<D3D12Window*>(w);
 	
-	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+	backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	HRESULT hr = mCommandAllocator->Reset();
-	if (!SUCCEEDED(hr))
-	{
-		printf("Error: Command allocator reset\n");
-	}
+	hr = m_commandAllocator->Reset();
+	if (!SUCCEEDED(hr)) printf("Error: Command allocator reset\n");
 
-	hr = m_commandList->Reset(mCommandAllocator, nullptr);
-	if (!SUCCEEDED(hr))
-	{
-		printf("Error: Command list reset\n");
-	}
-
-#pragma region Descriptor Heaps
-#ifdef OLD_DESCRIPTOR_HEAP
-	//Set constant buffer descriptor heap
-	int nTextureDescriptorHeaps = mTextureLoader->GetNumberOfHeaps();
-	ID3D12DescriptorHeap** textureHeaps = mTextureLoader->GetAllHeaps();
-
-	int nDescriptorHeapsTotal = nTextureDescriptorHeaps;
-
-	ID3D12DescriptorHeap** heapsToUse = new ID3D12DescriptorHeap*[nDescriptorHeapsTotal];
-
-	for (size_t i = 0; i < nTextureDescriptorHeaps; i++)
-	{
-		heapsToUse[i] = textureHeaps[i];
-	}
-
-	m_commandList->SetDescriptorHeaps(nDescriptorHeapsTotal, heapsToUse );
-#else
+	hr = m_commandList->Reset(m_commandAllocator, nullptr);
+	if (!SUCCEEDED(hr)) printf("Error: Command list reset\n");
 
 	// Heap information
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap[backBufferIndex]->GetCPUDescriptorHandleForHeapStart();
-	unsigned long descriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	// Description (maybe fix another solution)
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -192,96 +184,28 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	//size_t nItems = m_items.size();
-	//for (size_t itemIndex = 0; itemIndex < nItems; itemIndex++)
-	//{
-	//	// Retrieve this mesh's textures
-	//	std::vector<Texture*>& textures = m_items[itemIndex].item.blueprint->textures;
-	//	size_t nTextures = textures.size();
-
-	//	// Create a shader resource view for each texture
-	//	for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
-	//	{
-	//		D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
-	//		int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
-
-	//		ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
-	//		m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
-
-	//		// Move the pointer forward in memory
-	//		cdh.ptr += descriptorSize;
-	//	}
-	//}
-
-	//m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
-#endif
-#pragma endregion
+	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 
 	//Set root signature
-	m_commandList->SetGraphicsRootSignature(mRootSignature);
+	m_commandList->SetGraphicsRootSignature(m_rootSignature);
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	static float time = 0;
-	time += 0.001f;
-
-	unsigned short meshID_last = m_items[0].meshIndex;
-	unsigned short techID_last = m_items[0].techniqueIndex;
-	unsigned short meshID_curr;
-	unsigned short techID_curr;
-	unsigned int nOfInstances = 0;
-
-	m_renderInstructions.push_back(-1);//Start with setting new technique
-
-
-	// Create render instructions
-	size_t nItems = m_items.size();
-	for (int i = 0; i < nItems; i++)
-	{
-		//Check Mesh and Tech
-		techID_curr = m_items[i].techniqueIndex;
-		meshID_curr = m_items[i].meshIndex;
-
-		if (techID_curr != techID_last) {
-			techID_last = techID_curr;
-			renderInstructions.push_back(nOfInstances);
-
-			renderInstructions.push_back(-1);
-			nOfInstances = 0;
-
-			if (meshID_curr != meshID_last) {
-				meshID_last = meshID_curr;
-			}
-		}
-		else if (meshID_curr != meshID_last) {
-			meshID_last = meshID_curr;
-			renderInstructions.push_back(nOfInstances);
-			nOfInstances = 0;
-		}
-		nOfInstances++;
-	}
-
-	// 
-	const unsigned numUniqueInstructions = renderInstructions.size();
-	for (int instIndex = 0; instIndex < numUniqueInstructions; instIndex++)
-	{
-		int numInstances = renderInstructions[instIndex * 2 + 1];
-
-	}
-
-
-
+	// Fill out the render information vectors
+	SetUpRenderInstructions();
 
 	// Begin mapping matrix data
 	D3D12_RANGE readRange = { 0, 0 };
 	void* data = nullptr;
-	m_constantBufferResource[backBufferIndex]->Map(0, &readRange, &data);
+	m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
 
 	// Create shader resource views for each texture on each object
 	// Copy matrix data to GPU
-	for (int i = 0; i < nItems; i++)
+	DirectX::XMMATRIX mat;
+	size_t nItems = m_items.size();
+	for (int item = 0; item < nItems; item++)
 	{
 		// Retrieve this mesh's textures
-		std::vector<Texture*>& textures = m_items[i].item.blueprint->textures;
+		std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
 		size_t nTextures = textures.size();
 
 		// Create a shader resource view for each texture
@@ -294,44 +218,37 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
 
 			// Move the pointer forward in memory
-			cdh.ptr += descriptorSize;
+			cdh.ptr += m_cbv_srv_uav_size;
 		}
+		
+		Float3 pos = m_items[item].item.transform.pos;
+		Float3 scal = m_items[item].item.transform.scale;
 
-		// Update structured buffer
-		Float3 pos = m_items[i].item.transform.pos;
-		Float3 scal = m_items[i].item.transform.scale;
+		mat = DirectX::XMMatrixIdentity();
 
-		// Set no rotation
-		DirectX::XMMATRIX mat = DirectX::XMMatrixIdentity();
-
-		// Apply position
 		mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
 
-		// Apply scale
 		mat.r[0].m128_f32[0] *= scal.x;
 		mat.r[1].m128_f32[1] *= scal.y;
 		mat.r[2].m128_f32[2] *= scal.z;
 
-		memcpy(static_cast<char*>(data) + sizeof(DirectX::XMMATRIX) * i, &mat, sizeof(DirectX::XMMATRIX));
+		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
 	}
 	
 	// Finish mapping and write the matrix data
-	D3D12_RANGE writeRange = { 0, sizeof(DirectX::XMMATRIX) * m_items.size() };
-	m_constantBufferResource[backBufferIndex]->Unmap(0, &writeRange);
+	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
+	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
 
-	renderInstructions.push_back(nOfInstances);//Start with setting new technique
+	// Set structured buffer
+	m_commandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
 
-	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
-	m_commandList->SetGraphicsRootShaderResourceView(2, m_constantBufferResource[backBufferIndex]->GetGPUVirtualAddress());
-
-	//Set necessary states.
+	// Set viewport and scissor rectangle
 	m_commandList->RSSetViewports(1, window->GetViewport());
 	m_commandList->RSSetScissorRects(1, window->GetScissorRect());
-	//m_commandList->SetGraphicsRootConstantBufferView(2, );
-	////Indicate that the back buffer will be used as render target.
+
+	//Indicate that the back buffer will be used as render target
 #pragma region Barrier Swap Target
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
-
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
 	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -339,7 +256,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
 	m_commandList->ResourceBarrier(1, &barrierDesc);
-#pragma endregion
+#pragma endregion 
 
 	window->ClearRenderTarget(m_commandList);
 	window->SetRenderTarget(m_commandList);
@@ -348,13 +265,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	m_commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
 
-	int itemIndex = 0;
-	for (size_t instIndex = 0; instIndex < renderInstructions.size(); instIndex++)
+	for (size_t instIndex = 0; instIndex < m_renderInstructions.size(); instIndex++)
 	{
-		RecordRenderInstructions(renderInstructions, itemIndex, backBufferIndex, descriptorSize, instIndex, instIndex);
+		RecordRenderInstructions(backBufferIndex, instIndex, instIndex);
 	}
 }
-
 void D3D12Renderer::Present(Window * w)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
@@ -382,58 +297,133 @@ void D3D12Renderer::Present(Window * w)
 	window->WaitForGPU();
 }
 
-void D3D12Renderer::ClearFrame()
+void D3D12Renderer::SetUpRenderInstructions()
 {
-}
+	unsigned short meshID_last = m_items[0].meshIndex;
+	unsigned short techID_last = m_items[0].techniqueIndex;
+	unsigned short meshID_curr;
+	unsigned short techID_curr;
+	unsigned int nrOfInstances = 0;
 
-ID3D12Device4 * D3D12Renderer::GetDevice() const
-{
-	return m_device;
-}
+	// Clear render instructions from previous frame
+	m_renderInstructions.clear();
+	m_instanceOffsets.clear();
 
-ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
-{
-	return mRootSignature;
-}
+	// Start with setting new technique
+	m_renderInstructions.push_back(-1);
 
-ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
-{
-	return m_commandList;
-}
+	// Setting a new technique does not increase the total instance count
+	m_instanceOffsets.push_back(0);
 
-D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
-{
-	return m_textureLoader;
-}
+	// The first draw call has no instance offset
+	m_instanceOffsets.push_back(0);
 
-void D3D12Renderer::RecordRenderInstructions(const std::vector<int>& instructions, int& itemIdx, UINT backBufferIndex, unsigned long descriptorSize, int firstInstructionIdx, int lastInstructionIdx)
-{
-	// Record [first, last]
-	for (int instIndex = firstInstructionIdx; instIndex < lastInstructionIdx + 1; instIndex++)
+	// Create render instructions
+	size_t nItems = m_items.size();
+	for (int i = 0; i < nItems; i++)
 	{
-		int instruction = instructions[instIndex];
-		if (instruction == -1) {
-			m_items[itemIdx].item.blueprint->technique->Enable();
-			continue;
+		//Check Mesh and Tech
+		techID_curr = m_items[i].techniqueIndex;
+		meshID_curr = m_items[i].meshIndex;
+
+		if (techID_curr != techID_last)
+		{
+			// This is not the last technique
+
+			techID_last = techID_curr;
+
+			// Add an instanced draw call instruction
+			m_renderInstructions.push_back(nrOfInstances);
+
+			// Add up the total amount of instances in this draw call
+			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+
+			// Add a technique swap instruction
+			m_renderInstructions.push_back(-1);
+
+			// Setting a new technique does not increase the total instance count
+			m_instanceOffsets.push_back(m_instanceOffsets.back());
+
+			nrOfInstances = 0;
+
+			if (meshID_curr != meshID_last)
+			{
+				meshID_last = meshID_curr;
+			}
 		}
-		else {
-			m_commandList->SetGraphicsRoot32BitConstants(0, 1, &itemIdx, 16);
+		else if (meshID_curr != meshID_last)
+		{
+			// This is not the last mesh
+
+			meshID_last = meshID_curr;
+
+			// Add an instanced draw call instruction
+			m_renderInstructions.push_back(nrOfInstances);
+
+			// Add up the total amount of instances in this draw call
+			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+
+			nrOfInstances = 0;
+		}
+		nrOfInstances++;
+	}
+
+	//Start with setting new technique
+	m_renderInstructions.push_back(nrOfInstances);
+}
+void D3D12Renderer::RecordRenderInstructions(int backBufferIndex, int firstInstructionIdx, int lastInstructionIdx)
+{
+	for (int instructionIndex = firstInstructionIdx; instructionIndex < lastInstructionIdx + 1; instructionIndex++)
+	{
+		// Retrieve instruction
+		int instruction = m_renderInstructions[instructionIndex];
+
+		// Retrieve the offset in objects for this instruction
+		int instanceOffset = m_instanceOffsets[instructionIndex];
+		
+		if (instruction == -1)
+		{
+			// Retrieve and enable a new technique from the first object using it
+			m_items[instanceOffset].item.blueprint->technique->Enable();
+		}
+		else
+		{
+			// Retrieve and enable a new mesh from the first object using it
+
+			// Set instance offset
+			m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
-			handle.ptr += itemIdx * descriptorSize;
+			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
 			m_commandList->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
-			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[itemIdx].item.blueprint->mesh)->GetVertexBuffers();
+			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
 			for (size_t j = 0; j < buffers.size(); j++)
 			{
 				m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 			}
 			//Draw
 			m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
-			itemIdx += instruction;
 		}
 	}
+}
+
+ID3D12Device4 * D3D12Renderer::GetDevice() const
+{
+	return m_device;
+}
+ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
+{
+	return m_rootSignature;
+}
+ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
+{
+	return m_commandList;
+}
+D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
+{
+	return m_textureLoader;
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()
@@ -492,15 +482,17 @@ bool D3D12Renderer::InitializeDirect3DDevice()
 		//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
 	}
 
+	// Retrieve hardware specific descriptor size
+	m_cbv_srv_uav_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
 	SafeRelease(&factory);
 	return true;
 }
-
 bool D3D12Renderer::InitializeCommandInterfaces()
 {
 	HRESULT hr;
 
-	hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mCommandAllocator));
+	hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
 	if (FAILED(hr))
 	{
 		return false;
@@ -510,7 +502,7 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 	hr = m_device->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		mCommandAllocator,
+		m_commandAllocator,
 		nullptr,
 		IID_PPV_ARGS(&m_commandList));
 	if (FAILED(hr))
@@ -524,67 +516,62 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 
 	return true;
 }
-
-bool D3D12Renderer::InitializeFenceAndEventHandle()
-{
-	return false;
-}
-
 bool D3D12Renderer::InitializeRootSignature()
 {
 	HRESULT hr;
-
-	D3D12_STATIC_SAMPLER_DESC samp[1] = {};
-	samp[0].RegisterSpace = 0;
-	samp[0].ShaderRegister = 0;
-	samp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	samp[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samp[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samp[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samp[0].MinLOD = 0;
-	samp[0].MaxLOD = 1;
-	samp[0].MipLODBias = 0;
-	samp[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-
-
-	D3D12_DESCRIPTOR_RANGE dr[1] = {};
-	dr[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	dr[0].NumDescriptors = -1; //No bounds (bindless)
-	dr[0].BaseShaderRegister = 0;
-	dr[0].RegisterSpace = 0;
-
-
-	D3D12_ROOT_DESCRIPTOR_TABLE rdt = {};
-	rdt.NumDescriptorRanges = 1;
-	rdt.pDescriptorRanges = dr;
-
-	//create root parameter
-	D3D12_ROOT_PARAMETER rootParam[3];
-	rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParam[0].Constants.Num32BitValues = 16 + 4;		// 1 * float4x4 + 1 * int
-	rootParam[0].Constants.RegisterSpace = 0;
-	rootParam[0].Constants.ShaderRegister = 0;
-	rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-	rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParam[1].DescriptorTable = rdt;
-
-	rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-	rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParam[2].Descriptor.ShaderRegister = 1;
-	rootParam[2].Descriptor.RegisterSpace = 0;
-
-	D3D12_ROOT_SIGNATURE_DESC rsDesc;
-	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsDesc.NumParameters = sizeof(rootParam) / sizeof(D3D12_ROOT_PARAMETER);
-	rsDesc.pParameters = rootParam;
-	rsDesc.NumStaticSamplers = 1;
-	rsDesc.pStaticSamplers = samp;
-
 	ID3DBlob* sBlob;
+	D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
+	D3D12_DESCRIPTOR_RANGE descRange[1] = {};
+	D3D12_ROOT_DESCRIPTOR_TABLE rootDescTable = {};
+	D3D12_ROOT_PARAMETER rootParams[3];
+	D3D12_ROOT_SIGNATURE_DESC rootSigDesc;
+	
+	samplerDesc[0].RegisterSpace = 0;
+	samplerDesc[0].ShaderRegister = 0;
+	samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc[0].MinLOD = 0;
+	samplerDesc[0].MaxLOD = 1;
+	samplerDesc[0].MipLODBias = 0;
+	samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+
+	// Bindless texture descriptor range
+	descRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	descRange[0].NumDescriptors = -1; // No bounds (bindless)
+	descRange[0].BaseShaderRegister = 0;
+	descRange[0].RegisterSpace = 0;
+
+	rootDescTable.NumDescriptorRanges = 1;
+	rootDescTable.pDescriptorRanges = descRange;
+
+	// Root constants
+	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	rootParams[0].Constants.Num32BitValues = 16 + 4;		// 1 * float4x4 + 1 * int
+	rootParams[0].Constants.RegisterSpace = 0;
+	rootParams[0].Constants.ShaderRegister = 0;
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+	// Texture descriptor table
+	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParams[1].DescriptorTable = rootDescTable;
+
+	// Structured buffer view
+	rootParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParams[2].Descriptor.ShaderRegister = 1;
+	rootParams[2].Descriptor.RegisterSpace = 0;
+
+	rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rootSigDesc.NumParameters = sizeof(rootParams) / sizeof(D3D12_ROOT_PARAMETER);
+	rootSigDesc.pParameters = rootParams;
+	rootSigDesc.NumStaticSamplers = 1;
+	rootSigDesc.pStaticSamplers = samplerDesc;
+
 	hr = D3D12SerializeRootSignature(
-		&rsDesc,
+		&rootSigDesc,
 		D3D_ROOT_SIGNATURE_VERSION_1,
 		&sBlob,
 		nullptr);
@@ -597,38 +584,29 @@ bool D3D12Renderer::InitializeRootSignature()
 		0,
 		sBlob->GetBufferPointer(),
 		sBlob->GetBufferSize(),
-		IID_PPV_ARGS(&mRootSignature));
+		IID_PPV_ARGS(&m_rootSignature));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	//for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
-	//{
-	//	D3D12_DESCRIPTOR_HEAP_DESC heapDescriptorDesc = {};
-	//	heapDescriptorDesc.NumDescriptors = 1;		// Make room for (NOT one cb) and one srv
-	//	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	//	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	//	hr = mDevice5->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&mDescriptorHeap[i]));
-	//	if (FAILED(hr))
-	//		return false;
-	//}
-
 	return true;
 }
-
-bool D3D12Renderer::InitializeBigConstantBuffer()
+bool D3D12Renderer::InitializeMatrixStructuredBuffer()
 {
+	HRESULT hr;
 	D3D12_HEAP_PROPERTIES hp = {};
+	D3D12_RESOURCE_DESC rd = { };
+
 	hp.Type = D3D12_HEAP_TYPE_UPLOAD;
 	hp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	hp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 	hp.CreationNodeMask = 1;
 	hp.VisibleNodeMask = 1;
 
-	D3D12_RESOURCE_DESC rd = { };
 	rd.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	rd.Width = 10240 * 16 * 4;
+	rd.Width = NUM_MATRICES_IN_BUFFER * sizeof(DirectX::XMMATRIX);
+	//rd.Width = 10240 * 16 * 4;
 	rd.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
 	rd.Height = 1;
@@ -642,22 +620,19 @@ bool D3D12Renderer::InitializeBigConstantBuffer()
 
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
-		HRESULT hr = m_device->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_constantBufferResource[i]));
+		hr = m_device->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &rd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_structuredBufferResources[i]));
 		if (FAILED(hr))
 			return false;
 	}
 
 	return true;
 }
-
-bool D3D12Renderer::InitializeBigDescriptorHeap()
+bool D3D12Renderer::InitializeTextureDescriptorHeap()
 {
 	HRESULT hr;
 	D3D12_DESCRIPTOR_HEAP_DESC heapDescriptorDesc = {};
 
-	m_descriptorHeapSize = 100000;
-
-	heapDescriptorDesc.NumDescriptors = m_descriptorHeapSize;
+	heapDescriptorDesc.NumDescriptors = NUM_DESCRIPTORS_IN_HEAP;
 	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	
@@ -669,11 +644,4 @@ bool D3D12Renderer::InitializeBigDescriptorHeap()
 	}
 
 	return true;
-}
-
-ShaderManager * D3D12Renderer::MakeShaderManager()
-{
-	D3D12ShaderManager* sm = new D3D12ShaderManager(this);
-
-	return sm;
 }
