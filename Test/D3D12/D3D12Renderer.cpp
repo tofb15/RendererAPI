@@ -267,10 +267,25 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
 	m_commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
 
-	for (size_t instIndex = 0; instIndex < m_renderInstructions.size(); instIndex++)
+
+	// How many instructions will each thread record
+	// If any instructions would remain, each thread records an additional one
+	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_THREADS_FOR_RECORDING;
+	numInstrPerThread += (m_renderInstructions.size() % NUM_THREADS_FOR_RECORDING ? 1 : 0);
+
+	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
 	{
-		RecordRenderInstructions(backBufferIndex, instIndex, instIndex);
+		m_recorderThreads[i] = std::thread(&D3D12Renderer::RecordRenderInstructions, this, i, backBufferIndex, i * numInstrPerThread, numInstrPerThread);
 	}
+	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+	{
+		m_recorderThreads[i].join();
+	}
+
+	//for (size_t instIndex = 0; instIndex < m_renderInstructions.size(); instIndex++)
+	//{
+	//	RecordRenderInstructions(backBufferIndex, instIndex, instIndex);
+	//}
 }
 void D3D12Renderer::Present(Window * w)
 {
@@ -290,7 +305,14 @@ void D3D12Renderer::Present(Window * w)
 	m_commandList->Close();
 
 	//Execute the command list.
-	ID3D12CommandList* listsToExecute[] = { m_commandList };
+	ID3D12CommandList* listsToExecute[1 + NUM_THREADS_FOR_RECORDING];
+	listsToExecute[0] = m_commandList;
+
+	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+	{
+		listsToExecute[i + 1] = m_commandListChildren[i];
+	}
+
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
 	//Present the frame.
@@ -373,42 +395,65 @@ void D3D12Renderer::SetUpRenderInstructions()
 	//Start with setting new technique
 	m_renderInstructions.push_back(nrOfInstances);
 }
-void D3D12Renderer::RecordRenderInstructions(int backBufferIndex, int firstInstructionIdx, int lastInstructionIdx)
+void D3D12Renderer::RecordRenderInstructions(int commandList, int backBufferIndex, int firstInstructionIdx, int numInstructions)
 {
-	for (int instructionIndex = firstInstructionIdx; instructionIndex < lastInstructionIdx + 1; instructionIndex++)
+	m_commandAllocatorChildren[commandList]->Reset();
+	m_commandListChildren[commandList]->Reset(m_commandAllocatorChildren[commandList], nullptr);
+
+	int lastInstructionIdx = firstInstructionIdx + numInstructions;
+	for (int instructionIndex = firstInstructionIdx; instructionIndex < lastInstructionIdx; instructionIndex++)
 	{
 		// Retrieve instruction
-		int instruction = m_renderInstructions[instructionIndex];
+		int instruction;
+		{
+			//std::unique_lock<std::mutex> lock(m_mutex_instr);
+			instruction = m_renderInstructions[instructionIndex];
+		}
 
 		// Retrieve the offset in objects for this instruction
-		int instanceOffset = m_instanceOffsets[instructionIndex];
+		int instanceOffset;
+		{
+			//std::unique_lock<std::mutex> lock(m_mutex_offset);
+			instanceOffset = m_instanceOffsets[instructionIndex];
+		}
 		
 		if (instruction == -1)
 		{
 			// Retrieve and enable a new technique from the first object using it
-			m_items[instanceOffset].item.blueprint->technique->Enable();
+			{
+				//std::unique_lock<std::mutex> lock(m_mutex_item);
+				ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
+				m_commandListChildren[commandList]->SetPipelineState(pls);
+				//m_items[instanceOffset].item.blueprint->technique->Enable();
+			}
 		}
 		else
 		{
 			// Retrieve and enable a new mesh from the first object using it
 
 			// Set instance offset
-			m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
+			m_commandListChildren[commandList]->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
+			//m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
 			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
-			m_commandList->SetGraphicsRootDescriptorTable(1, handle);
+			//m_commandList->SetGraphicsRootDescriptorTable(1, handle);
+			m_commandListChildren[commandList]->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
 			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
 			for (size_t j = 0; j < buffers.size(); j++)
 			{
-				m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+				m_commandListChildren[commandList]->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+				//m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 			}
 			//Draw
-			m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+			m_commandListChildren[commandList]->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
+
+	m_commandListChildren[commandList]->Close();
 }
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const
@@ -515,6 +560,33 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 	//Command lists are created in the recording state. Since there is nothing to
 	//record right now and the main loop expects it to be closed, we close it.
 	m_commandList->Close();
+
+
+	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+	{
+		hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocatorChildren[i]));
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		//Create command list.
+		hr = m_device->CreateCommandList(
+			0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			m_commandAllocatorChildren[i],
+			nullptr,
+			IID_PPV_ARGS(&m_commandListChildren[i]));
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		//Command lists are created in the recording state. Since there is nothing to
+		//record right now and the main loop expects it to be closed, we close it.
+		m_commandListChildren[i]->Close();
+	}
+
 	return true;
 }
 bool D3D12Renderer::InitializeRootSignature()

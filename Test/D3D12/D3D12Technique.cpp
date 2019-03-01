@@ -131,7 +131,6 @@ D3D12Technique::~D3D12Technique()
 
 bool D3D12Technique::Enable()
 {
-
 	mRenderer->GetCommandList()->SetPipelineState(mPipelineState);
 
 	return true;
@@ -140,4 +139,9 @@ bool D3D12Technique::Enable()
 unsigned short D3D12Technique::GetID() const
 {
 	return m_id;
+}
+
+ID3D12PipelineState * D3D12Technique::GetPipelineState()
+{
+	return mPipelineState;
 }

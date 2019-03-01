@@ -63,7 +63,7 @@ private:
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
 	void SetUpRenderInstructions();
-	void RecordRenderInstructions(int backBufferIndex, int firstInstructionIdx, int lastInstructionIdx);
+	void RecordRenderInstructions(int commandList, int backBufferIndex, int firstInstructionIdx, int numInstructions);
 
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
@@ -94,6 +94,8 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
-	//std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
+	std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
+	std::mutex m_mutex_item, m_mutex_instr, m_mutex_offset;
+	ID3D12CommandAllocator*		m_commandAllocatorChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
 	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
 };

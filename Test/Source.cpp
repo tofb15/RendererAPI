@@ -153,8 +153,8 @@ public:
 		};
 
 		int nElems = sizeof(rect) / sizeof(Float3);
-		//meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
-		meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
+		//meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
 		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 
@@ -206,6 +206,18 @@ public:
 
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint = new Blueprint;
+		blueprint->technique = techniques[0];
+		blueprint->mesh = meshes[0];
+		blueprint->textures.push_back(textures[0]);
+		blueprints.push_back(blueprint);
+
+		blueprint = new Blueprint;
+		blueprint->technique = techniques[0];
+		blueprint->mesh = meshes[1];
+		blueprint->textures.push_back(textures[1]);
+		blueprints.push_back(blueprint);
+
+		blueprint = new Blueprint;
 		blueprint->technique = techniques[1];
 		blueprint->mesh = meshes[0];
 		blueprint->textures.push_back(textures[0]);
@@ -213,7 +225,7 @@ public:
 
 		blueprint = new Blueprint;
 		blueprint->technique = techniques[1];
-		blueprint->mesh = meshes[0];
+		blueprint->mesh = meshes[1];
 		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
 #pragma endregion
@@ -221,7 +233,7 @@ public:
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
-			object->blueprint = blueprints[i % 2];
+			object->blueprint = blueprints[i % 4];
 			object->transform.scale = { 1.0f, 2.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
 			objects.push_back(object);

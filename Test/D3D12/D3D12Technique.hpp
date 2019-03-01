@@ -22,6 +22,9 @@ public:
 	// Inherited via Technique
 	virtual bool Enable() override;
 	unsigned short GetID() const;
+
+	ID3D12PipelineState* GetPipelineState();
+
 private:
 	unsigned short m_id;
 	D3D12Renderer* mRenderer;
