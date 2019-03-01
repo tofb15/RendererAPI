@@ -90,6 +90,11 @@ private:
 
 	ID3D12Resource*				m_constantBufferResource[NUM_SWAP_BUFFERS] = { nullptr };
 	
+	//-1 means new technique. everything else is number of instances to draw.
+	std::vector<int> m_renderInstructions;
+	std::vector<int> m_renderInstancesAccumulated;
+
+
 	// Big descriptor heap resources
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 	unsigned int				m_descriptorHeapSize;
@@ -99,7 +104,7 @@ private:
 	static const unsigned NUM_THREADS_FOR_RECORDING = 2U;
 	std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
 	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
-	void RecordTechniqueDrawCommands(int firstTechIdx, int lastTechIdx);
+	void RecordRenderInstructions(const std::vector<int>& instructions, int& itemIdx, UINT backBufferIndex, unsigned long descriptorSize, int firstInstructionIdx, int lastInstructionIdx);
 
 	//Functions Here
 	bool InitializeDirect3DDevice();					
