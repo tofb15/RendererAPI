@@ -247,12 +247,20 @@ public:
 			static int frame = 0;
 			frame++;
 
-			if (frame > 100)
+			int frameCheckLimit = 100;
+
+			if (frame > frameCheckLimit)
 			{
 				t2 = t1;
 				t1 = Clock::now();
 
-				std::string str = "FPS: " + std::to_string(1000000 / ((t1 - t2).count() / 1000 / 1000));
+				long long nsSinceLastCheck = (t1 - t2).count();
+				long long nsPerFrame = nsSinceLastCheck / frameCheckLimit;
+				
+				float fpns = 1.0f / nsPerFrame;
+				int fps = fpns * 1e9;
+
+				std::string str = "FPS: " + std::to_string(fps);
 				windows[0]->SetTitle(str.c_str());
 				frame = 0;
 			}
@@ -260,7 +268,7 @@ public:
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
 			windows[0]->HandleWindowEvents();
-			windows[1]->HandleWindowEvents();
+			//windows[1]->HandleWindowEvents();
 
 #pragma region INPUT_DEMO
 			//Global Input
@@ -367,15 +375,15 @@ public:
 			renderer->Frame(windows[0], cameras[0]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			renderer->Present(windows[0]);//Present frame to screen
 
-			//Render Window 2
-			renderer->ClearSubmissions();
-			for (int i = 0; i < objects.size(); i++)
-			{
-				renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			}
+			////Render Window 2
+			//renderer->ClearSubmissions();
+			//for (int i = 0; i < objects.size(); i++)
+			//{
+			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+			//}
 
-			renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-			renderer->Present(windows[1]);//Present frame to screen
+			//renderer->Frame(windows[1], cameras[1]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			//renderer->Present(windows[1]);//Present frame to screen
 
 #pragma endregion
 		}
