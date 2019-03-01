@@ -244,7 +244,9 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
 
 			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
-			m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+			//m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+
+			m_device->CopyDescriptorsSimple(1, cdh, m_textureLoader->GetSpecificTextureCPUAdress(texture), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			// Move the pointer forward in memory
 			cdh.ptr += descriptorSize;
@@ -492,7 +494,6 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 	//Command lists are created in the recording state. Since there is nothing to
 	//record right now and the main loop expects it to be closed, we close it.
 	m_commandList->Close();
-
 	return true;
 }
 

@@ -22,6 +22,7 @@ public:
 	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);
+	D3D12_CPU_DESCRIPTOR_HANDLE GetSpecificTextureCPUAdress(D3D12Texture* texture);
 	ID3D12Resource* GetResource(int index);
 
 	//ID3D12DescriptorHeap* GetDescriptorHeap();
@@ -44,7 +45,7 @@ private:
 	std::vector<D3D12Texture*> mTexturesToLoadToGPU;
 
 	//Permanent Storage
-	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 10;
+	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 100;
 	unsigned m_nrOfTextures = 0;
 	std::vector<ID3D12DescriptorHeap*> m_DescriptorHeaps;
 	std::vector<ID3D12Resource*> m_TextureResources;
