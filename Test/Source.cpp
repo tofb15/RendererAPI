@@ -252,7 +252,7 @@ public:
 				t2 = t1;
 				t1 = Clock::now();
 
-				std::string str = "FPS: " + std::to_string(1000000 / ((t1 - t2).count() / 1000 / 1000));
+				std::string str = "FPS: " + std::to_string(1000000 / ((t1 - t2).count() / 100 / 1000));
 				windows[0]->SetTitle(str.c_str());
 				frame = 0;
 			}

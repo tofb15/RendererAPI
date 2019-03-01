@@ -192,9 +192,9 @@ void D3D12TextureLoader::DoWork()
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
 
-#ifdef OLD_DESCRIPTOR_HEAP
+//#ifdef OLD_DESCRIPTOR_HEAP
 		//if max SRV capacity is reached, Allocate a new DescriptorHeap. 
-		unsigned localHeapIndex = mNrOfSRVs % MAX_SRVs_PER_DESCRIPTOR_HEAP;
+		unsigned localHeapIndex = m_nrOfTextures % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 		if (localHeapIndex == 0) {
 			AddDescriptorHeap();
 		}
@@ -203,7 +203,7 @@ void D3D12TextureLoader::DoWork()
 		D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
 		cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
 		m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
-#endif
+//#endif
 
 
 		m_CommandList4->Close();
@@ -249,6 +249,23 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D1
 	int localIndex = index % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_DescriptorHeaps[HeapIndex]->GetGPUDescriptorHandleForHeapStart();
+	handle.ptr += localIndex * mCBV_SRV_UAV_DescriptorSize;
+
+	return handle;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureCPUAdress(D3D12Texture * texture)
+{
+	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
+
+	int index = texture->m_GPU_Loader_index;
+	if (index == -1)
+		index = 0;
+
+	int HeapIndex = index / MAX_SRVs_PER_DESCRIPTOR_HEAP;
+	int localIndex = index % MAX_SRVs_PER_DESCRIPTOR_HEAP;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_DescriptorHeaps[HeapIndex]->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += localIndex * mCBV_SRV_UAV_DescriptorSize;
 
 	return handle;
@@ -309,7 +326,7 @@ bool D3D12TextureLoader::AddDescriptorHeap()
 	HRESULT hr;
 	D3D12_DESCRIPTOR_HEAP_DESC heapDescriptorDesc = {};
 	heapDescriptorDesc.NumDescriptors = MAX_SRVs_PER_DESCRIPTOR_HEAP;
-	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&descriptorHeap));
 	if (FAILED(hr))
