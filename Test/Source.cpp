@@ -264,7 +264,10 @@ public:
 				windows[0]->SetTitle(str.c_str());
 				frame = 0;
 			}
+			for (int i = 0; i < objects.size(); i++) {
 
+				objects[i]->transform.scale.y = sin(time + i) * 2 + 2;
+			}
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
 			windows[0]->HandleWindowEvents();
