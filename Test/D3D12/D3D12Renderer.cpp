@@ -123,12 +123,13 @@ void D3D12Renderer::Submit(SubmissionItem item)
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 
-	unsigned int sortIndex = techIndex << (sizeof(unsigned short) * 8);//
-	sortIndex += meshIndex;
+	SortingItem s;
+	s.item = item;
 
-	unsigned short test = sortIndex;
+	s.techniqueIndex = techIndex;
+	s.meshIndex = meshIndex;
 
-	m_items.push_back({sortIndex, techIndex, meshIndex, item });//pushing a SortingItem struct
+	m_items.push_back(s);
 }
 
 void D3D12Renderer::ClearSubmissions()

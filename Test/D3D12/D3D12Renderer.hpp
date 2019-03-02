@@ -67,9 +67,17 @@ private:
 
 	struct SortingItem
 	{
-		unsigned int sortingIndex;
-		unsigned short techniqueIndex;
-		unsigned short meshIndex;
+		union {
+			unsigned int sortingIndex;//4 Bytes
+			struct {
+				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
+				unsigned short meshIndex;		//2 Bytes
+				unsigned short techniqueIndex;	//2 Bytes
+			};
+
+		};
+		//unsigned short techniqueIndex;
+		//unsigned short meshIndex;
 		SubmissionItem item;
 	};
 
