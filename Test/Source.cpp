@@ -241,6 +241,9 @@ public:
 
 	void Run()
 	{
+		//Delta Time
+		static Time now, then;
+
 		//Get the Global input handler for all window. global input handlers is shared by all windows!
 		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
 		
@@ -261,9 +264,17 @@ public:
 		float timeSincePixChange = 0;
 		Int2 pixToChange(0,0);
 
+		time = 0;
 		//Game Loop
+		now = Clock::now();
 		while (!windows[0]->WindowClosed())
 		{
+			then = now;
+			now = Clock::now();
+			double dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001;
+
+			time += dt;
+
 			static Time t1, t2;
 
 			static int frame = 0;
@@ -288,7 +299,8 @@ public:
 			}
 			for (int i = 0; i < objects.size(); i++) {
 
-				objects[i]->transform.scale.y = sin(time + i) * 2 + 2;
+				objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
+				objects[i]->transform.rotation.y = sin(time + i) * cos(time * 2 + i) * 3.1414 * 2;
 			}
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
@@ -372,7 +384,6 @@ public:
 			//}
 
 
-			time += 0.05f;
 			if(demoMovement[0])
 				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 			if (demoMovement[1])
@@ -381,6 +392,8 @@ public:
 
 			//timeSincePixChange += 0.05f;
 			static unsigned char color = 0;
+			static short colorDir = 1;
+
 			if (frame % 100 == 0) {
 				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
 				{
@@ -390,7 +403,10 @@ public:
 						textures[0]->UpdatePixel(Int2(x, y), data, 4);
 					}
 				}
-				color += 20;
+				color += 20 * colorDir;
+				if (color == 0 || color == 240)
+					colorDir *= -1;
+
 				textures[0]->ApplyChanges();
 			}
 
@@ -427,7 +443,7 @@ private:
 	std::vector<Camera*>		cameras;
 	std::vector<Object*>		objects;
 
-	float time = 0;
+	double time = 0;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

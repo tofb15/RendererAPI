@@ -233,6 +233,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		}
 		
 		Float3 pos = m_items[item].item.transform.pos;
+		Float3 rot = m_items[item].item.transform.rotation;
 		Float3 scal = m_items[item].item.transform.scale;
 
 		mat = DirectX::XMMatrixIdentity();
@@ -242,6 +243,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		mat.r[0].m128_f32[0] *= scal.x;
 		mat.r[1].m128_f32[1] *= scal.y;
 		mat.r[2].m128_f32[2] *= scal.z;
+
+		mat = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z), mat);
 
 		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
 	}
