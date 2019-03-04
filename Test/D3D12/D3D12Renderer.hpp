@@ -39,7 +39,7 @@ public:
 
 	virtual void ClearFrame() override;
 	virtual void ClearSubmissions() override;
-	virtual void Submit(SubmissionItem item) override;
+	virtual void Submit(SubmissionItem item, Camera* c) override;
 	virtual void Frame(Window * window, Camera * c) override;
 	virtual void Present(Window * w) override;
 
@@ -52,9 +52,11 @@ private:
 	struct SortingItem
 	{
 		union {
-			unsigned int sortingIndex;//4 Bytes
+			unsigned __int64 sortingIndex; //8 Bytes
 			struct {
 				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
+				//unsigned short unused;			//2 Bytes
+				unsigned int distance;		//2 Bytes
 				unsigned short meshIndex;		//2 Bytes
 				unsigned short techniqueIndex;	//2 Bytes
 			};

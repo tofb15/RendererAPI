@@ -75,7 +75,7 @@ public:
 	/*
 		Submit work that should be rendered.
 	*/
-	virtual void			Submit(SubmissionItem item) = 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
+	virtual void			Submit(SubmissionItem item, Camera* c) = 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
 	/*
 		Clear previusly submited work.
 	*/

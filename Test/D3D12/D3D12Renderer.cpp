@@ -140,7 +140,7 @@ void D3D12Renderer::ClearSubmissions()
 {
 	m_items.clear();
 }
-void D3D12Renderer::Submit(SubmissionItem item)
+void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 {
 
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
@@ -148,9 +148,18 @@ void D3D12Renderer::Submit(SubmissionItem item)
 
 	SortingItem s;
 	s.item = item;
+	s.sortingIndex = 0;
 
-	s.techniqueIndex = techIndex;
+	//int i2 = sizeof(INT64);
+	//int i = sizeof(s.sortingIndex);
+
+	Float3 f = c->GetPosition() - item.transform.pos;
+
+	unsigned int dist = f.length() * 65;
+	s.distance = UINT_MAX - dist;
+	//s.distance = 0;
 	s.meshIndex = meshIndex;
+	s.techniqueIndex = techIndex;
 
 	m_items.push_back(s);
 }
@@ -165,7 +174,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	{
 		return a.sortingIndex > b.sortingIndex;
 	});
-
 	
 	backBufferIndex = window->GetCurrentBackBufferIndex();
 

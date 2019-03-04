@@ -401,7 +401,7 @@ public:
 				renderer->ClearSubmissions();
 				for (int i = 0; i < objects.size(); i++)
 				{
-					renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
+					renderer->Submit({ objects[i]->blueprint, objects[i]->transform}, cameras[0]);
 				}
 
 				renderer->Frame(windows[i], cameras[i]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
