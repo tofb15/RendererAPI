@@ -156,8 +156,7 @@ void D3D12Renderer::Submit(SubmissionItem item)
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
-	ID3D12GraphicsCommandList3* currentCommandList = m_commandLists[MAIN_COMMAND_INDEX];
-	UINT backBufferIndex;
+	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[MAIN_COMMAND_INDEX];
 
 	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
@@ -166,7 +165,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		return a.sortingIndex > b.sortingIndex;
 	});
 
-	backBufferIndex = window->GetCurrentBackBufferIndex();
+	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+
 
 	// Fill out the render information vectors
 	SetUpRenderInstructions();
@@ -174,9 +174,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	// Map matrix data to GPU
 	MapMatrixData(backBufferIndex);
 
-	// Begin command list recording
-	ResetCommandListAndAllocator(MAIN_COMMAND_INDEX);
-
+	// Reset the command lists
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	{
+		ResetCommandListAndAllocator(i);
+	}
 
 	// Description (maybe fix another solution)
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -185,18 +187,18 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	currentCommandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	mainCommandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 
 	//Set root signature
-	currentCommandList->SetGraphicsRootSignature(m_rootSignature);
-	currentCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mainCommandList->SetGraphicsRootSignature(m_rootSignature);
+	mainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Set structured buffer
-	currentCommandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
+	mainCommandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
 
 	// Set viewport and scissor rectangle
-	currentCommandList->RSSetViewports(1, window->GetViewport());
-	currentCommandList->RSSetScissorRects(1, window->GetScissorRect());
+	mainCommandList->RSSetViewports(1, window->GetViewport());
+	mainCommandList->RSSetScissorRects(1, window->GetScissorRect());
 
 	//Indicate that the back buffer will be used as render target
 #pragma region Barrier Swap Target
@@ -207,19 +209,18 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-	currentCommandList->ResourceBarrier(1, &barrierDesc);
+	mainCommandList->ResourceBarrier(1, &barrierDesc);
 #pragma endregion 
 
-	window->ClearRenderTarget(currentCommandList);
-	window->SetRenderTarget(currentCommandList);
+	window->ClearRenderTarget(mainCommandList);
+	window->SetRenderTarget(mainCommandList);
 
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
-	currentCommandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
-
-	RecordRenderInstructions(currentCommandList, m_commandAllocators[MAIN_COMMAND_INDEX], backBufferIndex);
+	mainCommandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
 
 
+	RecordRenderInstructions(0, backBufferIndex, 0, m_renderInstructions.size());
 
 
 	/*// How many instructions will each thread record
@@ -246,9 +247,10 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 void D3D12Renderer::Present(Window * w)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
-
-#pragma region Barrier Swap Target
+	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	DXGI_PRESENT_PARAMETERS pp = {};
+	ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
 
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
@@ -256,23 +258,24 @@ void D3D12Renderer::Present(Window * w)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
-	m_commandLists[MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
-#pragma endregion
-	m_commandLists[MAIN_COMMAND_INDEX]->Close();
+	// Set the barrier in the last command list
+	m_commandLists[NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
 
-	//Execute the command list.
-	ID3D12CommandList* listsToExecute[1/* + NUM_THREADS_FOR_RECORDING*/];
-	listsToExecute[0] = m_commandLists[MAIN_COMMAND_INDEX];
-
-	/*for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+	// Close the command lists
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
 	{
-		listsToExecute[i + 1] = m_commandListChildren[i];
-	}*/
+		m_commandLists[i]->Close();
+	}
+
+	// Set the command lists
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	{
+		listsToExecute[i] = m_commandLists[i];
+	}
 
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
 	//Present the frame.
-	DXGI_PRESENT_PARAMETERS pp = {};
 	window->GetSwapChain()->Present1(0, 0, &pp);
 	window->WaitForGPU();
 }
@@ -415,13 +418,10 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
 	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
 }
-void D3D12Renderer::RecordRenderInstructions(int commandIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
+void D3D12Renderer::RecordRenderInstructions(int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
 {
-	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[commandIndex];
-	ID3D12GraphicsCommandList3* commandList = m_commandLists[commandIndex];
-
-	commandAllocator->Reset();
-	commandList->Reset(commandAllocator, nullptr);
+	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[commandListIndex];
+	ID3D12GraphicsCommandList3* commandList = m_commandLists[commandListIndex];
 
 	int lastInstructionIdx = firstInstructionIndex + numInstructions;
 	for (int instructionIndex = firstInstructionIndex; instructionIndex < lastInstructionIdx; instructionIndex++)
@@ -475,10 +475,8 @@ void D3D12Renderer::RecordRenderInstructions(int commandIndex, int backBufferInd
 			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
-
-	commandList->Close();
 }
-void D3D12Renderer::RecordRenderInstructions(ID3D12GraphicsCommandList3 * commandList, ID3D12CommandAllocator * commandAllocator, int backBufferIndex)
+/*void D3D12Renderer::RecordRenderInstructions(ID3D12GraphicsCommandList3 * commandList, ID3D12CommandAllocator * commandAllocator, int backBufferIndex)
 {
 	int numInstructions = m_renderInstructions.size();
 	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
@@ -532,9 +530,7 @@ void D3D12Renderer::RecordRenderInstructions(ID3D12GraphicsCommandList3 * comman
 			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
-
-	//commandList->Close();
-}
+}*/
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const
 {

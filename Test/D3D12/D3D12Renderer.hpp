@@ -66,8 +66,8 @@ private:
 	void SetUpRenderInstructions();
 	void ResetCommandListAndAllocator(int index);
 	void MapMatrixData(int backBufferIndex);
-	void RecordRenderInstructions(int commandIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
-	void RecordRenderInstructions(ID3D12GraphicsCommandList3* commandList, ID3D12CommandAllocator* commandAllocator, int backBufferIndex);
+	void RecordRenderInstructions(int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
+	//void RecordRenderInstructions(ID3D12GraphicsCommandList3* commandList, ID3D12CommandAllocator* commandAllocator, int backBufferIndex);
 
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
@@ -89,8 +89,6 @@ private:
 	std::vector<int> m_instanceOffsets;
 
 	ID3D12Device4*				m_device			= nullptr;
-	//ID3D12CommandAllocator*		m_commandAllocator	= nullptr;
-	//ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
 	ID3D12RootSignature*		m_rootSignature		= nullptr;
 
 	// Structured buffer for matrices
