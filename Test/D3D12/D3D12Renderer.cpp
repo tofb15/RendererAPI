@@ -156,6 +156,7 @@ void D3D12Renderer::Submit(SubmissionItem item)
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
+	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[MAIN_COMMAND_INDEX];
 
 	// Sort the objects to be rendered
@@ -167,12 +168,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-
 	// Fill out the render information vectors
 	SetUpRenderInstructions();
-
-	// Map matrix data to GPU
-	MapMatrixData(backBufferIndex);
 
 	// Reset the command lists
 	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
@@ -180,69 +177,54 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		ResetCommandListAndAllocator(i);
 	}
 
-	// Description (maybe fix another solution)
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
+#ifndef SINGLE_THREADED
+	// How many instructions will each thread record
+	// If any instructions would remain, each thread records an additional one
+	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
+	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
-	mainCommandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	std::thread recorderThreads[NUM_RECORDING_THREADS];
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+	{
+		recorderThreads[i] = std::thread(
+			&D3D12Renderer::RecordRenderInstructions,
+			this,
+			window,
+			cam,
+			i + 1,
+			backBufferIndex,
+			i * numInstrPerThread,
+			numInstrPerThread
+		);
+	}
+#endif
 
-	//Set root signature
-	mainCommandList->SetGraphicsRootSignature(m_rootSignature);
-	mainCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// Map matrix data to GPU
+	MapMatrixData(backBufferIndex);
 
-	// Set structured buffer
-	mainCommandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
-
-	// Set viewport and scissor rectangle
-	mainCommandList->RSSetViewports(1, window->GetViewport());
-	mainCommandList->RSSetScissorRects(1, window->GetScissorRect());
-
-	//Indicate that the back buffer will be used as render target
-#pragma region Barrier Swap Target
+	// Create a resource barrier transition from present to render target
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
 	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-	mainCommandList->ResourceBarrier(1, &barrierDesc);
-#pragma endregion 
-
-	window->ClearRenderTarget(mainCommandList);
-	window->SetRenderTarget(mainCommandList);
-
-	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
-	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
-	mainCommandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
-
-
-	RecordRenderInstructions(0, backBufferIndex, 0, m_renderInstructions.size());
-
-
-	/*// How many instructions will each thread record
-	// If any instructions would remain, each thread records an additional one
-	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_THREADS_FOR_RECORDING;
-	numInstrPerThread += (m_renderInstructions.size() % NUM_THREADS_FOR_RECORDING ? 1 : 0);
-
 	
+	// Main command list commands
+	mainCommandList->ResourceBarrier(1, &barrierDesc);
+	window->ClearRenderTarget(mainCommandList);
 
-	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+#ifdef SINGLE_THREADED
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
-		m_recorderThreads[i] = std::thread(&D3D12Renderer::RecordRenderInstructions, this, i, backBufferIndex, i * numInstrPerThread, numInstrPerThread);
+		RecordRenderInstructions(window, cam, i + 1, backBufferIndex, i * numInstrPerThread, numInstrPerThread);
 	}
-	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+#else
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
-		m_recorderThreads[i].join();
-	}*/
-
-	//for (size_t instIndex = 0; instIndex < m_renderInstructions.size(); instIndex++)
-	//{
-	//	RecordRenderInstructions(backBufferIndex, instIndex, instIndex);
-	//}
+		recorderThreads[i].join();
+	}
+#endif
 }
 void D3D12Renderer::Present(Window * w)
 {
@@ -418,13 +400,28 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
 	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
 }
-void D3D12Renderer::RecordRenderInstructions(int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
+void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
 {
 	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[commandListIndex];
 	ID3D12GraphicsCommandList3* commandList = m_commandLists[commandListIndex];
 
-	int lastInstructionIdx = firstInstructionIndex + numInstructions;
-	for (int instructionIndex = firstInstructionIndex; instructionIndex < lastInstructionIdx; instructionIndex++)
+	DirectX::XMFLOAT4X4 viewPersp = c->GetViewPerspective();
+
+	// Set everything which is necessary to record draw commands
+	commandList->SetGraphicsRootSignature(m_rootSignature);
+	commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	commandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
+	commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->RSSetViewports(1, w->GetViewport());
+	commandList->RSSetScissorRects(1, w->GetScissorRect());
+	w->SetRenderTarget(commandList);
+
+	// Determine the index of next list (m_renderInstructions.size() for the last list)
+	int nextListFirstIndex = firstInstructionIndex + numInstructions;
+	nextListFirstIndex = min(nextListFirstIndex, m_renderInstructions.size());
+
+	for (int instructionIndex = firstInstructionIndex; instructionIndex < nextListFirstIndex; instructionIndex++)
 	{
 		// Retrieve instruction
 		int instruction;
@@ -447,7 +444,6 @@ void D3D12Renderer::RecordRenderInstructions(int commandListIndex, int backBuffe
 				//std::unique_lock<std::mutex> lock(m_mutex_item);
 				ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
 				commandList->SetPipelineState(pls);
-				//m_items[instanceOffset].item.blueprint->technique->Enable();
 			}
 		}
 		else
@@ -456,11 +452,9 @@ void D3D12Renderer::RecordRenderInstructions(int commandListIndex, int backBuffe
 
 			// Set instance offset
 			commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
-			//m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
 			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
-			//m_commandList->SetGraphicsRootDescriptorTable(1, handle);
 			commandList->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
@@ -468,69 +462,12 @@ void D3D12Renderer::RecordRenderInstructions(int commandListIndex, int backBuffe
 			for (size_t j = 0; j < buffers.size(); j++)
 			{
 				commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
-				//m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 			}
-			//Draw
+			
 			commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
-			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
 }
-/*void D3D12Renderer::RecordRenderInstructions(ID3D12GraphicsCommandList3 * commandList, ID3D12CommandAllocator * commandAllocator, int backBufferIndex)
-{
-	int numInstructions = m_renderInstructions.size();
-	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
-	{
-		// Retrieve instruction
-		int instruction;
-		{
-			//std::unique_lock<std::mutex> lock(m_mutex_instr);
-			instruction = m_renderInstructions[instructionIndex];
-		}
-
-		// Retrieve the offset in objects for this instruction
-		int instanceOffset;
-		{
-			//std::unique_lock<std::mutex> lock(m_mutex_offset);
-			instanceOffset = m_instanceOffsets[instructionIndex];
-		}
-
-		if (instruction == -1)
-		{
-			// Retrieve and enable a new technique from the first object using it
-			{
-				//std::unique_lock<std::mutex> lock(m_mutex_item);
-				ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
-				commandList->SetPipelineState(pls);
-				//m_items[instanceOffset].item.blueprint->technique->Enable();
-			}
-		}
-		else
-		{
-			// Retrieve and enable a new mesh from the first object using it
-
-			// Set instance offset
-			commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
-			//m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
-
-			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
-			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
-			//m_commandList->SetGraphicsRootDescriptorTable(1, handle);
-			commandList->SetGraphicsRootDescriptorTable(1, handle);
-
-			//Set Vertex Buffers
-			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
-			for (size_t j = 0; j < buffers.size(); j++)
-			{
-				commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
-				//m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
-			}
-			//Draw
-			commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
-			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
-		}
-	}
-}*/
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const
 {

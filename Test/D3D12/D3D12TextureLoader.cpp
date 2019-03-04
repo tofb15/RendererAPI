@@ -333,4 +333,5 @@ bool D3D12TextureLoader::AddDescriptorHeap()
 		return false;
 
 	m_DescriptorHeaps.push_back(descriptorHeap);
+	return true;
 }
