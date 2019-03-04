@@ -221,7 +221,7 @@ void D3D12TextureLoader::DoWork()
 		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
 
 		WaitForCopy();
-
+		uploadResource->Release();
 		if (!reuseResource){
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
 			m_TextureResources.push_back(textureResource);
