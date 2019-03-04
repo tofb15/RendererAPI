@@ -82,11 +82,13 @@ void D3D12TextureLoader::DoWork()
 
 	while (!stop)
 	{
-		if(atLeastOneTextureIsLoaded)
-			std::this_thread::sleep_for(std::chrono::seconds(2));
+		/*if(atLeastOneTextureIsLoaded)
+			std::this_thread::sleep_for(std::chrono::seconds(2));*/
 		
 		
 		D3D12Texture* texture;
+		bool reuseResource = false;
+
 		//Critical Region.
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
@@ -94,27 +96,22 @@ void D3D12TextureLoader::DoWork()
 			mTexturesToLoadToGPU.erase(mTexturesToLoadToGPU.begin());
 		}
 
-
+		reuseResource = (texture->m_GPU_Loader_index != -1);//If the texture already was loaded, it is just requesting a GPU update.
 
 		m_CommandAllocator->Reset();
 		m_CommandList4->Reset(m_CommandAllocator, nullptr);
-		ID3D12Resource* textureResource;
-
-#pragma region INITIALIZE_DEFAULT_HEAP
-
-		D3D12_HEAP_PROPERTIES heapProperties = {};
-		heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;			//D3D12_HEAP_TYPE_UPLOAD did not work here!
-		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		heapProperties.CreationNodeMask = 1; //used when multi-gpu
-		heapProperties.VisibleNodeMask = 1; //used when multi-gpu
-		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		ID3D12Resource* textureResource = nullptr;
+		if (reuseResource) {
+			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
+			textureResource = m_TextureResources[texture->m_GPU_Loader_index];
+		}
 
 		D3D12_RESOURCE_DESC resourceDesc = {};
 		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		resourceDesc.Alignment = 0;//D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;	//4KB if the texture is <  64KB; 64KB if the texture is < 4MB; else bigger (see flags)
-		resourceDesc.Width = texture->mWidth;
-		resourceDesc.Height = texture->mHeight;
+		resourceDesc.Width = texture->m_Width;
+		resourceDesc.Height = texture->m_Height;
 		resourceDesc.DepthOrArraySize = 1;
 		resourceDesc.MipLevels = 1;
 		resourceDesc.SampleDesc.Count = 1;
@@ -122,19 +119,30 @@ void D3D12TextureLoader::DoWork()
 		resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 		resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;		//Row major did not work here!
 
-		HRESULT hr = m_Renderer->GetDevice()->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_COMMON,
-			nullptr,
-			IID_PPV_ARGS(&textureResource)
-		);
-		if (FAILED(hr))
-		{
-			return;
-		}
+		HRESULT hr;
+		D3D12_HEAP_PROPERTIES heapProperties = {};
+		heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		heapProperties.CreationNodeMask = 1; //used when multi-gpu
+		heapProperties.VisibleNodeMask = 1; //used when multi-gpu
+		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
+#pragma region INITIALIZE_DEFAULT_HEAP
+		if (!reuseResource) {
+			heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;			//D3D12_HEAP_TYPE_UPLOAD did not work here!
+
+			hr = m_Renderer->GetDevice()->CreateCommittedResource(
+				&heapProperties,
+				D3D12_HEAP_FLAG_NONE,
+				&resourceDesc,
+				D3D12_RESOURCE_STATE_COMMON,
+				nullptr,
+				IID_PPV_ARGS(&textureResource)
+			);
+			if (FAILED(hr))
+			{
+				return;
+			}
+		}
 #pragma endregion
 
 		//GetRequiredIntermediateSize returns w * h * "sizeof"(Format). Example: 640(width) * 640(height) * 4(Bytes) * 4(Channels)
@@ -178,9 +186,9 @@ void D3D12TextureLoader::DoWork()
 		}
 
 		D3D12_SUBRESOURCE_DATA textureData = {};
-		textureData.pData = reinterpret_cast<void*>(texture->mImage_CPU.data());//;reinterpret_cast<UINT8*>(rgb);
-		textureData.RowPitch = texture->mWidth * texture->mBytesPerPixel;
-		textureData.SlicePitch = textureData.RowPitch * texture->mHeight;
+		textureData.pData = reinterpret_cast<void*>(texture->m_Image_CPU.data());//;reinterpret_cast<UINT8*>(rgb);
+		textureData.RowPitch = texture->m_Width * texture->m_BytesPerPixel;
+		textureData.SlicePitch = textureData.RowPitch * texture->m_Height;
 
 		UpdateSubresources<1>(m_CommandList4, textureResource, uploadResource, 0, 0, 1, &textureData);
 #pragma endregion
@@ -192,30 +200,34 @@ void D3D12TextureLoader::DoWork()
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
 
-//#ifdef OLD_DESCRIPTOR_HEAP
-		//if max SRV capacity is reached, Allocate a new DescriptorHeap. 
-		unsigned localHeapIndex = m_nrOfTextures % MAX_SRVs_PER_DESCRIPTOR_HEAP;
-		if (localHeapIndex == 0) {
-			AddDescriptorHeap();
+#pragma region CreateShaderResourceView
+		if (!reuseResource) {
+			//if max SRV capacity is reached, Allocate a new DescriptorHeap. 
+			unsigned localHeapIndex = m_nrOfTextures % MAX_SRVs_PER_DESCRIPTOR_HEAP;
+			if (localHeapIndex == 0) {
+				AddDescriptorHeap();
+			}
+
+
+			D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
+			cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
+			m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
 		}
 
-
-		D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
-		cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
-		m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
-//#endif
-
+#pragma endregion
 
 		m_CommandList4->Close();
 		ID3D12CommandList* ppCommandLists[] = { m_CommandList4 };
 		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
 
 		WaitForCopy();
-		{
+
+		if (!reuseResource){
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
 			m_TextureResources.push_back(textureResource);
+			texture->m_GPU_Loader_index = m_nrOfTextures++;
 		}
-		texture->m_GPU_Loader_index = m_nrOfTextures++;
+		
 
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.

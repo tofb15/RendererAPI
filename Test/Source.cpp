@@ -34,7 +34,6 @@ struct Object {
 	static Object* CreateObjectFromBlueprint(Blueprint* bp) { return nullptr; };
 };
 
-
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
 
@@ -227,6 +226,16 @@ public:
 			objects.push_back(object);
 		}
 
+		//for (size_t x = 0; x < textures[0]->GetWidth(); x++)
+		//{
+		//	for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
+		//	{
+		//		unsigned char data[4] = { 0,255,255,255 };
+		//		textures[0]->UpdatePixel(Int2(x, y), data, 4);
+		//	}
+		//}
+		//textures[0]->ApplyChanges();
+
 		return true;
 	}
 
@@ -248,6 +257,9 @@ public:
 		demoMovement[1] = false;
 
 		int techniqueToUse = 0;
+
+		float timeSincePixChange = 0;
+		Int2 pixToChange(0,0);
 
 		//Game Loop
 		while (!windows[0]->WindowClosed())
@@ -365,6 +377,22 @@ public:
 				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 			if (demoMovement[1])
 				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
+
+
+			//timeSincePixChange += 0.05f;
+			static unsigned char color = 0;
+			if (frame % 100 == 0) {
+				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
+				{
+					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
+					{
+						unsigned char data[4] = { 0,color,255-color,255 };
+						textures[0]->UpdatePixel(Int2(x, y), data, 4);
+					}
+				}
+				color += 20;
+				textures[0]->ApplyChanges();
+			}
 
 
 			//Render Windows

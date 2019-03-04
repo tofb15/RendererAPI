@@ -2,6 +2,9 @@
 /*
 	Contain a texture that could be applied to a mesh.
 */
+
+#include "Math.hpp"
+
 class Texture {
 public:
 	enum Texture_Load_Flags {
@@ -36,9 +39,11 @@ public:
 	*/
 	virtual unsigned GetBPP()		const;
 
+	virtual void UpdatePixel(Int2 pos, const unsigned char* data, int size) = 0;
+	virtual void ApplyChanges() = 0;
 protected:
 
-	unsigned mWidth, mHeight;
-	unsigned mBytesPerPixel;
+	unsigned m_Width, m_Height;
+	unsigned m_BytesPerPixel;
 	Texture();
 };

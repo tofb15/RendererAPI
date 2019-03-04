@@ -5,7 +5,7 @@
 #include "D3D12Renderer.hpp"
 #include "External/D3DX12/d3dx12.h"
 
-D3D12Texture::D3D12Texture(D3D12Renderer* renderer) : mRenderer(renderer)
+D3D12Texture::D3D12Texture(D3D12Renderer* renderer) : m_Renderer(renderer)
 {
 
 }
@@ -18,10 +18,11 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 {
 	if (flags == 0)
 		return false;
+	m_Flags = flags;
 
 	//decode
-	unsigned error = lodepng::decode(mImage_CPU, mWidth, mHeight, fileName);
-	mBytesPerPixel = 4;
+	unsigned error = lodepng::decode(m_Image_CPU, m_Width, m_Height, fileName);
+	m_BytesPerPixel = 4;
 
 	//if there's an error, display it
 	if (error) {
@@ -32,7 +33,7 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 	//If GPU_USAGE_FLAG is set, create a texture recorce on the GPU.
 	if (flags & Texture_Load_Flags::TEXTURE_USAGE_GPU_FLAG) {
 		//This should be done by a copy queue on a seperate thread.
-		mRenderer->GetTextureLoader()->LoadTextureToGPU(this);
+		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
 		//mRenderer->GetTextureLoader()->SynchronizeWork();//Force this thread to wait until all work is done.
 	}
 
@@ -55,4 +56,22 @@ bool D3D12Texture::IsLoaded()
 int D3D12Texture::GetTextureIndex() const
 {
 	return m_GPU_Loader_index;
+}
+
+void D3D12Texture::UpdatePixel(Int2 pos, const unsigned char * data, int size)
+{
+	if (m_Flags & Texture_Load_Flags::TEXTURE_USAGE_CPU_FLAG) {
+		std::memcpy(&m_Image_CPU[m_BytesPerPixel * (pos.y*m_Width + pos.x)], data, size);
+		//&m_Image_CPU[m_BytesPerPixel * (pos.y*m_Width + pos.x)] = data * size;
+		m_hasChanged = true;
+	}
+}
+
+void D3D12Texture::ApplyChanges()
+{
+	if (m_hasChanged) {
+		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
+		m_Renderer->GetTextureLoader()->SynchronizeWork();
+		m_hasChanged = false;
+	}
 }

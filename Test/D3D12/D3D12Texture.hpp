@@ -23,16 +23,21 @@ public:
 	virtual bool LoadFromFile(const char* fileName, unsigned flags) override;
 	bool IsLoaded();
 	int GetTextureIndex() const;
+	void UpdatePixel(Int2 pos, const unsigned char* data, int size) override;
+	void ApplyChanges() override;
+
 private:
 	friend D3D12TextureLoader;
 
 	//void load();
 	//bool CreateGPUTextureResource();
 
-	bool mIsLoaded = false;
-	std::vector<unsigned char> mImage_CPU; //the raw pixels stored on the CPU.
-	unsigned mFlags;
-	D3D12Renderer* mRenderer;
+	bool m_IsLoaded = false;
+	bool m_hasChanged = false;
+
+	std::vector<unsigned char> m_Image_CPU; //the raw pixels stored on the CPU.
+	unsigned m_Flags;
+	D3D12Renderer* m_Renderer;
 
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/
 	int m_GPU_Loader_index = -1;
