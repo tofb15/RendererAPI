@@ -154,11 +154,11 @@ public:
 		int nElems = sizeof(rect) / sizeof(Float3);
 		//meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
 		meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
-		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
+		meshCube->LoadFromFile("walker.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
 		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 
-		meshes.push_back(meshRect);
 		meshes.push_back(meshCube);
+		meshes.push_back(meshRect);
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
@@ -212,7 +212,7 @@ public:
 
 		blueprint = new Blueprint;
 		blueprint->technique = techniques[1];
-		blueprint->mesh = meshes[0];
+		blueprint->mesh = meshes[1];
 		blueprint->textures.push_back(textures[1]);
 		blueprints.push_back(blueprint);
 #pragma endregion
