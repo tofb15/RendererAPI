@@ -80,6 +80,12 @@ bool D3D12Renderer::Initialize()
 	//Start new Texture loading thread
 	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
+	m_numActiveWorkerThreads = 0;
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+	{
+		m_recorderThreads[i] = std::thread(&D3D12Renderer::RecordCommands, this, i);
+	}
+
 	return true;
 }
 
@@ -171,18 +177,37 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	// Fill out the render information vectors
 	SetUpRenderInstructions();
 
-	// Reset the command lists
-	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
-	{
-		ResetCommandListAndAllocator(i);
-	}
-
 #ifndef SINGLE_THREADED
 	// How many instructions will each thread record
 	// If any instructions would remain, each thread records an additional one
 	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
+	// Reset the command lists
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+	{
+		ResetCommandListAndAllocator(i);
+		
+		SetThreadWork(
+			i,
+			window,
+			cam,
+			backBufferIndex,
+			i * numInstrPerThread,
+			numInstrPerThread
+		);
+	}
+
+	{
+		std::unique_lock<std::mutex> lock(m_mutex_numActive);
+		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
+		m_cv_workers.notify_all();
+
+	}
+
+
+#ifdef RECREATE_THREADS
+	// Begin recording each command list
 	std::thread recorderThreads[NUM_RECORDING_THREADS];
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
@@ -197,6 +222,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			numInstrPerThread
 		);
 	}
+#endif
 #endif
 
 	// Map matrix data to GPU
@@ -220,10 +246,12 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		RecordRenderInstructions(window, cam, i + 1, backBufferIndex, i * numInstrPerThread, numInstrPerThread);
 	}
 #else
+#ifdef RECREATE_THREADS
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
 		recorderThreads[i].join();
 	}
+#endif
 #endif
 }
 void D3D12Renderer::Present(Window * w)
@@ -467,6 +495,47 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 			commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
+}
+
+void D3D12Renderer::RecordCommands(int threadIndex)
+{
+	{
+		// Initial wait until the first work has been requested
+		std::unique_lock<std::mutex> lock(m_mutex_workers);
+		m_cv_workers.wait(lock, [this]() { return m_numActiveWorkerThreads != 0; });
+	}
+
+	// A pointer to this thread's work
+	RecordingThreadWork* work = &m_threadWork[threadIndex];
+
+	while (m_isRunning)
+	{
+		// Record the commands for this list/thread
+		RecordRenderInstructions(work->w, work->c, threadIndex, work->backBufferIndex, work->firstInstructionIndex, work->numInstructions);
+
+		{
+			std::unique_lock<std::mutex> lock(m_mutex_workers);
+
+			m_numActiveWorkerThreads--;
+
+			// Notify main thread of this one finishing its work
+			// Main thread will go back to sleep if there are more than one active thread remaining
+			m_cv_main.notify_one();
+
+			// Wait until main thread wakes this thread up
+			// If this thread should wake up by itself, put it back to sleep unless main has reset the number of active threads
+			m_cv_workers.wait(lock, [this]() { return (m_numActiveWorkerThreads == NUM_RECORDING_THREADS) || !m_isRunning; });
+		}
+	}
+}
+
+void D3D12Renderer::SetThreadWork(int threadIndex, D3D12Window * w, D3D12Camera * c, int backBufferIndex, int firstInstructionIndex, int numInstructions)
+{
+	m_threadWork[threadIndex].w = w;
+	m_threadWork[threadIndex].c = c;
+	m_threadWork[threadIndex].backBufferIndex = backBufferIndex;
+	m_threadWork[threadIndex].firstInstructionIndex = firstInstructionIndex;
+	m_threadWork[threadIndex].numInstructions = numInstructions;
 }
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const

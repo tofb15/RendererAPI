@@ -70,6 +70,9 @@ private:
 	void MapMatrixData(int backBufferIndex);
 	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
 
+	void RecordCommands(int threadIndex);
+	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
+
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
 	static const unsigned NUM_COMMAND_LISTS = 1U + 2U;
@@ -102,7 +105,24 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
-	std::mutex m_mutex_item, m_mutex_instr, m_mutex_offset;
-	//std::condition_variable m_cv_
-	std::thread m_recorderThreads[NUM_COMMAND_LISTS];
+
+	// Multithreaded recording resources
+	struct RecordingThreadWork
+	{
+		D3D12Window* w;
+		D3D12Camera* c;
+		int commandListIndex;
+		int backBufferIndex;
+		int firstInstructionIndex;
+		int numInstructions;
+	};
+
+	int m_numActiveWorkerThreads;
+	bool m_isRunning;
+	std::mutex m_mutex_numActive;
+	std::mutex m_mutex_workers;
+	std::condition_variable m_cv_main;
+	std::condition_variable m_cv_workers;
+	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
+	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
 };
