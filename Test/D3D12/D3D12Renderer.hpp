@@ -62,13 +62,18 @@ private:
 	bool InitializeRootSignature();
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
+
 	void SetUpRenderInstructions();
-	void RecordRenderInstructions(int commandList, int backBufferIndex, int firstInstructionIdx, int numInstructions);
+	void ResetCommandListAndAllocator(int index);
+	void MapMatrixData(int backBufferIndex);
+	void RecordRenderInstructions(int commandIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
+	void RecordRenderInstructions(ID3D12GraphicsCommandList3* commandList, ID3D12CommandAllocator* commandAllocator, int backBufferIndex);
 
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
-	static const unsigned NUM_THREADS_FOR_RECORDING = 2U;
+	static const unsigned NUM_COMMAND_LISTS = 1U + 1U;
+	static const unsigned MAIN_COMMAND_INDEX = 0U;
 
 	unsigned int m_cbv_srv_uav_size;
 
@@ -84,8 +89,8 @@ private:
 	std::vector<int> m_instanceOffsets;
 
 	ID3D12Device4*				m_device			= nullptr;
-	ID3D12CommandAllocator*		m_commandAllocator	= nullptr;
-	ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
+	//ID3D12CommandAllocator*		m_commandAllocator	= nullptr;
+	//ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
 	ID3D12RootSignature*		m_rootSignature		= nullptr;
 
 	// Structured buffer for matrices
@@ -94,8 +99,9 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
-	std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
 	std::mutex m_mutex_item, m_mutex_instr, m_mutex_offset;
-	ID3D12CommandAllocator*		m_commandAllocatorChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
-	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
+	//std::thread m_recorderThreads[NUM_COMMAND_LISTS];
+
+	ID3D12CommandAllocator*		m_commandAllocators[NUM_COMMAND_LISTS] = { nullptr };
+	ID3D12GraphicsCommandList3*	m_commandLists[NUM_COMMAND_LISTS] = { nullptr };
 };

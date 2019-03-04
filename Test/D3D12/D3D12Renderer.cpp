@@ -155,27 +155,28 @@ void D3D12Renderer::Submit(SubmissionItem item)
 }
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
-	HRESULT hr;
 	D3D12Window* window = static_cast<D3D12Window*>(w);
+	ID3D12GraphicsCommandList3* currentCommandList = m_commandLists[MAIN_COMMAND_INDEX];
 	UINT backBufferIndex;
 
+	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
 		[](const SortingItem & a, const SortingItem & b) -> bool
 	{
 		return a.sortingIndex > b.sortingIndex;
 	});
 
-	
 	backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	hr = m_commandAllocator->Reset();
-	if (!SUCCEEDED(hr)) printf("Error: Command allocator reset\n");
+	// Fill out the render information vectors
+	SetUpRenderInstructions();
 
-	hr = m_commandList->Reset(m_commandAllocator, nullptr);
-	if (!SUCCEEDED(hr)) printf("Error: Command list reset\n");
+	// Map matrix data to GPU
+	MapMatrixData(backBufferIndex);
 
-	// Heap information
-	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap[backBufferIndex]->GetCPUDescriptorHandleForHeapStart();
+	// Begin command list recording
+	ResetCommandListAndAllocator(MAIN_COMMAND_INDEX);
+
 
 	// Description (maybe fix another solution)
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -184,69 +185,18 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	currentCommandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 
 	//Set root signature
-	m_commandList->SetGraphicsRootSignature(m_rootSignature);
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Fill out the render information vectors
-	SetUpRenderInstructions();
-
-	// Begin mapping matrix data
-	D3D12_RANGE readRange = { 0, 0 };
-	void* data = nullptr;
-	m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
-
-	// Create shader resource views for each texture on each object
-	// Copy matrix data to GPU
-	DirectX::XMMATRIX mat;
-	size_t nItems = m_items.size();
-	for (int item = 0; item < nItems; item++)
-	{
-		// Retrieve this mesh's textures
-		std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
-		size_t nTextures = textures.size();
-
-		// Create a shader resource view for each texture
-		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
-		{
-			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
-			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
-
-			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
-			//m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
-
-			m_device->CopyDescriptorsSimple(1, cdh, m_textureLoader->GetSpecificTextureCPUAdress(texture), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-			// Move the pointer forward in memory
-			cdh.ptr += m_cbv_srv_uav_size;
-		}
-		
-		Float3 pos = m_items[item].item.transform.pos;
-		Float3 scal = m_items[item].item.transform.scale;
-
-		mat = DirectX::XMMatrixIdentity();
-
-		mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
-
-		mat.r[0].m128_f32[0] *= scal.x;
-		mat.r[1].m128_f32[1] *= scal.y;
-		mat.r[2].m128_f32[2] *= scal.z;
-
-		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
-	}
-	
-	// Finish mapping and write the matrix data
-	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
-	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
+	currentCommandList->SetGraphicsRootSignature(m_rootSignature);
+	currentCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Set structured buffer
-	m_commandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
+	currentCommandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
 
 	// Set viewport and scissor rectangle
-	m_commandList->RSSetViewports(1, window->GetViewport());
-	m_commandList->RSSetScissorRects(1, window->GetScissorRect());
+	currentCommandList->RSSetViewports(1, window->GetViewport());
+	currentCommandList->RSSetScissorRects(1, window->GetScissorRect());
 
 	//Indicate that the back buffer will be used as render target
 #pragma region Barrier Swap Target
@@ -257,21 +207,27 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-	m_commandList->ResourceBarrier(1, &barrierDesc);
+	currentCommandList->ResourceBarrier(1, &barrierDesc);
 #pragma endregion 
 
-	window->ClearRenderTarget(m_commandList);
-	window->SetRenderTarget(m_commandList);
+	window->ClearRenderTarget(currentCommandList);
+	window->SetRenderTarget(currentCommandList);
 
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	DirectX::XMFLOAT4X4 viewPersp = cam->GetViewPerspective();
-	m_commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
+	currentCommandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
+
+	RecordRenderInstructions(currentCommandList, m_commandAllocators[MAIN_COMMAND_INDEX], backBufferIndex);
 
 
-	// How many instructions will each thread record
+
+
+	/*// How many instructions will each thread record
 	// If any instructions would remain, each thread records an additional one
 	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_THREADS_FOR_RECORDING;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_THREADS_FOR_RECORDING ? 1 : 0);
+
+	
 
 	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
 	{
@@ -280,7 +236,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
 	{
 		m_recorderThreads[i].join();
-	}
+	}*/
 
 	//for (size_t instIndex = 0; instIndex < m_renderInstructions.size(); instIndex++)
 	//{
@@ -300,18 +256,18 @@ void D3D12Renderer::Present(Window * w)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
-	m_commandList->ResourceBarrier(1, &barrierDesc);
+	m_commandLists[MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
 #pragma endregion
-	m_commandList->Close();
+	m_commandLists[MAIN_COMMAND_INDEX]->Close();
 
 	//Execute the command list.
-	ID3D12CommandList* listsToExecute[1 + NUM_THREADS_FOR_RECORDING];
-	listsToExecute[0] = m_commandList;
+	ID3D12CommandList* listsToExecute[1/* + NUM_THREADS_FOR_RECORDING*/];
+	listsToExecute[0] = m_commandLists[MAIN_COMMAND_INDEX];
 
-	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
+	/*for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
 	{
 		listsToExecute[i + 1] = m_commandListChildren[i];
-	}
+	}*/
 
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
@@ -395,13 +351,80 @@ void D3D12Renderer::SetUpRenderInstructions()
 	//Start with setting new technique
 	m_renderInstructions.push_back(nrOfInstances);
 }
-void D3D12Renderer::RecordRenderInstructions(int commandList, int backBufferIndex, int firstInstructionIdx, int numInstructions)
+void D3D12Renderer::ResetCommandListAndAllocator(int index)
 {
-	m_commandAllocatorChildren[commandList]->Reset();
-	m_commandListChildren[commandList]->Reset(m_commandAllocatorChildren[commandList], nullptr);
+	HRESULT hr;
+	hr = m_commandAllocators[index]->Reset();
+	if (!SUCCEEDED(hr))
+		printf("Error: Command allocator %d failed to reset\n", index);
 
-	int lastInstructionIdx = firstInstructionIdx + numInstructions;
-	for (int instructionIndex = firstInstructionIdx; instructionIndex < lastInstructionIdx; instructionIndex++)
+	hr = m_commandLists[index]->Reset(m_commandAllocators[index], nullptr);
+	if (!SUCCEEDED(hr))
+		printf("Error: Command list %d failed to reset\n", index);
+}
+void D3D12Renderer::MapMatrixData(int backBufferIndex)
+{
+	// Heap information
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap[backBufferIndex]->GetCPUDescriptorHandleForHeapStart();
+
+	// Begin mapping matrix data
+	D3D12_RANGE readRange = { 0, 0 };
+	void* data = nullptr;
+	m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
+
+	// Create shader resource views for each texture on each object
+	// Copy matrix data to GPU
+	DirectX::XMMATRIX mat;
+	size_t nItems = m_items.size();
+	for (int item = 0; item < nItems; item++)
+	{
+		// Retrieve this mesh's textures
+		std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
+		size_t nTextures = textures.size();
+
+		// Create a shader resource view for each texture
+		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++)
+		{
+			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
+			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
+
+			ID3D12Resource* textureResource = m_textureLoader->GetResource(textureIndexOnGPU);
+			//m_device->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+
+			m_device->CopyDescriptorsSimple(1, cdh, m_textureLoader->GetSpecificTextureCPUAdress(texture), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			// Move the pointer forward in memory
+			cdh.ptr += m_cbv_srv_uav_size;
+		}
+
+		Float3 pos = m_items[item].item.transform.pos;
+		Float3 scal = m_items[item].item.transform.scale;
+
+		mat = DirectX::XMMatrixIdentity();
+
+		mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
+
+		mat.r[0].m128_f32[0] *= scal.x;
+		mat.r[1].m128_f32[1] *= scal.y;
+		mat.r[2].m128_f32[2] *= scal.z;
+
+		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
+	}
+
+	// Finish mapping and write the matrix data
+	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
+	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
+}
+void D3D12Renderer::RecordRenderInstructions(int commandIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
+{
+	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[commandIndex];
+	ID3D12GraphicsCommandList3* commandList = m_commandLists[commandIndex];
+
+	commandAllocator->Reset();
+	commandList->Reset(commandAllocator, nullptr);
+
+	int lastInstructionIdx = firstInstructionIndex + numInstructions;
+	for (int instructionIndex = firstInstructionIndex; instructionIndex < lastInstructionIdx; instructionIndex++)
 	{
 		// Retrieve instruction
 		int instruction;
@@ -423,7 +446,7 @@ void D3D12Renderer::RecordRenderInstructions(int commandList, int backBufferInde
 			{
 				//std::unique_lock<std::mutex> lock(m_mutex_item);
 				ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
-				m_commandListChildren[commandList]->SetPipelineState(pls);
+				commandList->SetPipelineState(pls);
 				//m_items[instanceOffset].item.blueprint->technique->Enable();
 			}
 		}
@@ -432,28 +455,85 @@ void D3D12Renderer::RecordRenderInstructions(int commandList, int backBufferInde
 			// Retrieve and enable a new mesh from the first object using it
 
 			// Set instance offset
-			m_commandListChildren[commandList]->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
+			commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
 			//m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
 			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
 			//m_commandList->SetGraphicsRootDescriptorTable(1, handle);
-			m_commandListChildren[commandList]->SetGraphicsRootDescriptorTable(1, handle);
+			commandList->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
 			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
 			for (size_t j = 0; j < buffers.size(); j++)
 			{
-				m_commandListChildren[commandList]->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+				commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 				//m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 			}
 			//Draw
-			m_commandListChildren[commandList]->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+			commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
 		}
 	}
 
-	m_commandListChildren[commandList]->Close();
+	commandList->Close();
+}
+void D3D12Renderer::RecordRenderInstructions(ID3D12GraphicsCommandList3 * commandList, ID3D12CommandAllocator * commandAllocator, int backBufferIndex)
+{
+	int numInstructions = m_renderInstructions.size();
+	for (int instructionIndex = 0; instructionIndex < numInstructions; instructionIndex++)
+	{
+		// Retrieve instruction
+		int instruction;
+		{
+			//std::unique_lock<std::mutex> lock(m_mutex_instr);
+			instruction = m_renderInstructions[instructionIndex];
+		}
+
+		// Retrieve the offset in objects for this instruction
+		int instanceOffset;
+		{
+			//std::unique_lock<std::mutex> lock(m_mutex_offset);
+			instanceOffset = m_instanceOffsets[instructionIndex];
+		}
+
+		if (instruction == -1)
+		{
+			// Retrieve and enable a new technique from the first object using it
+			{
+				//std::unique_lock<std::mutex> lock(m_mutex_item);
+				ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
+				commandList->SetPipelineState(pls);
+				//m_items[instanceOffset].item.blueprint->technique->Enable();
+			}
+		}
+		else
+		{
+			// Retrieve and enable a new mesh from the first object using it
+
+			// Set instance offset
+			commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
+			//m_commandList->SetGraphicsRoot32BitConstants(0, 1, &instanceOffset, 16);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
+			handle.ptr += instanceOffset * m_cbv_srv_uav_size;
+			//m_commandList->SetGraphicsRootDescriptorTable(1, handle);
+			commandList->SetGraphicsRootDescriptorTable(1, handle);
+
+			//Set Vertex Buffers
+			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
+			for (size_t j = 0; j < buffers.size(); j++)
+			{
+				commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+				//m_commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
+			}
+			//Draw
+			commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+			//m_commandList->DrawInstanced(buffers[0]->GetNumberOfElements(), instruction, 0, 0);
+		}
+	}
+
+	//commandList->Close();
 }
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const
@@ -466,7 +546,7 @@ ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
 }
 ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
 {
-	return m_commandList;
+	return m_commandLists[MAIN_COMMAND_INDEX];
 }
 D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
@@ -539,32 +619,11 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 {
 	HRESULT hr;
 
-	hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
-	if (FAILED(hr))
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
 	{
-		return false;
-	}
-
-	//Create command list.
-	hr = m_device->CreateCommandList(
-		0,
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		m_commandAllocator,
-		nullptr,
-		IID_PPV_ARGS(&m_commandList));
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	//Command lists are created in the recording state. Since there is nothing to
-	//record right now and the main loop expects it to be closed, we close it.
-	m_commandList->Close();
-
-
-	for (int i = 0; i < NUM_THREADS_FOR_RECORDING; i++)
-	{
-		hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocatorChildren[i]));
+		hr = m_device->CreateCommandAllocator(
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(&m_commandAllocators[i]));
 		if (FAILED(hr))
 		{
 			return false;
@@ -574,9 +633,9 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 		hr = m_device->CreateCommandList(
 			0,
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			m_commandAllocatorChildren[i],
+			m_commandAllocators[i],
 			nullptr,
-			IID_PPV_ARGS(&m_commandListChildren[i]));
+			IID_PPV_ARGS(&m_commandLists[i]));
 		if (FAILED(hr))
 		{
 			return false;
@@ -584,7 +643,7 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 
 		//Command lists are created in the recording state. Since there is nothing to
 		//record right now and the main loop expects it to be closed, we close it.
-		m_commandListChildren[i]->Close();
+		m_commandLists[i]->Close();
 	}
 
 	return true;
