@@ -143,22 +143,25 @@ public:
 		//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
 #pragma region CreateUniqueBlueprint
 	//Load meshes and materials from file
-		Mesh* meshRect	= renderer->MakeMesh();
-		Mesh* meshCube	= renderer->MakeMesh();
 		
-		Float3 rect[] = { 
-			Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f),
-			Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f),
-		};
 
-		int nElems = sizeof(rect) / sizeof(Float3);
-		//meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
-		meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
-		meshCube->LoadFromFile("walker.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
-		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+		Mesh* mesh1	= renderer->MakeMesh();
+		Mesh* mesh2 = renderer->MakeMesh();
+		Mesh* mesh3 = renderer->MakeMesh();
+		Mesh* mesh4 = renderer->MakeMesh();
+		Mesh* mesh5 = renderer->MakeMesh();
+		
+		mesh1->LoadFromFile("walker.obj");
+		mesh2->LoadFromFile("turret.obj");
+		mesh3->LoadFromFile("antenna.obj");
+		mesh4->LoadFromFile("enemy_flying.obj");
+		mesh5->LoadFromFile("disc.obj");
 
-		meshes.push_back(meshCube);
-		meshes.push_back(meshRect);
+		meshes.push_back(mesh1);
+		meshes.push_back(mesh2);
+		meshes.push_back(mesh3);
+		meshes.push_back(mesh4);
+		meshes.push_back(mesh5);
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
@@ -189,10 +192,6 @@ public:
 		tech = renderer->MakeTechnique(renderStates[1], &sp, sm);
 		techniques.push_back(tech);
 
-
-		//Attach Technique to mesh
-		//mesh->SetTechnique(tech); // A mesh could be renderer using more than one Technique. This is set in the blueprint insteed
-
 		//Create a Texture
 		Texture* tex;
 		tex = renderer->MakeTexture();
@@ -204,37 +203,34 @@ public:
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
-		Blueprint* blueprint = new Blueprint;
-		blueprint->technique = techniques[1];
-		blueprint->mesh = meshes[0];
-		blueprint->textures.push_back(textures[0]);
-		blueprints.push_back(blueprint);
+		Blueprint* blueprint;
 
-		blueprint = new Blueprint;
-		blueprint->technique = techniques[1];
-		blueprint->mesh = meshes[1];
-		blueprint->textures.push_back(textures[1]);
-		blueprints.push_back(blueprint);
+		for (size_t nTechs = 0; nTechs < 2; nTechs++)
+		{
+			for (size_t nMeshes = 0; nMeshes < 5; nMeshes++)
+			{
+				for (size_t nTextures = 0; nTextures < 2; nTextures++)
+				{
+					blueprint = new Blueprint;
+					blueprint->technique = techniques[nTechs];
+					blueprint->mesh = meshes[nMeshes];
+					blueprint->textures.push_back(textures[nTextures]);
+					blueprints.push_back(blueprint);
+				}
+			}
+		}
+
 #pragma endregion
 
+		int nBlueprints = blueprints.size();
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
-			object->blueprint = blueprints[i % 2];
-			object->transform.scale = { 1.0f, 2.0f, 1.0f };
-			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
+			object->blueprint = blueprints[i % nBlueprints];
+			object->transform.scale = { 1.0f, 1.0f, 1.0f };
+			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
 			objects.push_back(object);
 		}
-
-		//for (size_t x = 0; x < textures[0]->GetWidth(); x++)
-		//{
-		//	for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
-		//	{
-		//		unsigned char data[4] = { 0,255,255,255 };
-		//		textures[0]->UpdatePixel(Int2(x, y), data, 4);
-		//	}
-		//}
-		//textures[0]->ApplyChanges();
 
 		return true;
 	}
@@ -299,7 +295,7 @@ public:
 			}
 			for (int i = 0; i < objects.size(); i++) {
 
-				objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
+				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
 				objects[i]->transform.rotation.y = sin(time + i) * cos(time * 2 + i) * 3.1414 * 2;
 			}
 			//Handle window events to detect window movement, window destruction, input etc. 
@@ -376,25 +372,16 @@ public:
 			//Render the scene.
 #pragma region Rendera
 
-			renderer->ClearSubmissions();
-
-			//for (size_t i = 0; i < objects.size(); i++)
-			//{
-			//	renderer->Submit({ objects[i]->blueprint, objects[i]->transform });
-			//}
-
-
 			if(demoMovement[0])
 				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 			if (demoMovement[1])
 				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
 
-
 			//timeSincePixChange += 0.05f;
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (frame % 100 == 0) {
+			if (false) {
 				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
 				{
 					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
