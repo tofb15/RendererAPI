@@ -118,12 +118,12 @@ private:
 	};
 
 	int m_numActiveWorkerThreads;
-	bool m_isRunning;
+	unsigned __int64 m_frames_recorded[NUM_RECORDING_THREADS + 1] = {0};
+
+	bool m_isRunning = true;
 	std::condition_variable m_cv_main;
 	std::condition_variable m_cv_workers;
-	std::mutex m_mutex_numActive;
-	std::mutex m_mutex_cv_main;
-	std::mutex m_mutex_cv_workers;
+	std::mutex m_mutex;
 	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
 	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
 };
