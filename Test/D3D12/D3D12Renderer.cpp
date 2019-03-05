@@ -183,11 +183,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
-	// Reset the command lists
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
 		ResetCommandListAndAllocator(i);
 		
+		// Set the data each thread will process
 		SetThreadWork(
 			i,
 			window,
@@ -199,10 +199,14 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	}
 
 	{
+		// Set the number of active worker threads
 		std::unique_lock<std::mutex> lock(m_mutex_numActive);
 		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
+	}
+	{
+		// Wake up the worker threads
+		std::unique_lock<std::mutex> lock(m_mutex_cv_workers);
 		m_cv_workers.notify_all();
-
 	}
 
 
@@ -250,6 +254,18 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
 		recorderThreads[i].join();
+	}
+#else
+	
+	// Wait until each worker thread has finished their recording
+	{
+		std::unique_lock<std::mutex> lock(m_mutex_numActive);
+
+		if (m_numActiveWorkerThreads > 0)
+		{
+			std::unique_lock<std::mutex> lock2(m_mutex_cv_main);
+			m_cv_main.wait(lock2, [this]() { return m_numActiveWorkerThreads == 0; });
+		}
 	}
 #endif
 #endif
@@ -501,7 +517,7 @@ void D3D12Renderer::RecordCommands(int threadIndex)
 {
 	{
 		// Initial wait until the first work has been requested
-		std::unique_lock<std::mutex> lock(m_mutex_workers);
+		std::unique_lock<std::mutex> lock(m_mutex_cv_workers);
 		m_cv_workers.wait(lock, [this]() { return m_numActiveWorkerThreads != 0; });
 	}
 
@@ -514,16 +530,20 @@ void D3D12Renderer::RecordCommands(int threadIndex)
 		RecordRenderInstructions(work->w, work->c, threadIndex, work->backBufferIndex, work->firstInstructionIndex, work->numInstructions);
 
 		{
-			std::unique_lock<std::mutex> lock(m_mutex_workers);
-
+			// Decrement the counter of the number of active threads
+			std::unique_lock<std::mutex> lock(m_mutex_numActive);
 			m_numActiveWorkerThreads--;
-
+		}
+		{
 			// Notify main thread of this one finishing its work
 			// Main thread will go back to sleep if there are more than one active thread remaining
+			std::unique_lock<std::mutex> lock(m_mutex_cv_main);
 			m_cv_main.notify_one();
-
+		}
+		{
 			// Wait until main thread wakes this thread up
 			// If this thread should wake up by itself, put it back to sleep unless main has reset the number of active threads
+			std::unique_lock<std::mutex> lock(m_mutex_cv_workers);
 			m_cv_workers.wait(lock, [this]() { return (m_numActiveWorkerThreads == NUM_RECORDING_THREADS) || !m_isRunning; });
 		}
 	}

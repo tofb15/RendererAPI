@@ -119,10 +119,11 @@ private:
 
 	int m_numActiveWorkerThreads;
 	bool m_isRunning;
-	std::mutex m_mutex_numActive;
-	std::mutex m_mutex_workers;
 	std::condition_variable m_cv_main;
 	std::condition_variable m_cv_workers;
+	std::mutex m_mutex_numActive;
+	std::mutex m_mutex_cv_main;
+	std::mutex m_mutex_cv_workers;
 	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
 	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
 };
