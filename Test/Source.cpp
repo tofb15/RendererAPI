@@ -266,8 +266,12 @@ public:
 		int frameCount = 0;
 		int avgUpdateCount = 0;
 		int totalFramesLastInterval = 0;
-		const float FPS_UPDATE_DELAY = 0.5f;
-		const int FPS_AVG_UPDATE_DELAY = 4;
+		const float TIME_PER_SHORT_TERM = 0.25f;
+		const int SHORT_TERM_UPDATES_PER_LONG_TERM = 8;
+		const float TIME_PER_LONG_TERM = TIME_PER_SHORT_TERM * SHORT_TERM_UPDATES_PER_LONG_TERM;
+
+		std::string fpsStr;
+		std::string fpsAvgStr;
 
 		t1 = Clock::now();
 
@@ -276,24 +280,28 @@ public:
 		{
 			frameCount++;
 
-			if ((Clock::now() - t1).count() > 1e9 * FPS_UPDATE_DELAY)
+			if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM)
 			{
 				t1 = Clock::now();
 
-				int fps = frameCount / FPS_UPDATE_DELAY;
-				std::string str = "FPS: " + std::to_string(fps);
+				// Set short-term average FPS
+				int fps = frameCount / TIME_PER_SHORT_TERM;
+				fpsStr = "FPS: " + std::to_string(fps);
 
 				avgUpdateCount++;
 				totalFramesLastInterval += frameCount;
 				
-				if (avgUpdateCount >= FPS_AVG_UPDATE_DELAY)
+				// Set long-term average FPS
+				if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
 				{
-					int avgFps = totalFramesLastInterval / (FPS_AVG_UPDATE_DELAY / FPS_UPDATE_DELAY);
-					str += ",    Avg FPS: " + std::to_string(avgFps);
+					int avgFps = totalFramesLastInterval / TIME_PER_LONG_TERM;
+					fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
 					avgUpdateCount = 0;
+					totalFramesLastInterval = 0;
 				}
 
-				windows[0]->SetTitle(str.c_str());
+				std::string fpsFinalStr = fpsStr + fpsAvgStr;
+				windows[0]->SetTitle(fpsFinalStr.c_str());
 				frameCount = 0;
 			}
 
