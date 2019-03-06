@@ -194,7 +194,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
-	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[MAIN_COMMAND_INDEX];
+	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[window->GetCurrentBackBufferIndex()][MAIN_COMMAND_INDEX];
 
 	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
@@ -266,11 +266,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
-	ResetCommandListAndAllocator(MAIN_COMMAND_INDEX);
+	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
 
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
-		ResetCommandListAndAllocator(i+1);
+		ResetCommandListAndAllocator(backBufferIndex, i+1);
 		
 //<<<<<<< HEAD
 //		Float3 pos = m_items[item].item.transform.pos;
@@ -374,18 +374,18 @@ void D3D12Renderer::Present(Window * w)
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
 	// Set the barrier in the last command list
-	m_commandLists[NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
+	m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
 
 	// Close the command lists
 	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
 	{
-		m_commandLists[i]->Close();
+		m_commandLists[backBufferIndex][i]->Close();
 	}
 
 	// Set the command lists
 	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
 	{
-		listsToExecute[i] = m_commandLists[i];
+		listsToExecute[i] = m_commandLists[backBufferIndex][i];
 	}
 
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
@@ -469,14 +469,14 @@ void D3D12Renderer::SetUpRenderInstructions()
 	//Start with setting new technique
 	m_renderInstructions.push_back(nrOfInstances);
 }
-void D3D12Renderer::ResetCommandListAndAllocator(int index)
+void D3D12Renderer::ResetCommandListAndAllocator(int backbufferIndex, int index)
 {
 	HRESULT hr;
-	hr = m_commandAllocators[index]->Reset();
+	hr = m_commandAllocators[backbufferIndex][index]->Reset();
 	if (!SUCCEEDED(hr))
 		printf("Error: Command allocator %d failed to reset\n", index);
 
-	hr = m_commandLists[index]->Reset(m_commandAllocators[index], nullptr);
+	hr = m_commandLists[backbufferIndex][index]->Reset(m_commandAllocators[backbufferIndex][index], nullptr);
 	if (!SUCCEEDED(hr))
 		printf("Error: Command list %d failed to reset\n", index);
 }
@@ -489,8 +489,26 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 	// Begin mapping matrix data
 	D3D12_RANGE readRange = { 0, 0 };
 	void* data = nullptr;
+
+	//static int count = 0;
+
+	//if (count++ < 10) {
+	//	
+	//}
+	//else {
+	//	return;
+	//}
+
 	hr = m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
 	if (FAILED(hr)) {
+		
+		_com_error err(hr);
+		std::cout << err.ErrorMessage() << std::endl;
+
+		hr = m_device->GetDeviceRemovedReason();
+		_com_error err2(hr);
+		std::cout << err2.ErrorMessage() << std::endl;
+
 		return;
 	}
 	// Create shader resource views for each texture on each object
@@ -519,6 +537,7 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 		}
 
 		Float3 pos = m_items[item].item.transform.pos;
+		Float3 rot = m_items[item].item.transform.rotation;
 		Float3 scal = m_items[item].item.transform.scale;
 
 		mat = DirectX::XMMatrixIdentity();
@@ -528,6 +547,8 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 		mat.r[0].m128_f32[0] *= scal.x;
 		mat.r[1].m128_f32[1] *= scal.y;
 		mat.r[2].m128_f32[2] *= scal.z;
+
+		mat = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z), mat);
 
 		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
 	}
@@ -543,8 +564,8 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 		return;
 	}
 
-	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[commandListIndex];
-	ID3D12GraphicsCommandList3* commandList = m_commandLists[commandListIndex];
+	ID3D12CommandAllocator* commandAllocator = m_commandAllocators[backBufferIndex][commandListIndex];
+	ID3D12GraphicsCommandList3* commandList = m_commandLists[backBufferIndex][commandListIndex];
 
 	DirectX::XMFLOAT4X4 viewPersp = c->GetViewPerspective();
 
@@ -672,10 +693,10 @@ ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
 {
 	return m_rootSignature;
 }
-ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
-{
-	return m_commandLists[MAIN_COMMAND_INDEX];
-}
+//ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
+//{
+//	return m_commandLists[MAIN_COMMAND_INDEX];
+//}
 D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
 	return m_textureLoader;
@@ -747,32 +768,36 @@ bool D3D12Renderer::InitializeCommandInterfaces()
 {
 	HRESULT hr;
 
-	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	for (size_t backbufferIndex = 0; backbufferIndex < NUM_SWAP_BUFFERS; backbufferIndex++)
 	{
-		hr = m_device->CreateCommandAllocator(
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(&m_commandAllocators[i]));
-		if (FAILED(hr))
+		for (int i = 0; i < NUM_COMMAND_LISTS; i++)
 		{
-			return false;
-		}
+			hr = m_device->CreateCommandAllocator(
+				D3D12_COMMAND_LIST_TYPE_DIRECT,
+				IID_PPV_ARGS(&m_commandAllocators[backbufferIndex][i]));
+			if (FAILED(hr))
+			{
+				return false;
+			}
 
-		//Create command list.
-		hr = m_device->CreateCommandList(
-			0,
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			m_commandAllocators[i],
-			nullptr,
-			IID_PPV_ARGS(&m_commandLists[i]));
-		if (FAILED(hr))
-		{
-			return false;
-		}
+			//Create command list.
+			hr = m_device->CreateCommandList(
+				0,
+				D3D12_COMMAND_LIST_TYPE_DIRECT,
+				m_commandAllocators[backbufferIndex][i],
+				nullptr,
+				IID_PPV_ARGS(&m_commandLists[backbufferIndex][i]));
+			if (FAILED(hr))
+			{
+				return false;
+			}
 
-		//Command lists are created in the recording state. Since there is nothing to
-		//record right now and the main loop expects it to be closed, we close it.
-		m_commandLists[i]->Close();
+			//Command lists are created in the recording state. Since there is nothing to
+			//record right now and the main loop expects it to be closed, we close it.
+			m_commandLists[backbufferIndex][i]->Close();
+		}
 	}
+	
 
 	return true;
 }

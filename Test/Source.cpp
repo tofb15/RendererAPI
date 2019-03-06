@@ -160,21 +160,21 @@ public:
 
 		Mesh* mesh1	= renderer->MakeMesh();
 		Mesh* mesh2 = renderer->MakeMesh();
-		Mesh* mesh3 = renderer->MakeMesh();
 		Mesh* mesh4 = renderer->MakeMesh();
 		Mesh* mesh5 = renderer->MakeMesh();
-		
+		Mesh* mesh3 = renderer->MakeMesh();
+
 		mesh1->LoadFromFile("walker.obj");
 		mesh2->LoadFromFile("turret.obj");
-		mesh3->LoadFromFile("antenna.obj");
 		mesh4->LoadFromFile("enemy_flying.obj");
 		mesh5->LoadFromFile("disc.obj");
+		mesh3->LoadFromFile("antenna.obj");
 
 		meshes.push_back(mesh1);
 		meshes.push_back(mesh2);
-		meshes.push_back(mesh3);
 		meshes.push_back(mesh4);
 		meshes.push_back(mesh5);
+		meshes.push_back(mesh3);
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
@@ -183,8 +183,8 @@ public:
 
 		//Create RenderState
 		RenderState* renderState = renderer->MakeRenderState();
-		renderState->SetWireframe(true);
-		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
+		renderState->SetWireframe(false);
+		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderStates.push_back(renderState);
 
 		renderState = renderer->MakeRenderState();
@@ -266,7 +266,7 @@ public:
 		{
 			Object* object = new Object;
 //<<<<<<< HEAD
-			object->blueprint = blueprints[0];
+			object->blueprint = blueprints[i % nBlueprints];
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
 //=======
@@ -433,7 +433,7 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			/*if (false) {
+			if (frame % 100 == 0) {
 				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
 				{
 					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
@@ -447,7 +447,7 @@ public:
 					colorDir *= -1;
 
 				textures[0]->ApplyChanges();
-			}*/
+			}
 
 
 			//Render Windows

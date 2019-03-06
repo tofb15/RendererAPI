@@ -47,7 +47,7 @@ public:
 
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
-	ID3D12GraphicsCommandList3* GetCommandList() const;
+	//ID3D12GraphicsCommandList3* GetCommandList() const;
 	D3D12TextureLoader* GetTextureLoader() const;
 
 private:
@@ -76,7 +76,7 @@ private:
 	bool InitializeTextureDescriptorHeap();
 
 	void SetUpRenderInstructions();
-	void ResetCommandListAndAllocator(int index);
+	void ResetCommandListAndAllocator(int backbufferIndex, int index);
 	void MapMatrixData(int backBufferIndex);
 	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
 
@@ -106,8 +106,8 @@ private:
 	// Default resources
 	ID3D12Device4*				m_device								= nullptr;
 	ID3D12RootSignature*		m_rootSignature							= nullptr;
-	ID3D12CommandAllocator*		m_commandAllocators[NUM_COMMAND_LISTS]	= { nullptr };
-	ID3D12GraphicsCommandList3*	m_commandLists[NUM_COMMAND_LISTS]		= { nullptr };
+	ID3D12CommandAllocator*		m_commandAllocators[NUM_SWAP_BUFFERS][NUM_COMMAND_LISTS]	= { nullptr };
+	ID3D12GraphicsCommandList3*	m_commandLists[NUM_SWAP_BUFFERS][NUM_COMMAND_LISTS]		= { nullptr };
 
 	// Structured buffer for matrices
 	ID3D12Resource*				m_structuredBufferResources[NUM_SWAP_BUFFERS] = { nullptr };

@@ -131,7 +131,7 @@ D3D12Technique::~D3D12Technique()
 
 bool D3D12Technique::Enable()
 {
-	mRenderer->GetCommandList()->SetPipelineState(mPipelineState);
+	//mRenderer->GetCommandList()->SetPipelineState(mPipelineState);
 
 	return true;
 }
