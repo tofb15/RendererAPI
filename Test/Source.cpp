@@ -267,6 +267,7 @@ public:
 			static Time t1, t2;
 
 			static int frame = 0;
+			static int totalFPSChecks = 0;
 			frame++;
 
 			const int frameCheckLimit = 100;
@@ -282,7 +283,13 @@ public:
 				float fpns = 1.0f / nsPerFrame;
 				int fps = fpns * 1e9;
 
-				std::string str = "FPS: " + std::to_string(fps);
+				static int fpsSinceStart = 0;
+				fpsSinceStart += fps;
+				
+				totalFPSChecks++;
+				int avgFPSsinceStart = fpsSinceStart / totalFPSChecks;
+
+				std::string str = "FPS: " + std::to_string(fps) + ",    Avg FPS: " + std::to_string(avgFPSsinceStart);
 				windows[0]->SetTitle(str.c_str());
 				frame = 0;
 			}

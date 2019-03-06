@@ -75,7 +75,7 @@ private:
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
-	static const unsigned NUM_COMMAND_LISTS = 1U + 2U;
+	static const unsigned NUM_COMMAND_LISTS = 1U + 1U;
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
 	static const unsigned MAIN_COMMAND_INDEX = 0U;
 
