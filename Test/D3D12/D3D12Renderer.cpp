@@ -12,6 +12,8 @@
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
+#include <iostream>
+#include <comdef.h>
 
 #include <algorithm>
 #include <functional>
@@ -205,7 +207,13 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	// Begin mapping matrix data
 	D3D12_RANGE readRange = { 0, 0 };
 	void* data = nullptr;
-	m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
+
+	hr = m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
+	int i = 0;
+	if (FAILED(hr)) {
+		_com_error err(hr);
+		std::cout << err.ErrorMessage() << std::endl;
+	}
 
 	// Create shader resource views for each texture on each object
 	// Copy matrix data to GPU
@@ -442,7 +450,7 @@ D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 
 bool D3D12Renderer::InitializeDirect3DDevice()
 {
-#ifdef _DEBUG
+#ifndef _DEBUG
 	//Enable the D3D12 debug layer.
 	ID3D12Debug* debugController = nullptr;
 
