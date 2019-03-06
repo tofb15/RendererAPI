@@ -14,6 +14,8 @@ struct ID3D12Resource;
 
 class D3D12VertexBuffer;
 class D3D12TextureLoader;
+class D3D12Window;
+class D3D12Camera;
 
 /*
 	Documentation goes here ^^
@@ -72,13 +74,23 @@ private:
 	bool InitializeRootSignature();
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
-	void SetUpRenderInstructions();
-	void RecordRenderInstructions(int backBufferIndex, int firstInstructionIdx, int lastInstructionIdx);
 
+	void SetUpRenderInstructions();
+	void ResetCommandListAndAllocator(int index);
+	void MapMatrixData(int backBufferIndex);
+	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
+
+	void RecordCommands(int threadIndex);
+	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
-	static const unsigned NUM_THREADS_FOR_RECORDING = 2U;
+	static const unsigned NUM_COMMAND_LISTS = 1U + 1U;
+	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
+	static const unsigned MAIN_COMMAND_INDEX = 0U;
+
+	unsigned short m_meshesCreated = 0;
+	unsigned short m_techniquesCreated = 0;
 
 	unsigned int m_cbv_srv_uav_size;
 
@@ -86,17 +98,16 @@ private:
 	D3D12TextureLoader* m_textureLoader;
 	std::thread m_thread_texture;
 
-	unsigned short m_meshesCreated = 0;
-	unsigned short m_techniquesCreated = 0;
 	
 	//-1 means new technique. everything else is number of instances to draw.
 	std::vector<int> m_renderInstructions;
 	std::vector<int> m_instanceOffsets;
 
-	ID3D12Device4*				m_device			= nullptr;
-	ID3D12CommandAllocator*		m_commandAllocator	= nullptr;
-	ID3D12GraphicsCommandList3*	m_commandList		= nullptr;
-	ID3D12RootSignature*		m_rootSignature		= nullptr;
+	// Default resources
+	ID3D12Device4*				m_device								= nullptr;
+	ID3D12RootSignature*		m_rootSignature							= nullptr;
+	ID3D12CommandAllocator*		m_commandAllocators[NUM_COMMAND_LISTS]	= { nullptr };
+	ID3D12GraphicsCommandList3*	m_commandLists[NUM_COMMAND_LISTS]		= { nullptr };
 
 	// Structured buffer for matrices
 	ID3D12Resource*				m_structuredBufferResources[NUM_SWAP_BUFFERS] = { nullptr };
@@ -104,6 +115,25 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
-	//std::thread m_recorderThreads[NUM_THREADS_FOR_RECORDING];
-	ID3D12GraphicsCommandList3*	m_commandListChildren[NUM_THREADS_FOR_RECORDING] = { nullptr };
+
+	// Multithreaded recording resources
+	struct RecordingThreadWork
+	{
+		D3D12Window* w;
+		D3D12Camera* c;
+		int commandListIndex;
+		int backBufferIndex;
+		int firstInstructionIndex;
+		int numInstructions;
+	};
+
+	int m_numActiveWorkerThreads;
+	unsigned __int64 m_frames_recorded[NUM_RECORDING_THREADS + 1] = {0};
+
+	bool m_isRunning = true;
+	std::condition_variable m_cv_main;
+	std::condition_variable m_cv_workers;
+	std::mutex m_mutex;
+	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
+	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
 };

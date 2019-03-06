@@ -144,6 +144,19 @@ public:
 #pragma region CreateUniqueBlueprint
 	//Load meshes and materials from file
 		
+//<<<<<<< HEAD
+//=======
+//		Float3 rect[] = { 
+//			Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f),
+//			Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f),
+//		};
+//
+//		int nElems = sizeof(rect) / sizeof(Float3);
+//		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
+//		//meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+//		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
+//		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+//>>>>>>> MultithreadedCommandRecording
 
 		Mesh* mesh1	= renderer->MakeMesh();
 		Mesh* mesh2 = renderer->MakeMesh();
@@ -203,6 +216,7 @@ public:
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
+//<<<<<<< HEAD
 		Blueprint* blueprint;
 
 		for (size_t nTechs = 0; nTechs < 2; nTechs++)
@@ -220,15 +234,46 @@ public:
 			}
 		}
 
+//=======
+//		Blueprint* blueprint = new Blueprint;
+//		blueprint->technique = techniques[0];
+//		blueprint->mesh = meshes[0];
+//		blueprint->textures.push_back(textures[0]);
+//		blueprints.push_back(blueprint);
+//
+//		blueprint = new Blueprint;
+//		blueprint->technique = techniques[0];
+//		blueprint->mesh = meshes[1];
+//		blueprint->textures.push_back(textures[1]);
+//		blueprints.push_back(blueprint);
+//
+//		blueprint = new Blueprint;
+//		blueprint->technique = techniques[1];
+//		blueprint->mesh = meshes[0];
+//		blueprint->textures.push_back(textures[0]);
+//		blueprints.push_back(blueprint);
+//
+//		blueprint = new Blueprint;
+//		blueprint->technique = techniques[1];
+//		blueprint->mesh = meshes[1];
+//		blueprint->textures.push_back(textures[1]);
+//		blueprints.push_back(blueprint);
+//>>>>>>> MultithreadedCommandRecording
 #pragma endregion
 
 		int nBlueprints = blueprints.size();
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
-			object->blueprint = blueprints[i % nBlueprints];
+//<<<<<<< HEAD
+			object->blueprint = blueprints[0];
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
+//=======
+//			object->blueprint = blueprints[i % 4];
+//			object->transform.scale = { 1.0f, 2.0f, 1.0f };
+//			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
+//>>>>>>> MultithreadedCommandRecording
 			objects.push_back(object);
 		}
 
@@ -274,6 +319,7 @@ public:
 			static Time t1, t2;
 
 			static int frame = 0;
+			static int totalFPSChecks = 0;
 			frame++;
 
 			const int frameCheckLimit = 100;
@@ -289,7 +335,13 @@ public:
 				float fpns = 1.0f / nsPerFrame;
 				int fps = fpns * 1e9;
 
-				std::string str = "FPS: " + std::to_string(fps);
+				static int fpsSinceStart = 0;
+				fpsSinceStart += fps;
+				
+				totalFPSChecks++;
+				int avgFPSsinceStart = fpsSinceStart / totalFPSChecks;
+
+				std::string str = "FPS: " + std::to_string(fps) + ",    Avg FPS: " + std::to_string(avgFPSsinceStart);
 				windows[0]->SetTitle(str.c_str());
 				frame = 0;
 			}
@@ -381,7 +433,7 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (false) {
+			/*if (false) {
 				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
 				{
 					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
@@ -395,7 +447,7 @@ public:
 					colorDir *= -1;
 
 				textures[0]->ApplyChanges();
-			}
+			}*/
 
 
 			//Render Windows
