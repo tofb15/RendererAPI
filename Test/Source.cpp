@@ -265,15 +265,9 @@ public:
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
-//<<<<<<< HEAD
 			object->blueprint = blueprints[i % nBlueprints];
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
-//=======
-//			object->blueprint = blueprints[i % 4];
-//			object->transform.scale = { 1.0f, 2.0f, 1.0f };
-//			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
-//>>>>>>> MultithreadedCommandRecording
 			objects.push_back(object);
 		}
 
@@ -302,10 +296,21 @@ public:
 
 		int techniqueToUse = 0;
 
-		float timeSincePixChange = 0;
-		Int2 pixToChange(0,0);
-
 		time = 0;
+
+		Time t1;
+		int frameCount = 0;
+		int avgUpdateCount = 0;
+		int totalFramesLastInterval = 0;
+		const float TIME_PER_SHORT_TERM = 0.25f;
+		const int SHORT_TERM_UPDATES_PER_LONG_TERM = 8;
+		const float TIME_PER_LONG_TERM = TIME_PER_SHORT_TERM * SHORT_TERM_UPDATES_PER_LONG_TERM;
+
+		std::string fpsStr;
+		std::string fpsAvgStr;
+
+		t1 = Clock::now();
+
 		//Game Loop
 		now = Clock::now();
 		while (!windows[0]->WindowClosed())
@@ -316,35 +321,34 @@ public:
 
 			time += dt;
 
-			static Time t1, t2;
 
-			static int frame = 0;
-			static int totalFPSChecks = 0;
-			frame++;
+			frameCount++;
 
-			const int frameCheckLimit = 100;
-
-			if (frame > frameCheckLimit)
+			if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM)
 			{
-				t2 = t1;
 				t1 = Clock::now();
 
-				long long nsSinceLastCheck = (t1 - t2).count();
-				long long nsPerFrame = nsSinceLastCheck / frameCheckLimit;
-				
-				float fpns = 1.0f / nsPerFrame;
-				int fps = fpns * 1e9;
+				// Set short-term average FPS
+				int fps = frameCount / TIME_PER_SHORT_TERM;
+				fpsStr = "FPS: " + std::to_string(fps);
 
-				static int fpsSinceStart = 0;
-				fpsSinceStart += fps;
+				avgUpdateCount++;
+				totalFramesLastInterval += frameCount;
 				
-				totalFPSChecks++;
-				int avgFPSsinceStart = fpsSinceStart / totalFPSChecks;
+				// Set long-term average FPS
+				if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
+				{
+					int avgFps = totalFramesLastInterval / TIME_PER_LONG_TERM;
+					fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
+					avgUpdateCount = 0;
+					totalFramesLastInterval = 0;
+				}
 
-				std::string str = "FPS: " + std::to_string(fps) + ",    Avg FPS: " + std::to_string(avgFPSsinceStart);
-				windows[0]->SetTitle(str.c_str());
-				frame = 0;
+				std::string fpsFinalStr = fpsStr + fpsAvgStr;
+				windows[0]->SetTitle(fpsFinalStr.c_str());
+				frameCount = 0;
 			}
+
 			for (int i = 0; i < objects.size(); i++) {
 
 				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
@@ -433,7 +437,7 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (frame % 100 == 0) {
+			if (frameCount % 100 == 0) {
 				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
 				{
 					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
