@@ -349,10 +349,10 @@ public:
 				frameCount = 0;
 			}
 
-			for (int i = 0; i < objects.size(); i++) {
-
+			for (int i = 0; i < objects.size(); i++)
+			{
 				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-				objects[i]->transform.rotation.y = sin(time + i) * cos(time * 2 + i) * 3.1414 * 2;
+				objects[i]->transform.rotation.y = sinf(time + i) * cosf(time * 2 + i) * 3.14159265f * 2.0f;
 			}
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
@@ -364,26 +364,27 @@ public:
 
 #pragma region INPUT_DEMO
 			//Global Input
+			float ms = 1.5f;
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
 				
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * 1.5f);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * 1.5f);
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
 
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -1.5f);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -1.5f);
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * -1.5f);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * -1.5f);
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * -ms);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * -ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * 1.5f);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * 1.5f);
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * ms);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
@@ -422,6 +423,11 @@ public:
 				}
 			}
 			
+			// Rotation is based on delta time
+			Int2 mouseMovement = windows[0]->GetLocalWindowInputHandler().GetMouseMovement();
+			cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
+			cameras[0]->Rotate(cameras[0]->GetRight(), mouseMovement.y * dt);
+
 #pragma endregion
 
 

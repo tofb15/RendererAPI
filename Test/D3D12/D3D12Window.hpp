@@ -118,9 +118,13 @@ private:
 	HANDLE						m_EventHandle[NUM_SWAP_BUFFERS] = { nullptr };
 	UINT64						m_FenceValue[NUM_SWAP_BUFFERS] = { 0 };
 
+	RAWINPUTDEVICE				m_rawMouseDevice;
+	Int2						m_mouseMovement;
+
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.
 	bool InitializeSwapChain();		//3.
 	bool InitializeRenderTargets();	//4.
 	bool InitializeDepthBuffer();	//5.
+	bool InitializeRawInput();
 };

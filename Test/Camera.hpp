@@ -7,6 +7,7 @@ public:
 
 	virtual void SetPosition(Float3 position) = 0;
 	virtual void Move(Float3 position) = 0;
+	virtual void Rotate(Float3 axis, float angle) = 0;
 	virtual void SetTarget(Float3 target) = 0;
 	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) = 0;
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) = 0;

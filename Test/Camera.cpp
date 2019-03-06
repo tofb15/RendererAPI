@@ -20,7 +20,7 @@ Float3 Camera::GetTarget() const
 
 Float3 Camera::GetTargetDirection() const
 {
-	return m_target - m_position;
+	return (m_target - m_position).normalized();
 }
 
 Float3 Camera::GetRight() const

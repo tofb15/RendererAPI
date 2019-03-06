@@ -1,4 +1,5 @@
 #pragma once
+#include "Math.hpp"
 
 class WindowInput
 {
@@ -80,12 +81,14 @@ public:
 	void Reset();
 	void SetKeyDown(char key, bool isDown);
 	void SetKeyPressed(char key, bool isPressed);
+	void SetMouseMovement(Int2 mouseMovement);
 
 	bool IsKeyDown(char key)	const;
 	bool IsKeyUp(char key)		const;
 	bool IsKeyPressed(char key) const;
+	Int2 GetMouseMovement()		const;
 private:
 	bool m_isKeysDown[NUM_KEYS];
 	bool m_isKeysPressed[NUM_KEYS];
-
+	Int2 m_mouseMovement;
 };

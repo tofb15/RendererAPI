@@ -18,6 +18,7 @@ typedef union Float3
 	float length2() const { return x * x + y * y + z * z; }
 	float length() const { return std::sqrtf(length2()); }
 	Float3 normalized() const { return (*this / length()); }
+	float dot(Float3 other) const { return x * other.x + y * other.y + z * other.z; }
 	Float3 crossRH(Float3 other) const { return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x }; }
 	Float3 crossLH(Float3 other) const { return crossRH(other) * -1; }
 } Float3;

@@ -10,6 +10,7 @@ public:
 	// Inherited via Camera
 	virtual void SetPosition(Float3 position) override;
 	virtual void Move(Float3 position) override;
+	virtual void Rotate(Float3 axis, float angle) override;
 
 	virtual void SetTarget(Float3 target) override;
 
@@ -22,6 +23,7 @@ public:
 private:
 	mutable DirectX::XMFLOAT4X4 mViewMatrix;
 	DirectX::XMFLOAT4X4 mPerspectiveMatrix;
+	DirectX::XMFLOAT4X4 m_rotationMatrix;
 
 	mutable DirectX::XMFLOAT4X4 mViewPerspectiveMatrix;
 	mutable bool mHasChanged;

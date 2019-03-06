@@ -21,6 +21,25 @@ void D3D12Camera::Move(Float3 position)
 	SetTarget(dir + m_position);
 }
 
+void D3D12Camera::Rotate(Float3 axis, float angle)
+{
+	Float3 dir = GetTargetDirection();
+	
+	DirectX::XMVECTOR xv = DirectX::XMVector3Transform(
+		{ dir.x, dir.y, dir.z, 0.0f },
+		DirectX::XMMatrixRotationAxis({ axis.x, axis.y, axis.z }, angle)
+	);
+
+	Float3 newDir = { xv.m128_f32[0], xv.m128_f32[1], xv.m128_f32[2] };
+
+	if (std::fabsf(newDir.dot({ 0,1,0 })) > 0.98f)
+	{
+		newDir = dir;
+	}
+
+	SetTarget(m_position + newDir);
+}
+
 void D3D12Camera::SetTarget(Float3 target)
 {
 	m_target = target;

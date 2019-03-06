@@ -11,9 +11,12 @@
 
 static bool quit = false;
 
+BYTE g_rawInputBuffer[64];
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
+
 
 	/*
 		Catch Global Winodw Events.
@@ -24,24 +27,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		quit = true;
 		break;
-	case WM_KEYDOWN: {
+	case WM_KEYDOWN:
+	{
 		short key = static_cast<short>(wParam);
 		//std::cout << std::dec << key << std::endl;
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), true);
 	}
 		break;
-	case WM_KEYUP: {
-		
+	case WM_KEYUP:
+	{
 		short key = static_cast<short>(wParam);
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), false);
 
-		if (lParam >> 30 & 1) {
+		if (lParam >> 30 & 1)
+		{
 			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
 
 	}
 		break;
 	}
+
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
@@ -63,6 +69,7 @@ D3D12Window::D3D12Window(D3D12Renderer* renderer)
 	m_ScissorRect->right = (long)0;
 	m_ScissorRect->top = (long)0;
 	m_ScissorRect->bottom = (long)0;
+
 }
 
 D3D12Window::~D3D12Window()
@@ -121,6 +128,9 @@ bool D3D12Window::Create()
 
 	if (!InitializeDepthBuffer())
 		return false;
+	
+	if (!InitializeRawInput())
+		return false;
 
 	HRESULT hr;
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
@@ -156,9 +166,11 @@ void D3D12Window::HandleWindowEvents()
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
+	Int2 mouseMovement;
 
 	while (CheckMessage)
 	{
+
 		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
@@ -185,6 +197,25 @@ void D3D12Window::HandleWindowEvents()
 
 				if (msg.lParam >> 30 & 1) {
 					m_input.SetKeyPressed(static_cast<char>(key), true);
+				}
+			}
+				break;
+			case WM_INPUT:
+			{
+				UINT dwSize;
+				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, (LPVOID)g_rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER));
+
+				RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
+				switch (rawInput->header.dwType)
+				{
+				case RIM_TYPEMOUSE:
+					mouseMovement.x = static_cast<int>(rawInput->data.mouse.lLastX);
+					mouseMovement.y = static_cast<int>(rawInput->data.mouse.lLastY);
+					break;
+				case RIM_TYPEKEYBOARD:
+					break;
+				default:
+					break;
 				}
 			}
 				break;
@@ -216,6 +247,7 @@ void D3D12Window::HandleWindowEvents()
 			CheckMessage = false;
 		}
 	}
+	m_input.SetMouseMovement(mouseMovement);
 }
 
 bool D3D12Window::WindowClosed()
@@ -488,6 +520,21 @@ bool D3D12Window::InitializeDepthBuffer()
 	dsvd.Texture2D.MipSlice = 0;
 
 	m_Renderer->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
+
+	return true;
+}
+
+bool D3D12Window::InitializeRawInput()
+{
+	m_rawMouseDevice.usUsagePage = 0x01;
+	m_rawMouseDevice.usUsage = 0x02;
+	m_rawMouseDevice.dwFlags = 0x0;
+	m_rawMouseDevice.hwndTarget = m_Wnd;
+	
+	if (!RegisterRawInputDevices(&m_rawMouseDevice, 1U, sizeof(RAWINPUTDEVICE)))
+	{
+		return false;
+	}
 
 	return true;
 }
