@@ -53,14 +53,22 @@ public:
 private:
 	struct SortingItem
 	{
+		SortingItem& operator=(const SortingItem& other)
+		{
+			sortingIndex = other.sortingIndex;
+			item = other.item;
+			return *this;
+		}
+
 		union {
-			unsigned __int64 sortingIndex; //8 Bytes
+			UINT128 sortingIndex; //8 Bytes
 			struct {
 				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
 				//unsigned short unused;			//2 Bytes
-				unsigned int distance;		//2 Bytes
-				unsigned short meshIndex;		//2 Bytes
-				unsigned short techniqueIndex;	//2 Bytes
+				unsigned short distance;			//2 Bytes
+				unsigned short meshIndex;			//2 Bytes
+				unsigned short meshDistance;		//2 Bytes, closest element in the mesh
+				unsigned short techniqueIndex;		//2 Bytes
 			};
 
 		};
@@ -85,7 +93,7 @@ private:
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
-	static const unsigned NUM_COMMAND_LISTS = 1U + 1U;
+	static const unsigned NUM_COMMAND_LISTS = 1U + 2U;
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
 	static const unsigned MAIN_COMMAND_INDEX = 0U;
 
@@ -115,6 +123,8 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
+	unsigned short m_closestTechnique[100];
+	unsigned short  m_closestTechnique_lastFrame[100];
 
 	// Multithreaded recording resources
 	struct RecordingThreadWork

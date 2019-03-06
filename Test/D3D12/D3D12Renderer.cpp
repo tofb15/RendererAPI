@@ -148,6 +148,26 @@ Technique * D3D12Renderer::MakeTechnique(RenderState* rs, ShaderProgram* sp, Sha
 		delete tech;
 		return nullptr;
 	}
+	//Next Frame Frame
+	//int* closestTechnique_temp = new int[m_techniquesCreated];
+	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
+	//{
+	//	closestTechnique_temp[i] = m_closestTechnique[i];
+	//}
+	//closestTechnique_temp[m_techniquesCreated - 1] = 0;
+	//delete m_closestTechnique;
+	//m_closestTechnique = closestTechnique_temp;
+
+	////Last Frame
+	//closestTechnique_temp = new int[m_techniquesCreated];
+	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
+	//{
+	//	closestTechnique_temp[i] = m_closestTechnique_lastFrame[i];
+	//}
+	//closestTechnique_temp[m_techniquesCreated - 1] = 0;
+	//delete m_closestTechnique_lastFrame;
+	//m_closestTechnique_lastFrame = closestTechnique_temp;
+
 	return tech;
 }
 ShaderManager * D3D12Renderer::MakeShaderManager()
@@ -166,10 +186,17 @@ void D3D12Renderer::ClearFrame()
 void D3D12Renderer::ClearSubmissions()
 {
 	m_items.clear();
+
+	int max = m_techniquesCreated * m_meshesCreated;
+	for (size_t i = 0; i < 100; i++)
+	{
+		m_closestTechnique_lastFrame[i] = m_closestTechnique[i];
+		m_closestTechnique[i] = 0;
+	}
 }
+
 void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 {
-
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 
@@ -180,13 +207,21 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 	//int i2 = sizeof(INT64);
 	//int i = sizeof(s.sortingIndex);
 
-	Float3 f = c->GetPosition() - item.transform.pos;
+	Float3 f = item.transform.pos - c->GetPosition();
 
 	unsigned int dist = f.length() * 65;
-	s.distance = UINT_MAX - dist;
-	//s.distance = 0;
+	s.distance = UINT_MAX - min(dist, UINT_MAX);
+	int meshTechindex = techIndex * m_meshesCreated + meshIndex;
+
+	if (s.distance > m_closestTechnique[meshTechindex])
+		m_closestTechnique[meshTechindex] = dist;
+
+	s.distance = 0;
 	s.meshIndex = meshIndex;
+	s.meshDistance = UINT_MAX - m_closestTechnique_lastFrame[meshTechindex];
 	s.techniqueIndex = techIndex;
+	//s.techniqueDistance = 0;
+
 
 	m_items.push_back(s);
 }
@@ -198,7 +233,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
-		[](const SortingItem & a, const SortingItem & b) -> bool
+		[](const SortingItem & a, const SortingItem & b) -> const bool
 	{
 		return a.sortingIndex > b.sortingIndex;
 	});
@@ -265,6 +300,9 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	// If any instructions would remain, each thread records an additional one
 	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
+
+	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
+	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
 
 	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
 

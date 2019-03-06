@@ -3,6 +3,27 @@
 
 typedef unsigned short     uint16_t;
 
+struct UINT128 {
+	__int64 least;
+	__int64 most;
+	bool operator < (const UINT128& other) const { return (most < other.most) || ((most == other.most) && (least < other.least)); };
+	bool operator <= (const UINT128& other) const { return (most <= other.most) && (least <= other.least); };
+	bool operator > (const UINT128& other) const { return (most >= other.most) && (least > other.least); };
+	bool operator >= (const UINT128& other) const { return (most > other.most) || ((most == other.most) && (least < other.least)); };
+	bool operator == (const UINT128& other) const { return (most == other.most) && (least == other.least); };
+	UINT128& operator = (const UINT128& other) {
+		if (this != &other) {
+			most = other.most;
+			least = other.least;
+		}
+		return *this;
+	};
+	UINT128& operator = (const unsigned int other) { most = 0; least = other; return *this; };
+	UINT128& operator = (const int other) { most = 0; least = (unsigned int)other; return *this; };
+	UINT128& operator = (const unsigned short other) { most = 0; least = other; return *this; };
+	UINT128& operator = (const short other) { most = 0; least = (unsigned short)other; return *this; };
+};
+
 typedef union Float3
 {
 	struct { float x; float y; float z; };
