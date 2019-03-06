@@ -76,6 +76,19 @@ D3D12Window::~D3D12Window()
 {
 	delete m_Viewport;
 	delete m_ScissorRect;
+
+	/*Sleep(100);
+
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		m_RenderTargets[i]->Release();
+		m_Fence[i]->Release();
+	}
+	m_RenderTargetsHeap->Release();
+	m_DepthStencil->Release();
+	m_DepthStencilHeap->Release();
+	m_CommandQueue->Release();
+	m_SwapChain4->Release();*/
 }
 
 void D3D12Window::SetDimensions(Int2 dimensions)
@@ -162,7 +175,7 @@ void D3D12Window::Hide()
 void D3D12Window::HandleWindowEvents()
 {
 	/*Reset Previus State*/
-	m_input.Reset();
+	//m_input.Reset();
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
@@ -545,23 +558,23 @@ void D3D12Window::WaitForGPU()
 	static int frames = 0;
 	frames++;
 
-	//const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
-	//const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
+#ifdef SINGLE_FENCE
+	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
+	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
 
-	////Tell last frame to signal when done
-	//const UINT64 fence = m_FenceValue[0];
-	//m_CommandQueue->Signal(m_Fence[0], fence);
-	//m_FenceValue[0]++;
+	//Tell last frame to signal when done
+	const UINT64 fence = m_FenceValue[0];
+	m_CommandQueue->Signal(m_Fence[0], fence);
+	m_FenceValue[0]++;
 
-	////Wait until command queue is done.
-	//if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
-	//{
-	//	numWaits++;
-	//	m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
-	//	WaitForSingleObject(m_EventHandle[0], INFINITE);
-	//}
-
-
+	//Wait until command queue is done.
+	if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
+	{
+		numWaits++;
+		m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
+		WaitForSingleObject(m_EventHandle[0], INFINITE);
+	}
+#endif
 
 	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
 	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;

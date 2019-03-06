@@ -57,6 +57,27 @@ D3D12Renderer::~D3D12Renderer()
 	m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
 		delete m_textureLoader;
+
+	int _ = 42, __ = 13;
+	_ + __ / _;
+
+	// If this isn't here, the release below results in a crash
+	// "Unsafe to release objects that are still in use"
+	// This could maybe be solved in another way, but this works for now
+	/*Sleep(100);
+
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		for (int j = 0; j < NUM_COMMAND_LISTS; j++)
+		{
+			m_commandLists[i][j]->Release();
+			m_commandAllocators[i][j]->Release();
+		}
+		m_descriptorHeap[i]->Release();
+		m_structuredBufferResources[i]->Release();
+	}
+	m_rootSignature->Release();
+	m_device->Release();*/
 }
 
 bool D3D12Renderer::Initialize()
@@ -693,10 +714,6 @@ ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
 {
 	return m_rootSignature;
 }
-//ID3D12GraphicsCommandList3 * D3D12Renderer::GetCommandList() const
-//{
-//	return m_commandLists[MAIN_COMMAND_INDEX];
-//}
 D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
 	return m_textureLoader;

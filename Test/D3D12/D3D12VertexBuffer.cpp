@@ -13,6 +13,7 @@ D3D12VertexBuffer::~D3D12VertexBuffer()
 	{
 		delete view;
 	}
+	//resource->Release();
 }
 
 bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)

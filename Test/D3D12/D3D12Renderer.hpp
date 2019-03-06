@@ -47,7 +47,6 @@ public:
 
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
-	//ID3D12GraphicsCommandList3* GetCommandList() const;
 	D3D12TextureLoader* GetTextureLoader() const;
 
 private:

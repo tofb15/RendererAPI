@@ -365,7 +365,7 @@ public:
 #pragma region INPUT_DEMO
 			//Global Input
 			float ms = 1.5f;
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
+			/*if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
 				
 				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
 				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * ms);
@@ -386,7 +386,7 @@ public:
 				cameras[0]->Move(cameras[0]->GetRight().normalized() * ms);
 				cameras[1]->Move(cameras[1]->GetRight().normalized() * ms);
 				demoMovement[0] = demoMovement[1] = false;
-			}
+			}*/
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
 				demoMovement[0] = true;
 			}
@@ -402,10 +402,27 @@ public:
 				blueprints[1]->technique = techniques[techniqueToUse];
 			}
 
-			// Each window
+			// Local input
 			for (size_t i = 0; i < windows.size(); i++)
 			{
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
+				{
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
+				{
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
+				{
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * -ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
+				{
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * ms);
+				}
+
+				/*if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
 					cameras[i]->Move({ 0.0f, 0.0f, 0.1f });
 					demoMovement[i] = false;
 				}
@@ -420,11 +437,11 @@ public:
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
 					cameras[i]->Move({ 0.1f, 0.0f, 0.0f });
 					demoMovement[i] = false;
-				}
+				}*/
 			}
 			
 			// Rotation is based on delta time
-			Int2 mouseMovement = windows[0]->GetLocalWindowInputHandler().GetMouseMovement();
+			Int2 mouseMovement = inputs[0]->GetMouseMovement();
 			cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
 			cameras[0]->Rotate(cameras[0]->GetRight(), mouseMovement.y * dt);
 
