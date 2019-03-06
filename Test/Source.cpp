@@ -261,38 +261,42 @@ public:
 
 		int techniqueToUse = 0;
 
+
+		Time t1;
+		int frameCount = 0;
+		int avgUpdateCount = 0;
+		int totalFramesLastInterval = 0;
+		const float FPS_UPDATE_DELAY = 0.5f;
+		const int FPS_AVG_UPDATE_DELAY = 4;
+
+		t1 = Clock::now();
+
 		//Game Loop
 		while (!windows[0]->WindowClosed())
 		{
-			static Time t1, t2;
+			frameCount++;
 
-			static int frame = 0;
-			static int totalFPSChecks = 0;
-			frame++;
-
-			const int frameCheckLimit = 100;
-
-			if (frame > frameCheckLimit)
+			if ((Clock::now() - t1).count() > 1e9 * FPS_UPDATE_DELAY)
 			{
-				t2 = t1;
 				t1 = Clock::now();
 
-				long long nsSinceLastCheck = (t1 - t2).count();
-				long long nsPerFrame = nsSinceLastCheck / frameCheckLimit;
-				
-				float fpns = 1.0f / nsPerFrame;
-				int fps = fpns * 1e9;
+				int fps = frameCount / FPS_UPDATE_DELAY;
+				std::string str = "FPS: " + std::to_string(fps);
 
-				static int fpsSinceStart = 0;
-				fpsSinceStart += fps;
+				avgUpdateCount++;
+				totalFramesLastInterval += frameCount;
 				
-				totalFPSChecks++;
-				int avgFPSsinceStart = fpsSinceStart / totalFPSChecks;
+				if (avgUpdateCount >= FPS_AVG_UPDATE_DELAY)
+				{
+					int avgFps = totalFramesLastInterval / (FPS_AVG_UPDATE_DELAY / FPS_UPDATE_DELAY);
+					str += ",    Avg FPS: " + std::to_string(avgFps);
+					avgUpdateCount = 0;
+				}
 
-				std::string str = "FPS: " + std::to_string(fps) + ",    Avg FPS: " + std::to_string(avgFPSsinceStart);
 				windows[0]->SetTitle(str.c_str());
-				frame = 0;
+				frameCount = 0;
 			}
+
 			for (int i = 0; i < objects.size(); i++) {
 
 				objects[i]->transform.scale.y = sin(time + i) * 2 + 2;
