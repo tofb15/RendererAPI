@@ -202,7 +202,7 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	SortingItem s;
 	s.item = item;
-	s.sortingIndex = 0;
+	s.sortingIndex = 0U;
 
 	//int i2 = sizeof(INT64);
 	//int i = sizeof(s.sortingIndex);
@@ -211,14 +211,14 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	unsigned int dist = f.length() * 65;
 	s.distance = UINT_MAX - min(dist, UINT_MAX);
-	int meshTechindex = techIndex * m_meshesCreated + meshIndex;
+	//int meshTechindex = techIndex * m_meshesCreated + meshIndex;
 
-	if (s.distance > m_closestTechnique[meshTechindex])
-		m_closestTechnique[meshTechindex] = dist;
+	//if (s.distance > m_closestTechnique[meshTechindex])
+	//	m_closestTechnique[meshTechindex] = dist;
 
 	s.distance = 0;
 	s.meshIndex = meshIndex;
-	s.meshDistance = UINT_MAX - m_closestTechnique_lastFrame[meshTechindex];
+	s.meshDistance = 0;// UINT_MAX - m_closestTechnique_lastFrame[meshTechindex];
 	s.techniqueIndex = techIndex;
 	//s.techniqueDistance = 0;
 

@@ -1,15 +1,23 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 
 typedef unsigned short     uint16_t;
 
 struct UINT128 {
-	__int64 least;
-	__int64 most;
+	unsigned __int64 least;
+	unsigned __int64 most;
+	UINT128() { least = most = 0; };
+	UINT128(const unsigned __int32 i) { most = 0; least = i; };
+	UINT128(const unsigned __int32 m, const unsigned __int32 l) { most = m; least = l; };
+	UINT128(const unsigned __int64 i) { most = 0; least = i; };
+	UINT128(const unsigned __int64 m, const unsigned __int64 l) { most = m; least = l; };
+	UINT128(const UINT128& other) { most = other.most; least = other.least; };
+
 	bool operator < (const UINT128& other) const { return (most < other.most) || ((most == other.most) && (least < other.least)); };
-	bool operator <= (const UINT128& other) const { return (most <= other.most) && (least <= other.least); };
-	bool operator > (const UINT128& other) const { return (most >= other.most) && (least > other.least); };
-	bool operator >= (const UINT128& other) const { return (most > other.most) || ((most == other.most) && (least < other.least)); };
+	bool operator <= (const UINT128& other) const { return (most < other.most) || ((most == other.most) && (least <= other.least)); };
+	bool operator > (const UINT128& other) const { return (most > other.most) || ((most == other.most) && (least > other.least)); };
+	bool operator >= (const UINT128& other) const { return (most > other.most) || ((most == other.most) && (least <= other.least)); };
 	bool operator == (const UINT128& other) const { return (most == other.most) && (least == other.least); };
 	UINT128& operator = (const UINT128& other) {
 		if (this != &other) {
@@ -18,10 +26,13 @@ struct UINT128 {
 		}
 		return *this;
 	};
-	UINT128& operator = (const unsigned int other) { most = 0; least = other; return *this; };
-	UINT128& operator = (const int other) { most = 0; least = (unsigned int)other; return *this; };
 	UINT128& operator = (const unsigned short other) { most = 0; least = other; return *this; };
-	UINT128& operator = (const short other) { most = 0; least = (unsigned short)other; return *this; };
+	UINT128& operator = (const unsigned int other) { most = 0; least = other; return *this; };
+	UINT128& operator = (const unsigned long long other) { most = 0; least = other; return *this; };
+
+	friend std::ostream & operator << (std::ostream &out, const UINT128 &num) {
+		return out << "(0x" << std::hex << num.most << ", 0x" << std::hex << num.least << ")" << std::dec;
+	};
 };
 
 typedef union Float3

@@ -53,6 +53,13 @@ public:
 private:
 	struct SortingItem
 	{
+		SortingItem() {
+
+		}
+		SortingItem(const SortingItem& other) {
+			sortingIndex = other.sortingIndex;
+			item = other.item;
+		}
 		SortingItem& operator=(const SortingItem& other)
 		{
 			sortingIndex = other.sortingIndex;
@@ -61,7 +68,7 @@ private:
 		}
 
 		union {
-			UINT128 sortingIndex; //8 Bytes
+			__int64 sortingIndex;
 			struct {
 				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
 				//unsigned short unused;			//2 Bytes
