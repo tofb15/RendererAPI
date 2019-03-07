@@ -47,7 +47,7 @@ public:
 
 		@see Winodw::Show()
 	*/
-	virtual bool Create() override;
+	virtual bool Create(int dimensionX, int dimensionY) override;
 
 	virtual void Show() override;
 
@@ -95,6 +95,7 @@ public:
 	*/
 	UINT GetCurrentBackBufferIndex() const;
 	void WaitForGPU();
+	void WaitForGPU(int index);
 
 private:
 	ID3D12CommandQueue*			m_CommandQueue = nullptr;
@@ -120,6 +121,8 @@ private:
 
 	RAWINPUTDEVICE				m_rawMouseDevice;
 	Int2						m_mouseMovement;
+
+	int							m_numWaits;
 
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.

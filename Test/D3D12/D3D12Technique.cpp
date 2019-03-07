@@ -5,7 +5,7 @@
 #include "D3D12Renderer.hpp"
 #include <d3d12.h>
 
-D3D12Technique::D3D12Technique(D3D12Renderer * renderer, unsigned short id) : mRenderer(renderer), m_id(id)
+D3D12Technique::D3D12Technique(D3D12Renderer * renderer, unsigned short id) : m_renderer(renderer), m_id(id)
 {
 
 }
@@ -63,7 +63,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	inputLayoutDesc.NumElements = n_inputs;
 
 	// Specify pipeline stages
-	gpsd.pRootSignature = mRenderer->GetRootSignature();
+	gpsd.pRootSignature = m_renderer->GetRootSignature();
 	gpsd.InputLayout = inputLayoutDesc;
 	gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	gpsd.VS.pShaderBytecode = sm->GetShaderBlob(sp->VS)->GetBufferPointer();
@@ -114,7 +114,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 		gpsd.BlendState.RenderTarget[i] = defaultRTdesc;
 
-	hr = mRenderer->GetDevice()->CreateGraphicsPipelineState(&gpsd, IID_PPV_ARGS(&mPipelineState));
+	hr = m_renderer->GetDevice()->CreateGraphicsPipelineState(&gpsd, IID_PPV_ARGS(&m_pipelineState));
 	if (FAILED(hr))
 	{
 		return false;
@@ -127,6 +127,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 
 D3D12Technique::~D3D12Technique()
 {
+	m_pipelineState->Release();
 }
 
 bool D3D12Technique::Enable()
@@ -143,5 +144,5 @@ unsigned short D3D12Technique::GetID() const
 
 ID3D12PipelineState * D3D12Technique::GetPipelineState()
 {
-	return mPipelineState;
+	return m_pipelineState;
 }

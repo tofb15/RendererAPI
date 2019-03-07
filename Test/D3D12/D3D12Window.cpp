@@ -70,6 +70,7 @@ D3D12Window::D3D12Window(D3D12Renderer* renderer)
 	m_ScissorRect->top = (long)0;
 	m_ScissorRect->bottom = (long)0;
 
+	m_numWaits = 0;
 }
 
 D3D12Window::~D3D12Window()
@@ -77,7 +78,12 @@ D3D12Window::~D3D12Window()
 	delete m_Viewport;
 	delete m_ScissorRect;
 
-	/*Sleep(100);
+	// Wait until each queue has finished executing before releasing resources
+	int currentBackBuffer = m_SwapChain4->GetCurrentBackBufferIndex();
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		WaitForGPU((currentBackBuffer + i) % NUM_SWAP_BUFFERS);
+	}
 
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
@@ -88,11 +94,12 @@ D3D12Window::~D3D12Window()
 	m_DepthStencil->Release();
 	m_DepthStencilHeap->Release();
 	m_CommandQueue->Release();
-	m_SwapChain4->Release();*/
+	m_SwapChain4->Release();
 }
 
 void D3D12Window::SetDimensions(Int2 dimensions)
 {
+	SetDimensions(dimensions.x, dimensions.y);
 }
 
 void D3D12Window::SetDimensions(int w, int h)
@@ -125,8 +132,10 @@ void D3D12Window::SetTitle(const char * title)
 		SetWindowText(m_Wnd, title);
 }
 
-bool D3D12Window::Create()
+bool D3D12Window::Create(int dimensionX, int dimensionY)
 {
+	SetDimensions(dimensionX, dimensionY);
+
 	if (!InitializeWindow())
 		return false;
 
@@ -548,13 +557,12 @@ bool D3D12Window::InitializeRawInput()
 	{
 		return false;
 	}
-
+	
 	return true;
 }
 
 void D3D12Window::WaitForGPU()
 {
-	static int numWaits = 0;
 	static int frames = 0;
 	frames++;
 
@@ -584,19 +592,23 @@ void D3D12Window::WaitForGPU()
 	m_CommandQueue->Signal(m_Fence[previousFrame], fence);
 	m_FenceValue[previousFrame]++;
 
-
-	//Wait until command queue is done.
-	if (m_Fence[nextFrame]->GetCompletedValue() < m_FenceValue[nextFrame] - 1)
-	{
-		numWaits++;
-		m_Fence[nextFrame]->SetEventOnCompletion(m_FenceValue[nextFrame] - 1, m_EventHandle[nextFrame]);
-		WaitForSingleObject(m_EventHandle[nextFrame], INFINITE);
-	}
+	WaitForGPU(nextFrame);
 
 	if (frames > 100) {
-		std::string s = std::to_string(numWaits);
+		std::string s = std::to_string(m_numWaits);
 		s += "\n";
 		OutputDebugString(s.c_str());
 		frames = 0;
+	}
+}
+
+void D3D12Window::WaitForGPU(int index)
+{
+	//Wait until command queue is done.
+	if (m_Fence[index]->GetCompletedValue() < m_FenceValue[index] - 1)
+	{
+		m_numWaits++;
+		m_Fence[index]->SetEventOnCompletion(m_FenceValue[index] - 1, m_EventHandle[index]);
+		WaitForSingleObject(m_EventHandle[index], INFINITE);
 	}
 }

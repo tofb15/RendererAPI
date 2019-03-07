@@ -58,13 +58,8 @@ D3D12Renderer::~D3D12Renderer()
 	if (m_textureLoader)
 		delete m_textureLoader;
 
-	int _ = 42, __ = 13;
-	_ + __ / _;
-
-	// If this isn't here, the release below results in a crash
-	// "Unsafe to release objects that are still in use"
-	// This could maybe be solved in another way, but this works for now
-	/*Sleep(100);
+	// These are safe to release as long as each window has been deleted first,
+	// since the windows wait for their queues to finish all their work
 
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
@@ -77,7 +72,7 @@ D3D12Renderer::~D3D12Renderer()
 		m_structuredBufferResources[i]->Release();
 	}
 	m_rootSignature->Release();
-	m_device->Release();*/
+	m_device->Release();
 }
 
 bool D3D12Renderer::Initialize()
@@ -203,7 +198,7 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	Float3 f = c->GetPosition() - item.transform.pos;
 
-	unsigned int dist = f.length() * 65;
+	unsigned int dist = static_cast<unsigned int>(f.length() * 65);
 	s.distance = UINT_MAX - dist;
 	//s.distance = 0;
 	s.meshIndex = meshIndex;
@@ -284,7 +279,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 #ifdef MULTI_THREADED
 	// How many instructions will each thread record
 	// If any instructions would remain, each thread records an additional one
-	unsigned numInstrPerThread = m_renderInstructions.size() / NUM_RECORDING_THREADS;
+	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
 	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
 	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
@@ -578,7 +573,7 @@ void D3D12Renderer::MapMatrixData(int backBufferIndex)
 	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
 	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
 }
-void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions)
+void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, size_t firstInstructionIndex, size_t numInstructions)
 {
 	if (firstInstructionIndex >= m_renderInstructions.size())
 	{
@@ -608,10 +603,10 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 	}
 
 	// Determine the index of next list (m_renderInstructions.size() for the last list)
-	int nextListFirstIndex = firstInstructionIndex + numInstructions;
+	size_t nextListFirstIndex = firstInstructionIndex + numInstructions;
 	nextListFirstIndex = min(nextListFirstIndex, m_renderInstructions.size());
-
-	for (int instructionIndex = firstInstructionIndex; instructionIndex < nextListFirstIndex; instructionIndex++)
+	
+	for (size_t instructionIndex = firstInstructionIndex; instructionIndex < nextListFirstIndex; instructionIndex++)
 	{
 		// Retrieve instruction
 		int instruction;
@@ -649,7 +644,8 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 
 			//Set Vertex Buffers
 			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
-			for (size_t j = 0; j < buffers.size(); j++)
+			unsigned numBuffers = static_cast<unsigned>(buffers.size());
+			for (unsigned j = 0; j < numBuffers; j++)
 			{
 				commandList->IASetVertexBuffers(j, 1, buffers[j]->GetView());
 			}

@@ -4,33 +4,41 @@
 #include "D3D12Texture.hpp"
 #include <chrono>
 
-D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : m_Renderer(renderer)
+D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : m_renderer(renderer)
 {
 
 }
 
 D3D12TextureLoader::~D3D12TextureLoader()
 {
-	for (auto heap : m_DescriptorHeaps)
+	// This is not necessary since this thread waits for every signal after executing the queue
+	//WaitForCopy(m_fenceValue - 1);
+
+	for (auto heap : m_descriptorHeaps)
 	{
 		heap->Release();
 	}
 
-	for (auto resources : m_TextureResources)
+	for (auto resource : m_textureResources)
 	{
-		resources->Release();
+		resource->Release();
 	}
+
+	m_commandQueue->Release();
+	m_commandAllocator->Release();
+	m_commandList->Release();
+	m_fence->Release();
 }
 
 bool D3D12TextureLoader::Initialize()
 {
-	mCBV_SRV_UAV_DescriptorSize = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_CBV_SRV_UAV_DescriptorSize = m_renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	HRESULT hr;
 	//Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	cqd.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-	hr = m_Renderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue));
+	hr = m_renderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_commandQueue));
 	if (FAILED(hr))
 	{
 		return false;
@@ -38,37 +46,35 @@ bool D3D12TextureLoader::Initialize()
 
 	//Create command allocator. The command allocator object corresponds
 	//to the underlying allocations in which GPU commands are stored.
-	hr = m_Renderer->GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_CommandAllocator));
+	hr = m_renderer->GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_commandAllocator));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	//Create command list.
-	hr = m_Renderer->GetDevice()->CreateCommandList(
+	hr = m_renderer->GetDevice()->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_COPY,
-		m_CommandAllocator,
+		m_commandAllocator,
 		nullptr,
-		IID_PPV_ARGS(&m_CommandList4));
+		IID_PPV_ARGS(&m_commandList));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	m_CommandList4->Close();
+	m_commandList->Close();
 
-	hr = m_Renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+	hr = m_renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
-	m_FenceValue = 1;
+	m_fenceValue = 1;
 	//Create an event handle to use for GPU synchronization.
-	m_EventHandle = CreateEvent(0, false, false, 0);
-
-
+	m_eventHandle = CreateEvent(0, false, false, 0);
 
 	return true;
 }
@@ -77,10 +83,10 @@ void D3D12TextureLoader::DoWork()
 {
 	{
 		std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-		m_cv_not_empty.wait(lock, [this]() {return !mTexturesToLoadToGPU.empty(); });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
+		m_cv_not_empty.wait(lock, [this]() {return !m_texturesToLoadToGPU.empty(); });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
 	}
 
-	while (!stop)
+	while (!m_stop)
 	{
 		/*if(atLeastOneTextureIsLoaded)
 			std::this_thread::sleep_for(std::chrono::seconds(2));*/
@@ -92,18 +98,18 @@ void D3D12TextureLoader::DoWork()
 		//Critical Region.
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-			texture = mTexturesToLoadToGPU[0];
-			mTexturesToLoadToGPU.erase(mTexturesToLoadToGPU.begin());
+			texture = m_texturesToLoadToGPU[0];
+			m_texturesToLoadToGPU.erase(m_texturesToLoadToGPU.begin());
 		}
 
 		reuseResource = (texture->m_GPU_Loader_index != -1);//If the texture already was loaded, it is just requesting a GPU update.
 
-		m_CommandAllocator->Reset();
-		m_CommandList4->Reset(m_CommandAllocator, nullptr);
+		m_commandAllocator->Reset();
+		m_commandList->Reset(m_commandAllocator, nullptr);
 		ID3D12Resource* textureResource = nullptr;
 		if (reuseResource) {
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-			textureResource = m_TextureResources[texture->m_GPU_Loader_index];
+			textureResource = m_textureResources[texture->m_GPU_Loader_index];
 		}
 
 		D3D12_RESOURCE_DESC resourceDesc = {};
@@ -130,7 +136,7 @@ void D3D12TextureLoader::DoWork()
 		if (!reuseResource) {
 			heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;			//D3D12_HEAP_TYPE_UPLOAD did not work here!
 
-			hr = m_Renderer->GetDevice()->CreateCommittedResource(
+			hr = m_renderer->GetDevice()->CreateCommittedResource(
 				&heapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&resourceDesc,
@@ -173,7 +179,7 @@ void D3D12TextureLoader::DoWork()
 		uploadResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 		uploadResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-		hr = m_Renderer->GetDevice()->CreateCommittedResource(
+		hr = m_renderer->GetDevice()->CreateCommittedResource(
 			&heapProperties,
 			D3D12_HEAP_FLAG_NONE,
 			&uploadResourceDesc,
@@ -190,7 +196,7 @@ void D3D12TextureLoader::DoWork()
 		textureData.RowPitch = texture->m_Width * texture->m_BytesPerPixel;
 		textureData.SlicePitch = textureData.RowPitch * texture->m_Height;
 
-		UpdateSubresources<1>(m_CommandList4, textureResource, uploadResource, 0, 0, 1, &textureData);
+		UpdateSubresources<1>(m_commandList, textureResource, uploadResource, 0, 0, 1, &textureData);
 #pragma endregion
 
 		////// Describe and create a SRV for the texture.
@@ -209,32 +215,32 @@ void D3D12TextureLoader::DoWork()
 			}
 
 
-			D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_DescriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
-			cdh.ptr += localHeapIndex * mCBV_SRV_UAV_DescriptorSize;
-			m_Renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+			D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
+			cdh.ptr += localHeapIndex * m_CBV_SRV_UAV_DescriptorSize;
+			m_renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
 		}
 
 #pragma endregion
 
-		m_CommandList4->Close();
-		ID3D12CommandList* ppCommandLists[] = { m_CommandList4 };
-		m_CommandQueue->ExecuteCommandLists(1, ppCommandLists);
+		m_commandList->Close();
+		ID3D12CommandList* ppCommandLists[] = { m_commandList };
+		m_commandQueue->ExecuteCommandLists(1, ppCommandLists);
 
-		WaitForCopy();
+		SignalAndWaitForCopy();
 		uploadResource->Release();
 		if (!reuseResource){
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
-			m_TextureResources.push_back(textureResource);
+			m_textureResources.push_back(textureResource);
 			texture->m_GPU_Loader_index = m_nrOfTextures++;
 		}
 		
 
 		{
 			std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-			atLeastOneTextureIsLoaded = true;
-			if (mTexturesToLoadToGPU.empty()) {
+			m_atLeastOneTextureIsLoaded = true;
+			if (m_texturesToLoadToGPU.empty()) {
 				m_cv_empty.notify_all();//Only used for D3D12TextureLoader::SynchronizeWork() to wake waiting threads
-				m_cv_not_empty.wait(lock, [this]() {return !mTexturesToLoadToGPU.empty() || stop; });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
+				m_cv_not_empty.wait(lock, [this]() {return !m_texturesToLoadToGPU.empty() || m_stop; });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
 			}
 		}
 	}
@@ -243,9 +249,9 @@ void D3D12TextureLoader::DoWork()
 void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-	mTexturesToLoadToGPU.push_back(texture);
+	m_texturesToLoadToGPU.push_back(texture);
 	m_cv_not_empty.notify_one();//Wake up the loader thread
-	if (!atLeastOneTextureIsLoaded) {
+	if (!m_atLeastOneTextureIsLoaded) {
 		lock.unlock();
 		SynchronizeWork();
 	}
@@ -260,8 +266,8 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureGPUAdress(D3D1
 	int HeapIndex = index / MAX_SRVs_PER_DESCRIPTOR_HEAP;
 	int localIndex = index % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_DescriptorHeaps[HeapIndex]->GetGPUDescriptorHandleForHeapStart();
-	handle.ptr += localIndex * mCBV_SRV_UAV_DescriptorSize;
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeaps[HeapIndex]->GetGPUDescriptorHandleForHeapStart();
+	handle.ptr += localIndex * m_CBV_SRV_UAV_DescriptorSize;
 
 	return handle;
 }
@@ -277,8 +283,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureCPUAdress(D3D1
 	int HeapIndex = index / MAX_SRVs_PER_DESCRIPTOR_HEAP;
 	int localIndex = index % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_DescriptorHeaps[HeapIndex]->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += localIndex * mCBV_SRV_UAV_DescriptorSize;
+	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_descriptorHeaps[HeapIndex]->GetCPUDescriptorHandleForHeapStart();
+	handle.ptr += localIndex * m_CBV_SRV_UAV_DescriptorSize;
 
 	return handle;
 }
@@ -286,48 +292,48 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureCPUAdress(D3D1
 ID3D12Resource * D3D12TextureLoader::GetResource(int index)
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
-	return m_TextureResources[index];
+	return m_textureResources[index];
 }
 
 unsigned D3D12TextureLoader::GetNumberOfHeaps()
 {
-	return static_cast<unsigned>(m_DescriptorHeaps.size());
+	return static_cast<unsigned>(m_descriptorHeaps.size());
 }
 
 ID3D12DescriptorHeap ** D3D12TextureLoader::GetAllHeaps()
 {
-	return m_DescriptorHeaps.data();
+	return m_descriptorHeaps.data();
 }
 
 void D3D12TextureLoader::SynchronizeWork()
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
-	m_cv_empty.wait(lock, [this]() {return mTexturesToLoadToGPU.empty(); });
+	m_cv_empty.wait(lock, [this]() {return m_texturesToLoadToGPU.empty(); });
 }
 
 void D3D12TextureLoader::Kill()
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
-	stop = true;
+	m_stop = true;
 	m_cv_not_empty.notify_all();
 }
 
-//ID3D12DescriptorHeap * D3D12TextureLoader::GetDescriptorHeap()
-//{
-//	return mDescriptorHeap;
-//}
-
-void D3D12TextureLoader::WaitForCopy()
+void D3D12TextureLoader::SignalAndWaitForCopy()
 {
-	const UINT64 fence = m_FenceValue;
-	m_CommandQueue->Signal(m_Fence, fence);
-	m_FenceValue++;
+	const UINT64 fence = m_fenceValue;
+	m_commandQueue->Signal(m_fence, fence);
+	m_fenceValue++;
 
+	WaitForCopy(fence);
+}
+
+void D3D12TextureLoader::WaitForCopy(UINT64 fence)
+{
 	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < fence)
+	if (m_fence->GetCompletedValue() < fence)
 	{
-		m_Fence->SetEventOnCompletion(fence, m_EventHandle);
-		WaitForSingleObject(m_EventHandle, INFINITE);
+		m_fence->SetEventOnCompletion(fence, m_eventHandle);
+		WaitForSingleObject(m_eventHandle, INFINITE);
 	}
 }
 
@@ -340,10 +346,10 @@ bool D3D12TextureLoader::AddDescriptorHeap()
 	heapDescriptorDesc.NumDescriptors = MAX_SRVs_PER_DESCRIPTOR_HEAP;
 	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&descriptorHeap));
+	hr = m_renderer->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&descriptorHeap));
 	if (FAILED(hr))
 		return false;
 
-	m_DescriptorHeaps.push_back(descriptorHeap);
+	m_descriptorHeaps.push_back(descriptorHeap);
 	return true;
 }

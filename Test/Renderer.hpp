@@ -54,44 +54,102 @@ public:
 		@return a Renderer* to selected by the RendererBackend param
 	*/
 	static	Renderer*		MakeRenderer(RendererBackend backend);
+	
 	/*
 		Initialize the specific renderer instance.
 
 		@return true if the instance was initialized successfully.
 	*/
 	virtual bool Initialize() = 0;
-	//Builder functions to create classes specific to the renderer instance created by MakeRenderer();
-#pragma region Renderers Builder Functions
+	
+	/*
+		Create a Camera instance
+
+		@return a pointer to a Camera instance if successful, nullptr if not
+	*/
 	virtual Camera*			MakeCamera() = 0;
+
+	/*
+		Create a Window instance
+
+		@return a pointer to a Window instance if successful, nullptr if not
+	*/
 	virtual Window*			MakeWindow() = 0;
+
+	/*
+		Create a Texture instance
+
+		@return a pointer to a Texture instance if successful, nullptr if not
+	*/
 	virtual Texture*		MakeTexture() = 0;
+
+	/*
+		Create a Mesh instance
+
+		@return a pointer to a Mesh instance if successful, nullptr if not
+	*/
 	virtual Mesh*			MakeMesh() = 0;
+
+	/*
+		Create a Material instance
+
+		@return a pointer to a Material instance if successful, nullptr if not
+	*/
 	virtual Material*		MakeMaterial() = 0;
+
+	/*
+		Create a RenderState instance
+
+		@return a pointer to a RenderState instance if successful, nullptr if not
+	*/
 	virtual RenderState*	MakeRenderState() = 0;
+
+	/*
+		Create a Technique instance
+
+		@return a pointer to a Technique instance if successful, nullptr if not
+	*/
 	virtual Technique*		MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) = 0;
+
+	/*
+		Create a ShaderManager instance
+
+		@return a pointer to a ShaderManager instance if successful, nullptr if not
+	*/
 	virtual ShaderManager*	MakeShaderManager() = 0;
-#pragma endregion
 
 	/*
-		Submit work that should be rendered.
-	*/
-	virtual void			Submit(SubmissionItem item, Camera* c) = 0; //How will this work with multi-threaded submissions? Should we submit an "Entity"-class insteed of a "Mesh"-class?
-	/*
-		Clear previusly submited work.
-	*/
-	virtual void			ClearSubmissions() = 0; //Should we have this?
-	/*
-		Render submited work to the back buffer of the passed in window. Call Present() to present the result to the screen.
+		Submit work that should be rendered
+		This should be called every frame for every item before calling Frame()
 
-		@param window, the window to render the scene to.
+		@param item, an item to be rendered
+		@param camera the camera which will be used for rendering
+	*/
+	virtual void			Submit(SubmissionItem item, Camera* camera) = 0;
+	
+	/*
+		Clear previously submitted work
+	*/
+	virtual void			ClearSubmissions() = 0;
+	
+	/*
+		Render submitted work to the back buffer of the passed window
+		Call Present() to present the result to the screen
+		Before calling this, Submit() has to be called for every item which should be rendered
+
+		@param window, the window to render the scene to
+		@param camera the camera which will be rendered from
 		@See Present()
 	*/
-	virtual void			Frame(Window* window, Camera* c) = 0; //How will this work with multi-threading? One thread to rule them all?
+	virtual void			Frame(Window* window, Camera* camera) = 0; //How will this work with multi-threading? One thread to rule them all?
+	
 	/*	
-		Present the last frame rendered by frame() to the window.
+		Present the last frame rendered by Frame() to the passed window
+
+		@param window the window to present the scene to
 		@See Frame()
 	*/
-	virtual void			Present(Window * w) = 0; //How will this work with multi-threading? One thread to rule them all?
+	virtual void			Present(Window * window) = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
 protected:
 	Renderer();

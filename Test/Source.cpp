@@ -53,9 +53,6 @@ public:
 		for (auto e : materials) {
 			delete e;
 		}
-		for (auto e : techniques) {
-			delete e;
-		}
 		for (auto e : renderStates) {
 			delete e;
 		}
@@ -68,10 +65,13 @@ public:
 		for (auto e : textures) {
 			delete e;
 		}
-		for (auto e : meshes) {
+		for (auto e : windows) {
 			delete e;
 		}
-		for (auto e : windows) {
+		for (auto e : techniques) {
+			delete e;
+		}
+		for (auto e : meshes) {
 			delete e;
 		}
 
@@ -93,18 +93,16 @@ public:
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 		Window* window = renderer->MakeWindow();
-		window->SetDimensions(640, 640);
 		window->SetTitle("Window 1");
-		window->Create();
+		window->Create(640, 640);
 		window->Show();
 		windows.push_back(window);
 
 		if (!SINGLE_WINDOW)
 		{
 			Window*	window2 = renderer->MakeWindow();
-			window2->SetDimensions(640, 640);
 			window2->SetTitle("Window 2");
-			window2->Create();
+			window2->Create(640, 640);
 			window2->Show();
 			windows.push_back(window2);
 		}
@@ -261,7 +259,7 @@ public:
 //>>>>>>> MultithreadedCommandRecording
 #pragma endregion
 
-		int nBlueprints = blueprints.size();
+		size_t nBlueprints = blueprints.size();
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
@@ -296,7 +294,7 @@ public:
 
 		int techniqueToUse = 0;
 
-		time = 0;
+		m_time = 0;
 
 		Time t1;
 		int frameCount = 0;
@@ -317,9 +315,9 @@ public:
 		{
 			then = now;
 			now = Clock::now();
-			double dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001;
+			float dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001f;
 
-			time += dt;
+			m_time += dt;
 
 
 			frameCount++;
@@ -329,7 +327,7 @@ public:
 				t1 = Clock::now();
 
 				// Set short-term average FPS
-				int fps = frameCount / TIME_PER_SHORT_TERM;
+				int fps = static_cast<int>(frameCount / TIME_PER_SHORT_TERM);
 				fpsStr = "FPS: " + std::to_string(fps);
 
 				avgUpdateCount++;
@@ -338,7 +336,7 @@ public:
 				// Set long-term average FPS
 				if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
 				{
-					int avgFps = totalFramesLastInterval / TIME_PER_LONG_TERM;
+					int avgFps = static_cast<int>(totalFramesLastInterval / TIME_PER_LONG_TERM);
 					fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
 					avgUpdateCount = 0;
 					totalFramesLastInterval = 0;
@@ -352,7 +350,7 @@ public:
 			for (int i = 0; i < objects.size(); i++)
 			{
 				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-				objects[i]->transform.rotation.y = sinf(time + i) * cosf(time * 2 + i) * 3.14159265f * 2.0f;
+				objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
 			}
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
@@ -452,20 +450,20 @@ public:
 #pragma region Rendera
 
 			if(demoMovement[0])
-				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
+				cameras[0]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 			if (demoMovement[1])
-				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
+				cameras[1]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 
 			//timeSincePixChange += 0.05f;
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
 			if (frameCount % 100 == 0) {
-				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
+				for (unsigned int x = 0; x < textures[0]->GetWidth(); x++)
 				{
-					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
+					for (unsigned int y = 0; y < textures[0]->GetHeight() / 2; y++)
 					{
-						unsigned char data[4] = { 0,color,255-color,255 };
+						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255-color), static_cast<unsigned char>(255) };
 						textures[0]->UpdatePixel(Int2(x, y), data, 4);
 					}
 				}
@@ -509,7 +507,7 @@ private:
 	std::vector<Camera*>		cameras;
 	std::vector<Object*>		objects;
 
-	double time = 0;
+	float m_time = 0.0f;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

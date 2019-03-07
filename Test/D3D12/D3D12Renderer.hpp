@@ -77,7 +77,7 @@ private:
 	void SetUpRenderInstructions();
 	void ResetCommandListAndAllocator(int backbufferIndex, int index);
 	void MapMatrixData(int backBufferIndex);
-	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, int firstInstructionIndex, int numInstructions);
+	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, size_t firstInstructionIndex, size_t numInstructions);
 
 	void RecordCommands(int threadIndex);
 	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
