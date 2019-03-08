@@ -41,8 +41,9 @@ public:
 
 	virtual void UpdatePixel(Int2 pos, const unsigned char* data, int size) = 0;
 	virtual void ApplyChanges() = 0;
+	virtual unsigned short GetIndex();
 protected:
-
+	unsigned short m_index;
 	unsigned m_Width, m_Height;
 	unsigned m_BytesPerPixel;
 	Texture();

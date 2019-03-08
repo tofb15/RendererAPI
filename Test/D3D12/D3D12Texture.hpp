@@ -16,7 +16,7 @@ struct ID3D12Resource;
 */
 class D3D12Texture : public Texture {
 public:
-	D3D12Texture(D3D12Renderer* renderer);
+	D3D12Texture(D3D12Renderer* renderer, unsigned short index);
 	virtual ~D3D12Texture();
 
 	// Inherited via Texture

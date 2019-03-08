@@ -5,9 +5,9 @@
 #include "D3D12Renderer.hpp"
 #include "External/D3DX12/d3dx12.h"
 
-D3D12Texture::D3D12Texture(D3D12Renderer* renderer) : m_Renderer(renderer)
+D3D12Texture::D3D12Texture(D3D12Renderer* renderer, unsigned short index) : m_Renderer(renderer)
 {
-
+	m_index = index;
 }
 
 D3D12Texture::~D3D12Texture()

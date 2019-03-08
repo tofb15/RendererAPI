@@ -136,7 +136,10 @@ Window * D3D12Renderer::MakeWindow()
 }
 Texture * D3D12Renderer::MakeTexture()
 {
-	return new D3D12Texture(this);
+	if (++m_texturesCreated == 0)
+		return nullptr;
+
+	return new D3D12Texture(this, m_texturesCreated);
 }
 Mesh * D3D12Renderer::MakeMesh()
 {
@@ -245,6 +248,7 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 	}
 
 	s.distance = 0;
+	s.textureIndex = s.item.blueprint->textures[0]->GetIndex();
 	s.meshIndex = meshIndex;
 	s.meshTypeDistance = m_closestMeshType_lastFrame[meshTechindex];
 	s.techniqueIndex = techIndex;

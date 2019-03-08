@@ -19,6 +19,11 @@ unsigned Texture::GetBPP() const
 	return m_BytesPerPixel;
 }
 
+unsigned short Texture::GetIndex()
+{
+	return m_index;
+}
+
 Texture::Texture()
 {
 }

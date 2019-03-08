@@ -71,6 +71,7 @@ private:
 			struct {
 				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
 				unsigned short distance;				//2 Bytes
+				unsigned short textureIndex;			//2 Bytes
 				unsigned short meshIndex;				//2 Bytes
 				unsigned short meshTypeDistance;		//2 Bytes, closest element in the mesh
 				unsigned short techniqueIndex;			//2 Bytes
@@ -105,6 +106,7 @@ private:
 
 	unsigned short m_meshesCreated = 0;
 	unsigned short m_techniquesCreated = 0;
+	unsigned short m_texturesCreated = 0;
 
 	unsigned int m_cbv_srv_uav_size;
 
