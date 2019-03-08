@@ -219,62 +219,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	{
 		return a.sortingIndex > b.sortingIndex;
 	});
-//<<<<<<< HEAD
-	
-	//UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	//HRESULT hr = m_commandAllocator->Reset();
-	//if (!SUCCEEDED(hr)) printf("Error: Command allocator reset\n");
-
-	//hr = m_commandList->Reset(m_commandAllocator, nullptr);
-	//if (!SUCCEEDED(hr)) printf("Error: Command list reset\n");
-
-	//// Heap information
-	//D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap[backBufferIndex]->GetCPUDescriptorHandleForHeapStart();
-
-	//// Description (maybe fix another solution)
-	//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	//srvDesc.Texture2D.MipLevels = 1;
-
-	//m_commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
-
-	////Set root signature
-	//m_commandList->SetGraphicsRootSignature(m_rootSignature);
-	//m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-//=======
-//
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
-//>>>>>>> MultithreadedCommandRecording
 
 	// Fill out the render information vectors
 	SetUpRenderInstructions();
-
-//<<<<<<< HEAD
-//	// Begin mapping matrix data
-//	D3D12_RANGE readRange = { 0, 0 };
-//	void* data = nullptr;
-//
-//	hr = m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
-//	int i = 0;
-//	if (FAILED(hr)) {
-//		_com_error err(hr);
-//		std::cout << err.ErrorMessage() << std::endl;
-//	}
-//
-//	// Create shader resource views for each texture on each object
-//	// Copy matrix data to GPU
-//	DirectX::XMMATRIX mat;
-//	size_t nItems = m_items.size();
-//	for (int item = 0; item < nItems; item++)
-//	{
-//		// Retrieve this mesh's textures
-//		std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
-//		size_t nTextures = textures.size();
-//=======
-//>>>>>>> MultithreadedCommandRecording
 
 
 #ifdef MULTI_THREADED
@@ -289,12 +238,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	{
 		ResetCommandListAndAllocator(backBufferIndex, i+1);
 		
-//<<<<<<< HEAD
-//		Float3 pos = m_items[item].item.transform.pos;
-//		Float3 rot = m_items[item].item.transform.rotation;
-//		Float3 scal = m_items[item].item.transform.scale;
-//=======
-		// Set the data each thread will process
 		SetThreadWork(
 			i,
 			window,
@@ -304,7 +247,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			numInstrPerThread
 		);
 	}
-//>>>>>>> MultithreadedCommandRecording
 
 	{
 		// Set the number of active worker threads
@@ -314,20 +256,10 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	m_frames_recorded[0]++;
 
-//<<<<<<< HEAD
-//		mat.r[0].m128_f32[0] *= scal.x;
-//		mat.r[1].m128_f32[1] *= scal.y;
-//		mat.r[2].m128_f32[2] *= scal.z;
-//
-//		mat = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z), mat);
-//
-//		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
-//=======
 	{
 		// Wake up the worker threads
 		std::unique_lock<std::mutex> lock(m_mutex);
 		m_cv_workers.notify_all();
-//>>>>>>> MultithreadedCommandRecording
 	}
 
 	// Map matrix data to GPU
