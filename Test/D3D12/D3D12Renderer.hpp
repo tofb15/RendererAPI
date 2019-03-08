@@ -67,14 +67,14 @@ private:
 		}
 
 		union {
-			__int64 sortingIndex;
+			UINT128 sortingIndex;						//16 Bytes
 			struct {
 				//By setting meshIndex and techniqueIndex, sortingIndex will be set automatically.
-				//unsigned short unused;			//2 Bytes
-				unsigned short distance;			//2 Bytes
-				unsigned short meshIndex;			//2 Bytes
-				unsigned short meshDistance;		//2 Bytes, closest element in the mesh
-				unsigned short techniqueIndex;		//2 Bytes
+				unsigned short distance;				//2 Bytes
+				unsigned short meshIndex;				//2 Bytes
+				unsigned short meshTypeDistance;		//2 Bytes, closest element in the mesh
+				unsigned short techniqueIndex;			//2 Bytes
+				unsigned short techniqueTypeDistance;	//2 Bytes, closest element in the technique
 			};
 
 		};
@@ -129,8 +129,13 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
-	unsigned short m_closestTechnique[100];
-	unsigned short  m_closestTechnique_lastFrame[100];
+	unsigned short m_closestMeshType_float[100];
+	unsigned short m_closestMeshType[100];
+	unsigned short m_closestMeshType_lastFrame[100];
+
+	unsigned short m_closestTechniqueType_float[100];
+	unsigned short m_closestTechniqueType[100];
+	unsigned short m_closestTechniqueType_lastFrame[100];
 
 	// Multithreaded recording resources
 	struct RecordingThreadWork

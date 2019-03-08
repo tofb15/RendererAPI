@@ -126,8 +126,8 @@ public:
 #pragma region CreateCamera
 	//Create Camera
 		Camera* cam = renderer->MakeCamera();
-		cam->SetPosition(Float3(-5, 5, -5));
-		cam->SetTarget(Float3(0, 0, 0));
+		cam->SetPosition(Float3(-5, 5, 50));
+		cam->SetTarget(Float3(0, 5, 50));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		cameras.push_back(cam);
 

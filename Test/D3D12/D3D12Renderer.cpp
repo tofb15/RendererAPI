@@ -206,8 +206,13 @@ void D3D12Renderer::ClearSubmissions()
 	int max = m_techniquesCreated * m_meshesCreated;
 	for (size_t i = 0; i < 100; i++)
 	{
-		m_closestTechnique_lastFrame[i] = m_closestTechnique[i];
-		m_closestTechnique[i] = 0;
+		m_closestMeshType_lastFrame[i] = m_closestMeshType[i];
+		m_closestMeshType[i] = 0;
+		m_closestMeshType_float[i] = 10000.0f;
+
+		m_closestTechniqueType_lastFrame[i] = m_closestTechniqueType[i];
+		m_closestTechniqueType[i] = 0;
+		m_closestTechniqueType_float[i] = 10000.0f;
 	}
 }
 
@@ -227,18 +232,23 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	unsigned int dist = f.length() * 65;
 	s.distance = UINT_MAX - min(dist, UINT_MAX);
-	//int meshTechindex = techIndex * m_meshesCreated + meshIndex;
+	int meshTechindex = (techIndex-1) * m_meshesCreated + (meshIndex-1);
 
-	//if (s.distance > m_closestTechnique[meshTechindex])
-	//	m_closestTechnique[meshTechindex] = dist;
+	if (dist < m_closestMeshType_float[meshTechindex]) {
+		m_closestMeshType_float[meshTechindex] = dist;
+		m_closestMeshType[meshTechindex] = USHRT_MAX - (unsigned short)(dist);
+	}
+
+	if (dist < m_closestTechniqueType_float[techIndex-1]) {
+		m_closestTechniqueType_float[techIndex-1] = dist;
+		m_closestTechniqueType[techIndex-1] = USHRT_MAX - (unsigned short)(dist);
+	}
 
 	s.distance = 0;
-
 	s.meshIndex = meshIndex;
-	s.meshDistance = 0;// UINT_MAX - m_closestTechnique_lastFrame[meshTechindex];
+	s.meshTypeDistance = m_closestMeshType_lastFrame[meshTechindex];
 	s.techniqueIndex = techIndex;
-	//s.techniqueDistance = 0;
-
+	s.techniqueTypeDistance = m_closestTechniqueType_lastFrame[techIndex-1];
 
 	m_items.push_back(s);
 }
