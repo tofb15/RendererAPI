@@ -11,9 +11,12 @@
 
 static bool quit = false;
 
+BYTE g_rawInputBuffer[64];
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
+
 
 	/*
 		Catch Global Winodw Events.
@@ -24,24 +27,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		quit = true;
 		break;
-	case WM_KEYDOWN: {
+	case WM_KEYDOWN:
+	{
 		short key = static_cast<short>(wParam);
 		//std::cout << std::dec << key << std::endl;
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), true);
 	}
 		break;
-	case WM_KEYUP: {
-		
+	case WM_KEYUP:
+	{
 		short key = static_cast<short>(wParam);
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), false);
 
-		if (lParam >> 30 & 1) {
+		if (lParam >> 30 & 1)
+		{
 			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
 
 	}
 		break;
 	}
+
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
@@ -63,16 +69,37 @@ D3D12Window::D3D12Window(D3D12Renderer* renderer)
 	m_ScissorRect->right = (long)0;
 	m_ScissorRect->top = (long)0;
 	m_ScissorRect->bottom = (long)0;
+
+	m_numWaits = 0;
 }
 
 D3D12Window::~D3D12Window()
 {
 	delete m_Viewport;
 	delete m_ScissorRect;
+
+	// Wait until each queue has finished executing before releasing resources
+	int currentBackBuffer = m_SwapChain4->GetCurrentBackBufferIndex();
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		WaitForGPU((currentBackBuffer + i) % NUM_SWAP_BUFFERS);
+	}
+
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		m_RenderTargets[i]->Release();
+		m_Fence[i]->Release();
+	}
+	m_RenderTargetsHeap->Release();
+	m_DepthStencil->Release();
+	m_DepthStencilHeap->Release();
+	m_CommandQueue->Release();
+	m_SwapChain4->Release();
 }
 
 void D3D12Window::SetDimensions(Int2 dimensions)
 {
+	SetDimensions(dimensions.x, dimensions.y);
 }
 
 void D3D12Window::SetDimensions(int w, int h)
@@ -105,8 +132,10 @@ void D3D12Window::SetTitle(const char * title)
 		SetWindowText(m_Wnd, title);
 }
 
-bool D3D12Window::Create()
+bool D3D12Window::Create(int dimensionX, int dimensionY)
 {
+	SetDimensions(dimensionX, dimensionY);
+
 	if (!InitializeWindow())
 		return false;
 
@@ -120,6 +149,9 @@ bool D3D12Window::Create()
 		return false;
 
 	if (!InitializeDepthBuffer())
+		return false;
+	
+	if (!InitializeRawInput())
 		return false;
 
 	HRESULT hr;
@@ -152,13 +184,15 @@ void D3D12Window::Hide()
 void D3D12Window::HandleWindowEvents()
 {
 	/*Reset Previus State*/
-	m_input.Reset();
+	//m_input.Reset();
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
+	Int2 mouseMovement;
 
 	while (CheckMessage)
 	{
+
 		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
@@ -185,6 +219,25 @@ void D3D12Window::HandleWindowEvents()
 
 				if (msg.lParam >> 30 & 1) {
 					m_input.SetKeyPressed(static_cast<char>(key), true);
+				}
+			}
+				break;
+			case WM_INPUT:
+			{
+				UINT dwSize;
+				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, (LPVOID)g_rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER));
+
+				RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
+				switch (rawInput->header.dwType)
+				{
+				case RIM_TYPEMOUSE:
+					mouseMovement.x = static_cast<int>(rawInput->data.mouse.lLastX);
+					mouseMovement.y = static_cast<int>(rawInput->data.mouse.lLastY);
+					break;
+				case RIM_TYPEKEYBOARD:
+					break;
+				default:
+					break;
 				}
 			}
 				break;
@@ -216,6 +269,7 @@ void D3D12Window::HandleWindowEvents()
 			CheckMessage = false;
 		}
 	}
+	m_input.SetMouseMovement(mouseMovement);
 }
 
 bool D3D12Window::WindowClosed()
@@ -492,29 +546,43 @@ bool D3D12Window::InitializeDepthBuffer()
 	return true;
 }
 
+bool D3D12Window::InitializeRawInput()
+{
+	m_rawMouseDevice.usUsagePage = 0x01;
+	m_rawMouseDevice.usUsage = 0x02;
+	m_rawMouseDevice.dwFlags = 0x0;
+	m_rawMouseDevice.hwndTarget = m_Wnd;
+	
+	if (!RegisterRawInputDevices(&m_rawMouseDevice, 1U, sizeof(RAWINPUTDEVICE)))
+	{
+		return false;
+	}
+	
+	return true;
+}
+
 void D3D12Window::WaitForGPU()
 {
-	static int numWaits = 0;
 	static int frames = 0;
 	frames++;
 
-	//const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
-	//const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
+#ifdef SINGLE_FENCE
+	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
+	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
 
-	////Tell last frame to signal when done
-	//const UINT64 fence = m_FenceValue[0];
-	//m_CommandQueue->Signal(m_Fence[0], fence);
-	//m_FenceValue[0]++;
+	//Tell last frame to signal when done
+	const UINT64 fence = m_FenceValue[0];
+	m_CommandQueue->Signal(m_Fence[0], fence);
+	m_FenceValue[0]++;
 
-	////Wait until command queue is done.
-	//if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
-	//{
-	//	numWaits++;
-	//	m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
-	//	WaitForSingleObject(m_EventHandle[0], INFINITE);
-	//}
-
-
+	//Wait until command queue is done.
+	if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
+	{
+		numWaits++;
+		m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
+		WaitForSingleObject(m_EventHandle[0], INFINITE);
+	}
+#endif
 
 	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
 	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
@@ -524,19 +592,23 @@ void D3D12Window::WaitForGPU()
 	m_CommandQueue->Signal(m_Fence[previousFrame], fence);
 	m_FenceValue[previousFrame]++;
 
-
-	//Wait until command queue is done.
-	if (m_Fence[nextFrame]->GetCompletedValue() < m_FenceValue[nextFrame] - 1)
-	{
-		numWaits++;
-		m_Fence[nextFrame]->SetEventOnCompletion(m_FenceValue[nextFrame] - 1, m_EventHandle[nextFrame]);
-		WaitForSingleObject(m_EventHandle[nextFrame], INFINITE);
-	}
+	WaitForGPU(nextFrame);
 
 	if (frames > 100) {
-		std::string s = std::to_string(numWaits);
+		std::string s = std::to_string(m_numWaits);
 		s += "\n";
 		OutputDebugString(s.c_str());
 		frames = 0;
+	}
+}
+
+void D3D12Window::WaitForGPU(int index)
+{
+	//Wait until command queue is done.
+	if (m_Fence[index]->GetCompletedValue() < m_FenceValue[index] - 1)
+	{
+		m_numWaits++;
+		m_Fence[index]->SetEventOnCompletion(m_FenceValue[index] - 1, m_EventHandle[index]);
+		WaitForSingleObject(m_EventHandle[index], INFINITE);
 	}
 }

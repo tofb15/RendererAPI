@@ -29,7 +29,7 @@ public:
 	/*
 		This is where the window is actually created. Call once.
 	*/
-	virtual bool Create() = 0; 
+	virtual bool Create(int dimensionX, int dimensionY) = 0; 
 	 /*
 		Show the window
 	 */

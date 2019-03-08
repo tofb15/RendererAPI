@@ -27,7 +27,7 @@ public:
 
 private:
 	unsigned short m_id;
-	D3D12Renderer* mRenderer;
-	ID3D12PipelineState* mPipelineState = nullptr;
+	D3D12Renderer* m_renderer;
+	ID3D12PipelineState* m_pipelineState = nullptr;
 
 };

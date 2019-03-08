@@ -53,9 +53,6 @@ public:
 		for (auto e : materials) {
 			delete e;
 		}
-		for (auto e : techniques) {
-			delete e;
-		}
 		for (auto e : renderStates) {
 			delete e;
 		}
@@ -68,10 +65,13 @@ public:
 		for (auto e : textures) {
 			delete e;
 		}
-		for (auto e : meshes) {
+		for (auto e : windows) {
 			delete e;
 		}
-		for (auto e : windows) {
+		for (auto e : techniques) {
+			delete e;
+		}
+		for (auto e : meshes) {
 			delete e;
 		}
 
@@ -93,18 +93,16 @@ public:
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 		Window* window = renderer->MakeWindow();
-		window->SetDimensions(640, 640);
 		window->SetTitle("Window 1");
-		window->Create();
+		window->Create(640, 640);
 		window->Show();
 		windows.push_back(window);
 
 		if (!SINGLE_WINDOW)
 		{
 			Window*	window2 = renderer->MakeWindow();
-			window2->SetDimensions(640, 640);
 			window2->SetTitle("Window 2");
-			window2->Create();
+			window2->Create(640, 640);
 			window2->Show();
 			windows.push_back(window2);
 		}
@@ -261,19 +259,13 @@ public:
 //>>>>>>> MultithreadedCommandRecording
 #pragma endregion
 
-		int nBlueprints = blueprints.size();
+		size_t nBlueprints = blueprints.size();
 		for (size_t i = 0; i < 10240; i++)
 		{
 			Object* object = new Object;
-//<<<<<<< HEAD
 			object->blueprint = blueprints[i % nBlueprints];
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
-//=======
-//			object->blueprint = blueprints[i % 4];
-//			object->transform.scale = { 1.0f, 2.0f, 1.0f };
-//			object->transform.pos = { static_cast<float>(i % 100) * 4, 0.0f, static_cast<float>(i / 100) * 4 };
-//>>>>>>> MultithreadedCommandRecording
 			objects.push_back(object);
 		}
 
@@ -302,53 +294,63 @@ public:
 
 		int techniqueToUse = 0;
 
-		float timeSincePixChange = 0;
-		Int2 pixToChange(0,0);
+		m_time = 0;
 
-		time = 0;
+		Time t1;
+		int frameCount = 0;
+		int avgUpdateCount = 0;
+		int totalFramesLastInterval = 0;
+		const float TIME_PER_SHORT_TERM = 0.25f;
+		const int SHORT_TERM_UPDATES_PER_LONG_TERM = 8;
+		const float TIME_PER_LONG_TERM = TIME_PER_SHORT_TERM * SHORT_TERM_UPDATES_PER_LONG_TERM;
+
+		std::string fpsStr;
+		std::string fpsAvgStr;
+
+		t1 = Clock::now();
+
 		//Game Loop
 		now = Clock::now();
 		while (!windows[0]->WindowClosed())
 		{
 			then = now;
 			now = Clock::now();
-			double dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001;
+			float dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001f;
 
-			time += dt;
+			m_time += dt;
 
-			static Time t1, t2;
 
-			static int frame = 0;
-			static int totalFPSChecks = 0;
-			frame++;
+			frameCount++;
 
-			const int frameCheckLimit = 100;
-
-			if (frame > frameCheckLimit)
+			if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM)
 			{
-				t2 = t1;
 				t1 = Clock::now();
 
-				long long nsSinceLastCheck = (t1 - t2).count();
-				long long nsPerFrame = nsSinceLastCheck / frameCheckLimit;
-				
-				float fpns = 1.0f / nsPerFrame;
-				int fps = fpns * 1e9;
+				// Set short-term average FPS
+				int fps = static_cast<int>(frameCount / TIME_PER_SHORT_TERM);
+				fpsStr = "FPS: " + std::to_string(fps);
 
-				static int fpsSinceStart = 0;
-				fpsSinceStart += fps;
+				avgUpdateCount++;
+				totalFramesLastInterval += frameCount;
 				
-				totalFPSChecks++;
-				int avgFPSsinceStart = fpsSinceStart / totalFPSChecks;
+				// Set long-term average FPS
+				if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
+				{
+					int avgFps = static_cast<int>(totalFramesLastInterval / TIME_PER_LONG_TERM);
+					fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
+					avgUpdateCount = 0;
+					totalFramesLastInterval = 0;
+				}
 
-				std::string str = "FPS: " + std::to_string(fps) + ",    Avg FPS: " + std::to_string(avgFPSsinceStart);
-				windows[0]->SetTitle(str.c_str());
-				frame = 0;
+				std::string fpsFinalStr = fpsStr + fpsAvgStr;
+				windows[0]->SetTitle(fpsFinalStr.c_str());
+				frameCount = 0;
 			}
-			for (int i = 0; i < objects.size(); i++) {
 
+			for (int i = 0; i < objects.size(); i++)
+			{
 				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-				objects[i]->transform.rotation.y = sin(time + i) * cos(time * 2 + i) * 3.1414 * 2;
+				objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
 			}
 			//Handle window events to detect window movement, window destruction, input etc. 
 			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
@@ -360,28 +362,29 @@ public:
 
 #pragma region INPUT_DEMO
 			//Global Input
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
+			float ms = 1.5f;
+			/*if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
 				
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * 1.5f);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * 1.5f);
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
 
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -1.5f);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -1.5f);
+				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
+				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * -1.5f);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * -1.5f);
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * -ms);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * -ms);
 				demoMovement[0] = demoMovement[1] = false;
 			}
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * 1.5f);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * 1.5f);
+				cameras[0]->Move(cameras[0]->GetRight().normalized() * ms);
+				cameras[1]->Move(cameras[1]->GetRight().normalized() * ms);
 				demoMovement[0] = demoMovement[1] = false;
-			}
+			}*/
 			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
 				demoMovement[0] = true;
 			}
@@ -397,10 +400,27 @@ public:
 				blueprints[1]->technique = techniques[techniqueToUse];
 			}
 
-			// Each window
+			// Local input
 			for (size_t i = 0; i < windows.size(); i++)
 			{
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
+				{
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
+				{
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
+				{
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * -ms);
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
+				{
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * ms);
+				}
+
+				/*if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
 					cameras[i]->Move({ 0.0f, 0.0f, 0.1f });
 					demoMovement[i] = false;
 				}
@@ -415,9 +435,14 @@ public:
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
 					cameras[i]->Move({ 0.1f, 0.0f, 0.0f });
 					demoMovement[i] = false;
-				}
+				}*/
 			}
 			
+			// Rotation is based on delta time
+			Int2 mouseMovement = inputs[0]->GetMouseMovement();
+			cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
+			cameras[0]->Rotate(cameras[0]->GetRight(), mouseMovement.y * dt);
+
 #pragma endregion
 
 
@@ -425,20 +450,20 @@ public:
 #pragma region Rendera
 
 			if(demoMovement[0])
-				cameras[0]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
+				cameras[0]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 			if (demoMovement[1])
-				cameras[1]->SetPosition(Float3(sinf(time) * 4.0f, 3.0f, cosf(time) * 4.0f));
+				cameras[1]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 
 			//timeSincePixChange += 0.05f;
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (frame % 100 == 0) {
-				for (size_t x = 0; x < textures[0]->GetWidth(); x++)
+			if (frameCount % 100 == 0) {
+				for (unsigned int x = 0; x < textures[0]->GetWidth(); x++)
 				{
-					for (size_t y = 0; y < textures[0]->GetHeight() / 2; y++)
+					for (unsigned int y = 0; y < textures[0]->GetHeight() / 2; y++)
 					{
-						unsigned char data[4] = { 0,color,255-color,255 };
+						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255-color), static_cast<unsigned char>(255) };
 						textures[0]->UpdatePixel(Int2(x, y), data, 4);
 					}
 				}
@@ -482,7 +507,7 @@ private:
 	std::vector<Camera*>		cameras;
 	std::vector<Object*>		objects;
 
-	double time = 0;
+	float m_time = 0.0f;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

@@ -22,10 +22,10 @@ public:
 	ID3DBlob* GetShaderBlob(Shader shader);
 protected:
 
-	std::map<ShaderType, std::vector<ID3DBlob*>> mShader_blobs;
-	std::vector<std::string> mVertexDefines;
+	std::map<ShaderType, std::vector<ID3DBlob*>> m_shader_blobs;
+	std::vector<std::string> m_vertexDefines;
 
-	D3D12Renderer* mRenderer;
+	D3D12Renderer* m_renderer;
 
 private:
 

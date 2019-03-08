@@ -30,6 +30,11 @@ void WindowInput::SetKeyPressed(char key, bool isPressed)
 		m_isKeysPressed[key] = isPressed;
 }
 
+void WindowInput::SetMouseMovement(Int2 mouseMovement)
+{
+	m_mouseMovement = mouseMovement;
+}
+
 bool WindowInput::IsKeyDown(char key) const
 {
 	if (key < NUM_KEYS)
@@ -52,4 +57,9 @@ bool WindowInput::IsKeyPressed(char key) const
 		return m_isKeysPressed[key];
 	else
 		return false;
+}
+
+Int2 WindowInput::GetMouseMovement() const
+{
+	return m_mouseMovement;
 }

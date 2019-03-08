@@ -7,12 +7,12 @@
 
 D3D12ShaderManager::D3D12ShaderManager(D3D12Renderer * renderer)
 {
-	mRenderer = renderer;
+	m_renderer = renderer;
 }
 
 D3D12ShaderManager::~D3D12ShaderManager()
 {
-	for (auto& blobList : mShader_blobs)
+	for (auto& blobList : m_shader_blobs)
 	{
 		for (auto& blob : blobList.second)
 		{
@@ -23,10 +23,10 @@ D3D12ShaderManager::~D3D12ShaderManager()
 
 Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 {
-	std::vector<ID3DBlob*> &shaderVector = mShader_blobs[sd.type];
-
+	std::vector<ID3DBlob*> &shaderVector = m_shader_blobs[sd.type];
+	
 	if(sd.type == ShaderType::VS)
-		mVertexDefines.push_back(sd.defines);
+		m_vertexDefines.push_back(sd.defines);
 
 	ID3DBlob* blob;
 	ID3DBlob* blob_err;
@@ -92,10 +92,10 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 
 std::string D3D12ShaderManager::GetVertexDefines(int index) const
 {
-	return mVertexDefines[index];
+	return m_vertexDefines[index];
 }
 
 ID3DBlob * D3D12ShaderManager::GetShaderBlob(Shader shader)
 {
-	return mShader_blobs[shader.type][shader.handle];
+	return m_shader_blobs[shader.type][shader.handle];
 }
