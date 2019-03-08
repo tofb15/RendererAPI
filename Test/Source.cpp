@@ -229,7 +229,7 @@ public:
 	void InitializeObjects()
 	{
 		size_t nBlueprints = m_blueprints.size();
-		for (size_t i = 0; i < 10240; i++)
+		for (size_t i = 0; i < 10240U; i++)
 		{
 			Object* object = new Object;
 			object->blueprint = m_blueprints[i % nBlueprints];
@@ -261,8 +261,6 @@ public:
 
 		m_demoMovement[0] = false;
 		m_demoMovement[1] = false;
-
-		int techniqueToUse = 0;
 
 		m_time = 0;
 
@@ -335,9 +333,11 @@ public:
 			static short colorDir = 1;
 
 			if (frameCount % 100 == 0) {
-				for (unsigned int x = 0; x < m_textures[0]->GetWidth(); x++)
+				unsigned width = m_textures[0]->GetWidth();
+				unsigned height = m_textures[0]->GetHeight();
+				for (unsigned int x = 0; x < width; x++)
 				{
-					for (unsigned int y = 0; y < m_textures[0]->GetHeight() / 2; y++)
+					for (unsigned int y = 0; y < height / 2; y++)
 					{
 						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255-color), static_cast<unsigned char>(255) };
 						m_textures[0]->UpdatePixel(Int2(x, y), data, 4);
@@ -381,37 +381,16 @@ public:
 	void ProcessGlobalInput()
 	{
 		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+		int techniqueToUse = 0;
 
-		/*if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
-
-			cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * m_ms);
-			cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * m_ms);
-			demoMovement[0] = demoMovement[1] = false;
-		}
-		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
-
-			cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -m_ms);
-			cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -m_ms);
-			demoMovement[0] = demoMovement[1] = false;
-		}
-		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-			cameras[0]->Move(cameras[0]->GetRight().normalized() * -m_ms);
-			cameras[1]->Move(cameras[1]->GetRight().normalized() * -m_ms);
-			demoMovement[0] = demoMovement[1] = false;
-		}
-		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
-			cameras[0]->Move(cameras[0]->GetRight().normalized() * m_ms);
-			cameras[1]->Move(cameras[1]->GetRight().normalized() * m_ms);
-			demoMovement[0] = demoMovement[1] = false;
-		}*/
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
-			demoMovement[0] = true;
+			m_demoMovement[0] = true;
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_2)) {
-			demoMovement[1] = true;
+			m_demoMovement[1] = true;
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_3)) {
-			demoMovement[0] = demoMovement[1] = true;
+			m_demoMovement[0] = m_demoMovement[1] = true;
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
 			techniqueToUse = (techniqueToUse + 1) % 2;
@@ -432,19 +411,19 @@ public:
 		{
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * m_ms);
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (m_ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -m_ms);
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(m_ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -m_ms);
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(m_ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * m_ms);
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (m_ms * dt));
 			}
 		}
 
@@ -496,7 +475,7 @@ private:
 	std::vector<Object*>		m_objects;
 
 	float m_time = 0.0f;
-	float m_ms = 1.5f;
+	float m_ms = 300.0f;
 	bool m_demoMovement[2];
 };
 
