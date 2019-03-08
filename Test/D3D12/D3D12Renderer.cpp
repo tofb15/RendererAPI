@@ -254,6 +254,10 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 	s.techniqueIndex = techIndex;
 	s.techniqueTypeDistance = m_closestTechniqueType_lastFrame[techIndex-1];
 
+	//s.sortingIndex = 0U;
+	//s.meshIndex = meshIndex;
+	//s.techniqueIndex = techIndex;
+
 	m_items.push_back(s);
 }
 void D3D12Renderer::Frame(Window* w, Camera* c)
