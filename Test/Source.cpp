@@ -108,14 +108,16 @@ public:
 			std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
 			exit(-1);
 		}
-		m_renderer->Initialize();
+		if (!m_renderer->Initialize())
+			return false;
 		//renderer->InitForwardRendering();				//Init like this?
 		//renderer->InitDeferredRendering();			//Init like this?
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 		Window* window = m_renderer->MakeWindow();
 		window->SetTitle("Window 1");
-		window->Create(640, 640);
+		if (!window->Create(640, 640))
+			return false;
 		window->Show();
 		m_windows.push_back(window);
 
@@ -123,10 +125,13 @@ public:
 		{
 			Window*	window2 = m_renderer->MakeWindow();
 			window2->SetTitle("Window 2");
-			window2->Create(640, 640);
+			if (!window2->Create(640, 640))
+				return false;
 			window2->Show();
 			m_windows.push_back(window2);
 		}
+
+		return true;
 	}
 	void InitializeMeshesMaterialsAndRenderStates()
 	{

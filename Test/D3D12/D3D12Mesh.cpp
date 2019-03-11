@@ -7,12 +7,12 @@
 
 D3D12Mesh::D3D12Mesh(D3D12Renderer* renderer, unsigned short id) : m_id(id)
 {
-	this->renderer = renderer;
+	m_renderer = renderer;
 }
 
 D3D12Mesh::~D3D12Mesh()
 {
-	for (D3D12VertexBuffer* buffer : vertexBuffers)
+	for (D3D12VertexBuffer* buffer : m_vertexBuffers)
 	{
 		delete buffer;
 	}
@@ -276,19 +276,19 @@ bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh
 	mVertexBufferFlags |= bufferType;
 
 	//Create Vertexbuffer
-	D3D12VertexBuffer* vertexBuffer = renderer->MakeVertexBuffer();
+	D3D12VertexBuffer* vertexBuffer = m_renderer->MakeVertexBuffer();
 	if (!vertexBuffer->Initialize(nElements, elementSize, data)) {
 		delete vertexBuffer;
 		return false;
 	}
+	m_vertexBuffers.push_back(vertexBuffer);
 
-	vertexBuffers.push_back(vertexBuffer);
 	return true;
 }
 
 std::vector<D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers()
 {
-	return &vertexBuffers;
+	return &m_vertexBuffers;
 }
 
 unsigned short D3D12Mesh::GetID() const

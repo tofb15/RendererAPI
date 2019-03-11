@@ -18,10 +18,10 @@ public:
 	int GetElementSize() const;
 
 private:
-	int mNumOfElements;
-	int mElementSize;
+	int m_NumOfElements;
+	int m_ElementSize;
 
-	D3D12Renderer* renderer;
-	ID3D12Resource1* resource;
-	D3D12_VERTEX_BUFFER_VIEW* view;
+	D3D12Renderer* m_renderer;
+	ID3D12Resource1* m_resource;
+	D3D12_VERTEX_BUFFER_VIEW* m_view;
 };

@@ -24,6 +24,6 @@ public:
 	unsigned short GetID() const;
 private:
 	unsigned short m_id;
-	D3D12Renderer* renderer;
-	std::vector<D3D12VertexBuffer*> vertexBuffers;
+	D3D12Renderer* m_renderer;
+	std::vector<D3D12VertexBuffer*> m_vertexBuffers;
 };

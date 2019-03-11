@@ -9,6 +9,7 @@
 #include "D3D12Material.hpp"
 #include "D3D12Mesh.hpp"
 #include "D3D12VertexBuffer.hpp"
+#include "D3D12VertexBufferLoader.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
@@ -123,6 +124,14 @@ bool D3D12Renderer::Initialize()
 		std::cout << std::hex << m_recorderThreads[i].get_id() << std::dec << std::endl;
 	}
 #endif
+
+
+	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
+	if (!m_vertexBufferLoader->Initialize())
+	{
+		printf("Error: Could not initialize vertex buffer loader\n");
+		return false;
+	}
 
 	return true;
 }
@@ -626,6 +635,11 @@ ID3D12RootSignature * D3D12Renderer::GetRootSignature() const
 D3D12TextureLoader * D3D12Renderer::GetTextureLoader() const
 {
 	return m_textureLoader;
+}
+
+D3D12VertexBufferLoader * D3D12Renderer::GetVertexBufferLoader() const
+{
+	return m_vertexBufferLoader;
 }
 
 bool D3D12Renderer::InitializeDirect3DDevice()

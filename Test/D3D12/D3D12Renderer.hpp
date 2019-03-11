@@ -16,6 +16,7 @@ class D3D12VertexBuffer;
 class D3D12TextureLoader;
 class D3D12Window;
 class D3D12Camera;
+class D3D12VertexBufferLoader;
 
 /*
 	Documentation goes here ^^
@@ -48,6 +49,7 @@ public:
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
 	D3D12TextureLoader* GetTextureLoader() const;
+	D3D12VertexBufferLoader* GetVertexBufferLoader() const;
 
 private:
 	struct SortingItem
@@ -116,6 +118,8 @@ private:
 	// Descriptor heap for texture descriptors
 	ID3D12DescriptorHeap*		m_descriptorHeap = nullptr;
 	//ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
+
+	D3D12VertexBufferLoader*	m_vertexBufferLoader;
 
 
 	// Multithreaded recording resources
