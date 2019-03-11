@@ -59,6 +59,9 @@ D3D12Renderer::~D3D12Renderer()
 	if (m_textureLoader)
 		delete m_textureLoader;
 
+	if (m_vertexBufferLoader)
+		delete m_vertexBufferLoader;
+
 	// These are safe to release as long as each window has been deleted first,
 	// since the windows wait for their queues to finish all their work
 
