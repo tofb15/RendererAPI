@@ -127,7 +127,10 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 
 D3D12Technique::~D3D12Technique()
 {
-	m_pipelineState->Release();
+	if (m_pipelineState)
+	{
+		m_pipelineState->Release();
+	}
 }
 
 bool D3D12Technique::Enable()

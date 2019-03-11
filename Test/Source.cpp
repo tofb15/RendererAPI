@@ -314,7 +314,7 @@ public:
 				frameCount = 0;
 			}
 
-			UpdateObjects();
+			UpdateObjects(dt);
 
 			UpdateInput();
 
@@ -356,8 +356,15 @@ public:
 #pragma endregion
 		}
 	}
-	void UpdateObjects()
+	void UpdateObjects(float dt)
 	{
+		static float t = 0.0f;
+		t += dt;
+		if (t > 2.0f * 3.14159265f)
+		{
+			t -= 2.0f * 3.14159265f;
+		}
+
 		for (int i = 0; i < m_objects.size(); i++)
 		{
 			//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;

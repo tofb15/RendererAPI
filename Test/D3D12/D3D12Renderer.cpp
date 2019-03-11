@@ -775,7 +775,11 @@ bool D3D12Renderer::InitializeRootSignature()
 	rootParams[2].Descriptor.ShaderRegister = 1;
 	rootParams[2].Descriptor.RegisterSpace = 0;
 
-	rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rootSigDesc.Flags =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | 
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 	rootSigDesc.NumParameters = sizeof(rootParams) / sizeof(D3D12_ROOT_PARAMETER);
 	rootSigDesc.pParameters = rootParams;
 	rootSigDesc.NumStaticSamplers = 1;
@@ -817,7 +821,6 @@ bool D3D12Renderer::InitializeMatrixStructuredBuffer()
 
 	rd.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	rd.Width = NUM_MATRICES_IN_BUFFER * sizeof(DirectX::XMMATRIX);
-	//rd.Width = 10240 * 16 * 4;
 	rd.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
 	rd.Height = 1;
