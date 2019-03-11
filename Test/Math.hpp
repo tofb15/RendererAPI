@@ -86,6 +86,9 @@ typedef union Int2
 } Int2;
 
 struct Transform {
+	Transform() {
+		scale = Float3(1.0f,1.0f,1.0f);
+	}
 	Float3 pos;
 	Float3 rotation; //rotation should be represented as a quaternion insteed of Float3.
 	Float3 scale;

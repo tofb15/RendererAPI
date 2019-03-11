@@ -7,8 +7,9 @@
 #include "RenderState.hpp"
 #include "Texture.hpp"
 #include "ShaderManager.hpp"
-#include <iostream>
+#include "Terrain.hpp"
 
+#include <iostream>
 #include <crtdbg.h>
 #include <chrono>
 
@@ -141,38 +142,23 @@ public:
 		//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
 #pragma region CreateUniqueBlueprint
 	//Load meshes and materials from file
-		
-//<<<<<<< HEAD
-//=======
-//		Float3 rect[] = { 
-//			Float3(-0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, -0.5f, 0.0f),
-//			Float3(0.5f, -0.5f, 0.0f), Float3(-0.5f, 0.5f, 0.0f), Float3(0.5f, 0.5f, 0.0f),
-//		};
-//
-//		int nElems = sizeof(rect) / sizeof(Float3);
-//		meshRect->AddVertexBuffer(nElems, sizeof(Float3), rect, Mesh::VERTEX_BUFFER_FLAG_POSITION);
-//		//meshRect->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
-//		meshCube->LoadFromFile("cube_uv.obj");//Vertexbuffer loaded here but should be able to be added seperatly aswell. Should we load material and texture here aswell?
-//		//meshCube->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
-//>>>>>>> MultithreadedCommandRecording
-
 		Mesh* mesh1	= renderer->MakeMesh();
 		Mesh* mesh2 = renderer->MakeMesh();
+		Mesh* mesh3 = renderer->MakeMesh();
 		Mesh* mesh4 = renderer->MakeMesh();
 		Mesh* mesh5 = renderer->MakeMesh();
-		Mesh* mesh3 = renderer->MakeMesh();
 
 		mesh1->LoadFromFile("walker.obj");
 		mesh2->LoadFromFile("turret.obj");
-		mesh4->LoadFromFile("enemy_flying.obj");
-		mesh5->LoadFromFile("disc.obj");
-		mesh3->LoadFromFile("antenna.obj");
+		mesh3->LoadFromFile("enemy_flying.obj");
+		mesh4->LoadFromFile("disc.obj");
+		mesh5->LoadFromFile("antenna.obj");
 
 		meshes.push_back(mesh1);
 		meshes.push_back(mesh2);
+		meshes.push_back(mesh3);
 		meshes.push_back(mesh4);
 		meshes.push_back(mesh5);
-		meshes.push_back(mesh3);
 
 		//Create a material
 		Material* mat = renderer->MakeMaterial();
@@ -214,7 +200,6 @@ public:
 		textures.push_back(tex);
 
 		//Create the final blueprint. This could later be used to create objects.
-//<<<<<<< HEAD
 		Blueprint* blueprint;
 
 		for (size_t nTechs = 0; nTechs < 2; nTechs++)
@@ -259,6 +244,49 @@ public:
 //>>>>>>> MultithreadedCommandRecording
 #pragma endregion
 
+#pragma region HeightMap
+		ShaderDescription sd_terrain = {};
+		sd_terrain.defines = "";
+		sd_terrain.name = "VertexShader_Terrain";
+		sd_terrain.type = ShaderType::VS;
+		Shader vs_terrain = sm->CompileShader(sd_terrain);
+		if (vs_terrain.type == ShaderType::UNKNOWN)
+			return false;
+
+		sd_terrain.defines = "";
+		sd_terrain.name = "GS_Shader_Terrain";
+		sd_terrain.type = ShaderType::GS;
+		Shader gs_terrain = sm->CompileShader(sd_terrain);
+		if (gs_terrain.type == ShaderType::UNKNOWN)
+			return false;
+
+		sd_terrain.defines = "#define NORMAL\n";
+		sd_terrain.name = "FragmentShader";
+		sd_terrain.type = ShaderType::FS;
+		Shader ps_terrain = sm->CompileShader(sd_terrain);
+		if (ps_terrain.type == ShaderType::UNKNOWN)
+			return false;
+
+		ShaderProgram sp_terrain;
+		sp_terrain.VS = vs_terrain;
+		sp_terrain.GS = gs_terrain;
+		sp_terrain.FS = ps_terrain;
+
+		Technique* tech_terrain = renderer->MakeTechnique(renderStates[0], &sp_terrain, sm);
+		techniques.push_back(tech_terrain);
+
+		tex = renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
+		textures.push_back(tex);
+
+		terrain = renderer->MakeTerrain();
+		terrain->InitializeHeightMap(tex, 100);
+
+		terrainBlueprint.mesh = terrain->GetMesh();
+		terrainBlueprint.technique = tech_terrain;
+
+#pragma endregion
+
 		size_t nBlueprints = blueprints.size();
 		for (size_t i = 0; i < 10240; i++)
 		{
@@ -268,6 +296,15 @@ public:
 			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
 			objects.push_back(object);
 		}
+
+		//for (size_t i = 0; i < 1; i++)
+		//{
+		//	Object* object = new Object;
+		//	object->blueprint = blueprints[i % nBlueprints];
+		//	object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		//	object->transform.pos = {0, 0 , 0 };
+		//	objects.push_back(object);
+		//}
 
 		return true;
 	}
@@ -362,7 +399,7 @@ public:
 
 #pragma region INPUT_DEMO
 			//Global Input
-			float ms = 1.5f;
+			float ms = 300.0f;
 			/*if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
 				
 				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
@@ -405,19 +442,19 @@ public:
 			{
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
 				{
-					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 				}
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
 				{
-					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
+					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * (-ms * dt));
 				}
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
 				{
-					cameras[i]->Move(cameras[0]->GetRight().normalized() * -ms);
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * (-ms * dt));
 				}
 				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
 				{
-					cameras[i]->Move(cameras[0]->GetRight().normalized() * ms);
+					cameras[i]->Move(cameras[0]->GetRight().normalized() * (ms  * dt));
 				}
 
 				/*if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
@@ -481,8 +518,10 @@ public:
 				renderer->ClearSubmissions();
 				for (int i = 0; i < objects.size(); i++)
 				{
-					renderer->Submit({ objects[i]->blueprint, objects[i]->transform}, cameras[0]);
+					//renderer->Submit({ objects[i]->blueprint, objects[i]->transform}, cameras[0]);
 				}
+
+				renderer->Submit({ &terrainBlueprint}, cameras[0], 1);
 
 				renderer->Frame(windows[i], cameras[i]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 				renderer->Present(windows[i]);//Present frame to screen
@@ -506,6 +545,8 @@ private:
 	std::vector<RenderState*>	renderStates;
 	std::vector<Camera*>		cameras;
 	std::vector<Object*>		objects;
+	Terrain* terrain;
+	Blueprint terrainBlueprint;
 
 	float m_time = 0.0f;
 };

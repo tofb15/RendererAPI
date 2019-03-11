@@ -46,7 +46,7 @@ Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
 	{
 	case ShaderType::VS: model = "vs_5_1"; break;
 	case ShaderType::FS: model = "ps_5_1"; break;
-	case ShaderType::GS: model = "gs_5_1"; break;
+	case ShaderType::GS: model = "gs_5_0"; break;
 	//case ShaderType::CS: entry = "main"; model = "cs_5_0"; break;
 	default: break;
 	}

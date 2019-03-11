@@ -7,6 +7,7 @@ class Camera;
 class Window;
 class Texture;
 class Mesh;
+class Terrain;
 class Material;
 class RenderState;
 class Technique;
@@ -91,6 +92,13 @@ public:
 	virtual Mesh*			MakeMesh() = 0;
 
 	/*
+		Create a Terrain instance
+
+		@return a pointer to a Terrain instance if successful, nullptr if not
+	*/
+	virtual Terrain*			MakeTerrain() = 0;
+
+	/*
 		Create a Material instance
 
 		@return a pointer to a Material instance if successful, nullptr if not
@@ -125,8 +133,8 @@ public:
 		@param item, an item to be rendered
 		@param camera the camera which will be used for rendering
 	*/
-	virtual void			Submit(SubmissionItem item, Camera* camera) = 0;
-	
+	virtual void			Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) = 0;
+
 	/*
 		Clear previously submitted work
 	*/

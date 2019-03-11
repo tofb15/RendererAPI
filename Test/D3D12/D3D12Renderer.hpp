@@ -33,6 +33,7 @@ public:
 	virtual Window * MakeWindow() override;
 	virtual Texture * MakeTexture() override;
 	virtual Mesh * MakeMesh() override;
+	virtual Terrain* MakeTerrain() override;
 	virtual Material * MakeMaterial() override;
 	virtual RenderState * MakeRenderState() override;
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
@@ -41,7 +42,8 @@ public:
 
 	virtual void ClearFrame() override;
 	virtual void ClearSubmissions() override;
-	virtual void Submit(SubmissionItem item, Camera* c) override;
+	virtual void Submit(SubmissionItem item, Camera* c = nullptr, unsigned char layer = 0) override;
+
 	virtual void Frame(Window * window, Camera * c) override;
 	virtual void Present(Window * w) override;
 
@@ -76,6 +78,7 @@ private:
 				unsigned short meshTypeDistance;		//2 Bytes, closest element in the mesh
 				unsigned short techniqueIndex;			//2 Bytes
 				unsigned short techniqueTypeDistance;	//2 Bytes, closest element in the technique
+				unsigned char layer;
 			};
 
 		};
@@ -98,7 +101,7 @@ private:
 	void RecordCommands(int threadIndex);
 	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
 
-	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U;
+	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U * 2U;
 	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
 	static const unsigned NUM_COMMAND_LISTS = 1U + 2U;
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;

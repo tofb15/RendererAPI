@@ -116,6 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3D12\D3D12Terrain.cpp" />
     <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
     <ClCompile Include="D3D12\D3D12Camera.cpp" />
@@ -128,6 +129,7 @@
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
+    <ClCompile Include="Terrain.cpp" />
     <ClCompile Include="WindowInput.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -141,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="D3D12\D3D12Terrain.hpp" />
     <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
     <ClInclude Include="D3D12\D3D12Camera.hpp" />
@@ -155,6 +158,7 @@
     <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
     <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
+    <ClInclude Include="Terrain.hpp" />
     <ClInclude Include="WindowInput.hpp" />
     <ClInclude Include="Material.hpp" />
     <ClInclude Include="Math.hpp" />

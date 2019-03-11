@@ -8,6 +8,7 @@
 #include "D3D12Technique.hpp"
 #include "D3D12Material.hpp"
 #include "D3D12Mesh.hpp"
+#include "D3D12Terrain.hpp"
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
@@ -148,6 +149,10 @@ Mesh * D3D12Renderer::MakeMesh()
 
 	return new D3D12Mesh(this, m_meshesCreated);
 }
+Terrain * D3D12Renderer::MakeTerrain()
+{
+	return new D3D12Terrain(this);
+}
 Material * D3D12Renderer::MakeMaterial()
 {
 	return new D3D12Material;
@@ -219,7 +224,7 @@ void D3D12Renderer::ClearSubmissions()
 	}
 }
 
-void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
+void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 {
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
@@ -230,29 +235,37 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	//int i2 = sizeof(INT64);
 	//int i = sizeof(s.sortingIndex);
+	int meshTechindex = (techIndex - 1) * m_meshesCreated + (meshIndex - 1);
 
-	Float3 f = item.transform.pos - c->GetPosition();
+	if (c != nullptr) {
+		Float3 f = item.transform.pos - c->GetPosition();
 
-	unsigned int dist = f.length() * 65;
-	s.distance = UINT_MAX - min(dist, UINT_MAX);
-	int meshTechindex = (techIndex-1) * m_meshesCreated + (meshIndex-1);
+		unsigned int dist = f.length() * 65;
+		s.distance = UINT_MAX - min(dist, UINT_MAX);
 
-	if (dist < m_closestMeshType_float[meshTechindex]) {
-		m_closestMeshType_float[meshTechindex] = dist;
-		m_closestMeshType[meshTechindex] = USHRT_MAX - (unsigned short)(dist);
+		if (dist < m_closestMeshType_float[meshTechindex]) {
+			m_closestMeshType_float[meshTechindex] = dist;
+			m_closestMeshType[meshTechindex] = USHRT_MAX - (unsigned short)(dist);
+		}
+
+		if (dist < m_closestTechniqueType_float[techIndex - 1]) {
+			m_closestTechniqueType_float[techIndex - 1] = dist;
+			m_closestTechniqueType[techIndex - 1] = USHRT_MAX - (unsigned short)(dist);
+		}
 	}
-
-	if (dist < m_closestTechniqueType_float[techIndex-1]) {
-		m_closestTechniqueType_float[techIndex-1] = dist;
-		m_closestTechniqueType[techIndex-1] = USHRT_MAX - (unsigned short)(dist);
-	}
+	
+	std::vector<Texture*>& textureList = s.item.blueprint->textures;
 
 	s.distance = 0;
-	s.textureIndex = s.item.blueprint->textures[0]->GetIndex();
+	if(textureList.size() > 0)
+		s.textureIndex = s.item.blueprint->textures[0]->GetIndex();
+	else
+		s.textureIndex = 0;
 	s.meshIndex = meshIndex;
 	s.meshTypeDistance = m_closestMeshType_lastFrame[meshTechindex];
 	s.techniqueIndex = techIndex;
 	s.techniqueTypeDistance = m_closestTechniqueType_lastFrame[techIndex-1];
+	s.layer = UCHAR_MAX - layer;
 
 	//s.sortingIndex = 0U;
 	//s.meshIndex = meshIndex;
@@ -260,6 +273,7 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c)
 
 	m_items.push_back(s);
 }
+
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);

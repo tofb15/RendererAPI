@@ -26,4 +26,5 @@ private:
 	unsigned short m_id;
 	D3D12Renderer* renderer;
 	std::vector<D3D12VertexBuffer*> vertexBuffers;
+
 };

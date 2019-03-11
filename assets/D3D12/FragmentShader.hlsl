@@ -13,9 +13,8 @@ struct VSOut
 #ifdef TEXTCOORD
 	float2 uv		: UV;
 #endif
-#ifdef DIFFUSE_TINT
+
 	float4 color	: COL;
-#endif
 
 };
 
@@ -55,7 +54,7 @@ float4 main(VSOut input) : SV_TARGET0
 #elif defined(NORMAL)
     float4 finalColor = -1*float4(input.normal.xyz, 1.0f);
 #else
-    float4 finalColor = float4(1, 0, 1, 1);
+    float4 finalColor = input.color;//float4(1, 0, 1, 1);
 #endif
 
 	return finalColor;

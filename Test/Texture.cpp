@@ -24,6 +24,11 @@ unsigned short Texture::GetIndex()
 	return m_index;
 }
 
+unsigned Texture::GetFlags() const
+{
+	return m_Flags;
+}
+
 Texture::Texture()
 {
 }

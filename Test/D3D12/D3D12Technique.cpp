@@ -68,6 +68,10 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	gpsd.VS.pShaderBytecode = sm->GetShaderBlob(sp->VS)->GetBufferPointer();
 	gpsd.VS.BytecodeLength = sm->GetShaderBlob(sp->VS)->GetBufferSize();
+	if (sp->GS.type != ShaderType::UNKNOWN) {
+		gpsd.GS.pShaderBytecode = sm->GetShaderBlob(sp->GS)->GetBufferPointer();
+		gpsd.GS.BytecodeLength = sm->GetShaderBlob(sp->GS)->GetBufferSize();
+	}
 	gpsd.PS.pShaderBytecode = sm->GetShaderBlob(sp->FS)->GetBufferPointer();
 	gpsd.PS.BytecodeLength = sm->GetShaderBlob(sp->FS)->GetBufferSize();
 

@@ -2,6 +2,8 @@
 #include "Math.hpp"
 #include <vector>
 
+class Texture;
+
 /*
 	Used to contain a model.
 	Basicly just a collection of related vertexbuffers.

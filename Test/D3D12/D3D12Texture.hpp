@@ -26,6 +26,9 @@ public:
 	void UpdatePixel(Int2 pos, const unsigned char* data, int size) override;
 	void ApplyChanges() override;
 
+	std::vector<unsigned char>& GetData_addr();
+	const std::vector<unsigned char>& GetData_addr_const() const;
+	std::vector<unsigned char> GetData_cpy() const;
 private:
 	friend D3D12TextureLoader;
 
@@ -36,7 +39,6 @@ private:
 	bool m_hasChanged = false;
 
 	std::vector<unsigned char> m_Image_CPU; //the raw pixels stored on the CPU.
-	unsigned m_Flags;
 	D3D12Renderer* m_Renderer;
 
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/

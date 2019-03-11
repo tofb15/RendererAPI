@@ -75,3 +75,18 @@ void D3D12Texture::ApplyChanges()
 		m_hasChanged = false;
 	}
 }
+
+std::vector<unsigned char>& D3D12Texture::GetData_addr()
+{
+	return m_Image_CPU;
+}
+
+const std::vector<unsigned char>& D3D12Texture::GetData_addr_const() const
+{
+	return m_Image_CPU;
+}
+
+std::vector<unsigned char> D3D12Texture::GetData_cpy() const
+{
+	return m_Image_CPU;
+}

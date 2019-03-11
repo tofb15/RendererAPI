@@ -1,6 +1,7 @@
 #include "D3D12Mesh.hpp"
 #include "D3D12Renderer.hpp"
 #include "D3D12VertexBuffer.hpp"
+#include "D3D12Texture.hpp"
 
 #include <sstream>
 #include <fstream>
