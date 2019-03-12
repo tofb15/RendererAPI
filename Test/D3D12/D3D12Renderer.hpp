@@ -16,6 +16,7 @@ class D3D12VertexBuffer;
 class D3D12TextureLoader;
 class D3D12Window;
 class D3D12Camera;
+class D3D12VertexBufferLoader;
 
 /*
 	Documentation goes here ^^
@@ -50,6 +51,7 @@ public:
 	ID3D12Device4* GetDevice() const;
 	ID3D12RootSignature* GetRootSignature() const;
 	D3D12TextureLoader* GetTextureLoader() const;
+	D3D12VertexBufferLoader* GetVertexBufferLoader() const;
 
 private:
 	struct SortingItem
@@ -95,17 +97,21 @@ private:
 
 	void SetUpRenderInstructions();
 	void ResetCommandListAndAllocator(int backbufferIndex, int index);
-	void MapMatrixData(int backBufferIndex);
+	void SetMatrixDataAndTextures(int backBufferIndex);
 	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, size_t firstInstructionIndex, size_t numInstructions);
 
 	void RecordCommands(int threadIndex);
 	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
 
 	static const unsigned NUM_MATRICES_IN_BUFFER = 10240U * 2U;
-	static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
+	//static const unsigned NUM_DESCRIPTORS_IN_HEAP = 100000U;
 	static const unsigned NUM_COMMAND_LISTS = 1U + 2U;
+
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
 	static const unsigned MAIN_COMMAND_INDEX = 0U;
+	static const unsigned NUM_DESCRIPTORS_PER_SWAP_BUFFER = NUM_MATRICES_IN_BUFFER;
+	static const unsigned NUM_DESCRIPTORS_IN_HEAP = NUM_SWAP_BUFFERS * NUM_DESCRIPTORS_PER_SWAP_BUFFER;
+	
 
 	unsigned short m_meshesCreated = 0;
 	unsigned short m_techniquesCreated = 0;
@@ -132,7 +138,10 @@ private:
 	ID3D12Resource*				m_structuredBufferResources[NUM_SWAP_BUFFERS] = { nullptr };
 	
 	// Descriptor heap for texture descriptors
-	ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
+	ID3D12DescriptorHeap*		m_descriptorHeap = nullptr;
+	//ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
+
+	D3D12VertexBufferLoader*	m_vertexBufferLoader;
 
 	unsigned short m_closestMeshType_float[100];
 	unsigned short m_closestMeshType[100];

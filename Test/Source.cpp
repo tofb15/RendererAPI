@@ -48,105 +48,101 @@ public:
 	}
 	virtual ~Game()
 	{
-		for (auto e : blueprints) {
+		for (auto e : m_blueprints) {
 			delete e;
 		}
-		for (auto e : materials) {
+		for (auto e : m_materials) {
 			delete e;
 		}
-		for (auto e : renderStates) {
+		for (auto e : m_renderStates) {
 			delete e;
 		}
-		for (auto e : cameras) {
+		for (auto e : m_cameras) {
 			delete e;
 		}
-		for (auto e : objects) {
+		for (auto e : m_objects) {
 			delete e;
 		}
-		for (auto e : textures) {
+		for (auto e : m_textures) {
 			delete e;
 		}
-		for (auto e : windows) {
+		for (auto e : m_windows) {
 			delete e;
 		}
-		for (auto e : techniques) {
+		for (auto e : m_techniques) {
 			delete e;
 		}
-		for (auto e : meshes) {
+		for (auto e : m_meshes) {
 			delete e;
 		}
 
-		delete renderer;
-		delete sm;
+		delete m_renderer;
+		delete m_sm;
 	}
 
 	bool Initialize()
 	{
+		if (!InitializeRendererAndWindow())
+		{
+			return false;
+		}
+
+		InitializeMeshesMaterialsAndRenderStates();
+
+		if (!InitializeShadersAndTechniques())
+		{
+			return false;
+		}
+		InitializeCameras();
+		InitializeTextures();
+		InitializeBlueprints();
+		InitializeObjects();
+		InitializeHeightMap();
+
+		return true;
+	}
+	bool InitializeRendererAndWindow()
+	{
 		//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
-#pragma region Initialize renderer and window
-		renderer = Renderer::MakeRenderer(Renderer::RendererBackend::D3D12);	//Specify Forward or Deferred Rendering?
-		if (renderer == nullptr) {
+
+		m_renderer = Renderer::MakeRenderer(Renderer::RendererBackend::D3D12);	//Specify Forward or Deferred Rendering?
+		if (m_renderer == nullptr) {
 			std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
 			exit(-1);
 		}
-		renderer->Initialize();																				//renderer->InitForwardRendering();				//Init like this?
+		if (!m_renderer->Initialize())
+			return false;
+		//renderer->InitForwardRendering();				//Init like this?
 		//renderer->InitDeferredRendering();			//Init like this?
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
-		Window* window = renderer->MakeWindow();
+		Window* window = m_renderer->MakeWindow();
 		window->SetTitle("Window 1");
-		window->Create(640, 640);
+		if (!window->Create(640, 640))
+			return false;
 		window->Show();
-		windows.push_back(window);
+		m_windows.push_back(window);
 
 		if (!SINGLE_WINDOW)
 		{
-			Window*	window2 = renderer->MakeWindow();
+			Window*	window2 = m_renderer->MakeWindow();
 			window2->SetTitle("Window 2");
-			window2->Create(640, 640);
+			if (!window2->Create(640, 640))
+				return false;
 			window2->Show();
-			windows.push_back(window2);
+			m_windows.push_back(window2);
 		}
 
-		sm = renderer->MakeShaderManager();
-		ShaderDescription sd = {};
+		return true;
+	}
 
-
-		sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
-		sd.name = "VertexShader";
-		sd.type = ShaderType::VS;
-		Shader vs = sm->CompileShader(sd);
-
-		sd.name = "FragmentShader";
-		sd.type = ShaderType::FS;
-		Shader fs = sm->CompileShader(sd);
-
-#pragma endregion
-
-		//Here we create the camera(s) that should/could be used in this scene
-#pragma region CreateCamera
-	//Create Camera
-		Camera* cam = renderer->MakeCamera();
-		cam->SetPosition(Float3(-5, 5, 50));
-		cam->SetTarget(Float3(0, 5, 50));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
-		cameras.push_back(cam);
-
-		cam = renderer->MakeCamera();
-		cam->SetPosition(Float3(-5, 5, -5));
-		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
-		cameras.push_back(cam);
-#pragma endregion
-
-		//Create all the blueprints for the scene. One blueprint should/could be used to create one or many copies of gameobjects cloneing the appearance of the specific blueprint.
-#pragma region CreateUniqueBlueprint
-	//Load meshes and materials from file
-		Mesh* mesh1	= renderer->MakeMesh();
-		Mesh* mesh2 = renderer->MakeMesh();
-		Mesh* mesh3 = renderer->MakeMesh();
-		Mesh* mesh4 = renderer->MakeMesh();
-		Mesh* mesh5 = renderer->MakeMesh();
+	void InitializeMeshesMaterialsAndRenderStates()
+	{
+		Mesh* mesh1 = m_renderer->MakeMesh();
+		Mesh* mesh2 = m_renderer->MakeMesh();
+		Mesh* mesh3 = m_renderer->MakeMesh();
+		Mesh* mesh4 = m_renderer->MakeMesh();
+		Mesh* mesh5 = m_renderer->MakeMesh();
 
 		mesh1->LoadFromFile("walker.obj");
 		mesh2->LoadFromFile("turret.obj");
@@ -154,51 +150,75 @@ public:
 		mesh4->LoadFromFile("disc.obj");
 		mesh5->LoadFromFile("antenna.obj");
 
-		meshes.push_back(mesh1);
-		meshes.push_back(mesh2);
-		meshes.push_back(mesh3);
-		meshes.push_back(mesh4);
-		meshes.push_back(mesh5);
+		m_meshes.push_back(mesh1);
+		m_meshes.push_back(mesh2);
+		m_meshes.push_back(mesh3);
+		m_meshes.push_back(mesh4);
+		m_meshes.push_back(mesh5);
+
 
 		//Create a material
-		Material* mat = renderer->MakeMaterial();
+		Material* mat = m_renderer->MakeMaterial();
 		mat->LoadFromFile("generator.mtl");
-		materials.push_back(mat);
+		m_materials.push_back(mat);
 
 		//Create RenderState
-		RenderState* renderState = renderer->MakeRenderState();
+		RenderState* renderState = m_renderer->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
-		renderStates.push_back(renderState);
+		m_renderStates.push_back(renderState);
 
-		renderState = renderer->MakeRenderState();
+		renderState = m_renderer->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderState->SetUsingDepthBuffer(true);
-		renderStates.push_back(renderState);
+		m_renderStates.push_back(renderState);
+	}
+
+	bool InitializeShadersAndTechniques()
+	{
+		m_sm = m_renderer->MakeShaderManager();
+		ShaderDescription sd = {};
+
+		sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
+		sd.name = "VertexShader";
+		sd.type = ShaderType::VS;
+		Shader vs = m_sm->CompileShader(sd);
+		
+
+		sd.name = "FragmentShader";
+		sd.type = ShaderType::FS;
+		Shader fs = m_sm->CompileShader(sd);
 
 		ShaderProgram sp = {};
 
 		sp.VS = vs;
 		sp.FS = fs;
 
-		//Create Technique from renderstate and material
-		Technique* tech = renderer->MakeTechnique(renderStates[0], &sp, sm);
-		techniques.push_back(tech);
+		//Create Technique from renderstate
+		Technique* tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		m_techniques.push_back(tech);
 
-		tech = renderer->MakeTechnique(renderStates[1], &sp, sm);
-		techniques.push_back(tech);
+		tech = m_renderer->MakeTechnique(m_renderStates[1], &sp, m_sm);
+		m_techniques.push_back(tech);
 
+		return true;
+	}
+	void InitializeTextures()
+	{
 		//Create a Texture
 		Texture* tex;
-		tex = renderer->MakeTexture();
+		tex = m_renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		textures.push_back(tex);
+		m_textures.push_back(tex);
 
-		tex = renderer->MakeTexture();
+		tex = m_renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		textures.push_back(tex);
+		m_textures.push_back(tex);
+	}
 
+	void InitializeBlueprints()
+	{
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint;
 
@@ -209,104 +229,85 @@ public:
 				for (size_t nTextures = 0; nTextures < 2; nTextures++)
 				{
 					blueprint = new Blueprint;
-					blueprint->technique = techniques[nTechs];
-					blueprint->mesh = meshes[nMeshes];
-					blueprint->textures.push_back(textures[nTextures]);
-					blueprints.push_back(blueprint);
+					blueprint->technique = m_techniques[nTechs];
+					blueprint->mesh = m_meshes[nMeshes];
+					blueprint->textures.push_back(m_textures[nTextures]);
+					m_blueprints.push_back(blueprint);
 				}
 			}
 		}
+	}
 
-//=======
-//		Blueprint* blueprint = new Blueprint;
-//		blueprint->technique = techniques[0];
-//		blueprint->mesh = meshes[0];
-//		blueprint->textures.push_back(textures[0]);
-//		blueprints.push_back(blueprint);
-//
-//		blueprint = new Blueprint;
-//		blueprint->technique = techniques[0];
-//		blueprint->mesh = meshes[1];
-//		blueprint->textures.push_back(textures[1]);
-//		blueprints.push_back(blueprint);
-//
-//		blueprint = new Blueprint;
-//		blueprint->technique = techniques[1];
-//		blueprint->mesh = meshes[0];
-//		blueprint->textures.push_back(textures[0]);
-//		blueprints.push_back(blueprint);
-//
-//		blueprint = new Blueprint;
-//		blueprint->technique = techniques[1];
-//		blueprint->mesh = meshes[1];
-//		blueprint->textures.push_back(textures[1]);
-//		blueprints.push_back(blueprint);
-//>>>>>>> MultithreadedCommandRecording
-#pragma endregion
+	void InitializeObjects()
+	{
+		size_t nBlueprints = m_blueprints.size();
+		for (size_t i = 0; i < 10240U; i++)
+		{
+			Object* object = new Object;
+			object->blueprint = m_blueprints[i % nBlueprints];
+			object->transform.scale = { 1.0f, 1.0f, 1.0f };
+			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
+			m_objects.push_back(object);
+		}
+	}
+
+	void InitializeHeightMap() {
 
 #pragma region HeightMap
 		ShaderDescription sd_terrain = {};
 		sd_terrain.defines = "";
 		sd_terrain.name = "VertexShader_Terrain";
 		sd_terrain.type = ShaderType::VS;
-		Shader vs_terrain = sm->CompileShader(sd_terrain);
+		Shader vs_terrain = m_sm->CompileShader(sd_terrain);
 		if (vs_terrain.type == ShaderType::UNKNOWN)
-			return false;
+			return;
 
 		sd_terrain.defines = "";
 		sd_terrain.name = "GS_Shader_Terrain";
 		sd_terrain.type = ShaderType::GS;
-		Shader gs_terrain = sm->CompileShader(sd_terrain);
+		Shader gs_terrain = m_sm->CompileShader(sd_terrain);
 		if (gs_terrain.type == ShaderType::UNKNOWN)
-			return false;
+			return;
 
 		sd_terrain.defines = "#define NORMAL\n";
 		sd_terrain.name = "FragmentShader";
 		sd_terrain.type = ShaderType::FS;
-		Shader ps_terrain = sm->CompileShader(sd_terrain);
+		Shader ps_terrain = m_sm->CompileShader(sd_terrain);
 		if (ps_terrain.type == ShaderType::UNKNOWN)
-			return false;
+			return;
 
 		ShaderProgram sp_terrain;
 		sp_terrain.VS = vs_terrain;
 		sp_terrain.GS = gs_terrain;
 		sp_terrain.FS = ps_terrain;
 
-		Technique* tech_terrain = renderer->MakeTechnique(renderStates[0], &sp_terrain, sm);
-		techniques.push_back(tech_terrain);
+		Technique* tech_terrain = m_renderer->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
+		m_techniques.push_back(tech_terrain);
 
-		tex = renderer->MakeTexture();
+		Texture* tex = m_renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
-		textures.push_back(tex);
+		m_textures.push_back(tex);
 
-		terrain = renderer->MakeTerrain();
+		Terrain* terrain = m_renderer->MakeTerrain();
 		terrain->InitializeHeightMap(tex, 100);
 
-		terrainBlueprint.mesh = terrain->GetMesh();
-		terrainBlueprint.technique = tech_terrain;
+		m_terrainBlueprint.mesh = terrain->GetMesh();
+		m_terrainBlueprint.technique = tech_terrain;
+	}
 
-#pragma endregion
+	void InitializeCameras()
+	{
+		Camera* cam = m_renderer->MakeCamera();
+		cam->SetPosition(Float3(-5, 5, -5));
+		cam->SetTarget(Float3(0, 0, 0));
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
+		m_cameras.push_back(cam);
 
-		size_t nBlueprints = blueprints.size();
-		for (size_t i = 0; i < 10240; i++)
-		{
-			Object* object = new Object;
-			object->blueprint = blueprints[i % nBlueprints];
-			object->transform.scale = { 1.0f, 1.0f, 1.0f };
-			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
-			objects.push_back(object);
-		}
-
-		//for (size_t i = 0; i < 1; i++)
-		//{
-		//	Object* object = new Object;
-		//	object->blueprint = blueprints[i % nBlueprints];
-		//	object->transform.scale = { 1.0f, 1.0f, 1.0f };
-		//	object->transform.pos = {0, 0 , 0 };
-		//	objects.push_back(object);
-		//}
-
-		return true;
+		cam = m_renderer->MakeCamera();
+		cam->SetPosition(Float3(-5, 5, -5));
+		cam->SetTarget(Float3(0, 0, 0));
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
+		m_cameras.push_back(cam);
 	}
 
 	void Run()
@@ -314,22 +315,9 @@ public:
 		//Delta Time
 		static Time now, then;
 
-		//Get the Global input handler for all window. global input handlers is shared by all windows!
-		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
-		
-		std::vector<WindowInput*> inputs;
-		//Get the input handler for window 0. local input handlers is unique for each window!
-		
-		for (size_t i = 0; i < windows.size(); i++)
-		{
-			inputs.push_back(&windows[i]->GetLocalWindowInputHandler());
-		}
 
-		bool demoMovement[2];
-		demoMovement[0] = false;
-		demoMovement[1] = false;
-
-		int techniqueToUse = 0;
+		m_demoMovement[0] = false;
+		m_demoMovement[1] = false;
 
 		m_time = 0;
 
@@ -348,7 +336,7 @@ public:
 
 		//Game Loop
 		now = Clock::now();
-		while (!windows[0]->WindowClosed())
+		while (!m_windows[0]->WindowClosed())
 		{
 			then = now;
 			now = Clock::now();
@@ -356,9 +344,9 @@ public:
 
 			m_time += dt;
 
-
 			frameCount++;
 
+			m_windows[0]->HandleWindowEvents();
 			if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM)
 			{
 				t1 = Clock::now();
@@ -380,175 +368,177 @@ public:
 				}
 
 				std::string fpsFinalStr = fpsStr + fpsAvgStr;
-				windows[0]->SetTitle(fpsFinalStr.c_str());
+				m_windows[0]->SetTitle(fpsFinalStr.c_str());
 				frameCount = 0;
 			}
 
-			for (int i = 0; i < objects.size(); i++)
-			{
-				//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-				objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
-			}
-			//Handle window events to detect window movement, window destruction, input etc. 
-			input_Global.Reset();//The global input has to be reseted each frame. It is important that this is done before any HandleWindowEvents() is called.
-			
-			for (size_t i = 0; i < windows.size(); i++)
-			{
-				windows[i]->HandleWindowEvents();
-			}
+			ProcessGlobalInput();			
+			ProcessLocalInput(dt);
 
-#pragma region INPUT_DEMO
-			//Global Input
-			float ms = 300.0f;
-			/*if (input_Global.IsKeyDown(WindowInput::KEY_CODE_W)) {
-				
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * ms);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * ms);
-				demoMovement[0] = demoMovement[1] = false;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_S)) {
-
-				cameras[0]->Move(cameras[0]->GetTargetDirection().normalized() * -ms);
-				cameras[1]->Move(cameras[1]->GetTargetDirection().normalized() * -ms);
-				demoMovement[0] = demoMovement[1] = false;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_A)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * -ms);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * -ms);
-				demoMovement[0] = demoMovement[1] = false;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_D)) {
-				cameras[0]->Move(cameras[0]->GetRight().normalized() * ms);
-				cameras[1]->Move(cameras[1]->GetRight().normalized() * ms);
-				demoMovement[0] = demoMovement[1] = false;
-			}*/
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
-				demoMovement[0] = true;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_2)) {
-				demoMovement[1] = true;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_3)) {
-				demoMovement[0] = demoMovement[1] = true;
-			}
-			if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
-				techniqueToUse = (techniqueToUse+1)%2;
-				blueprints[0]->technique = techniques[techniqueToUse];
-				blueprints[1]->technique = techniques[techniqueToUse];
-			}
-
-			// Local input
-			for (size_t i = 0; i < windows.size(); i++)
-			{
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
-				{
-					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * (ms * dt));
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
-				{
-					cameras[i]->Move(cameras[0]->GetTargetDirection().normalized() * (-ms * dt));
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
-				{
-					cameras[i]->Move(cameras[0]->GetRight().normalized() * (-ms * dt));
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
-				{
-					cameras[i]->Move(cameras[0]->GetRight().normalized() * (ms  * dt));
-				}
-
-				/*if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_UP)) {
-					cameras[i]->Move({ 0.0f, 0.0f, 0.1f });
-					demoMovement[i] = false;
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_DOWN)) {
-					cameras[i]->Move({ 0.0f, 0.0f, -0.1f });
-					demoMovement[i] = false;
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_LEFT)) {
-					cameras[i]->Move({ -0.1f, 0.0f, 0.0f });
-					demoMovement[i] = false;
-				}
-				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_RIGHT)) {
-					cameras[i]->Move({ 0.1f, 0.0f, 0.0f });
-					demoMovement[i] = false;
-				}*/
-			}
-			
-			// Rotation is based on delta time
-			Int2 mouseMovement = inputs[0]->GetMouseMovement();
-			cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
-			cameras[0]->Rotate(cameras[0]->GetRight(), mouseMovement.y * dt);
-
-#pragma endregion
-
-
-			//Render the scene.
-#pragma region Rendera
-
-			if(demoMovement[0])
-				cameras[0]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
-			if (demoMovement[1])
-				cameras[1]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
+			if(m_demoMovement[0])
+				m_cameras[0]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
+			if (m_demoMovement[1])
+				m_cameras[1]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 
 			//timeSincePixChange += 0.05f;
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
 			if (frameCount % 100 == 0) {
-				for (unsigned int x = 0; x < textures[0]->GetWidth(); x++)
+				unsigned width = m_textures[0]->GetWidth();
+				unsigned height = m_textures[0]->GetHeight();
+				for (unsigned int x = 0; x < width; x++)
 				{
-					for (unsigned int y = 0; y < textures[0]->GetHeight() / 2; y++)
+					for (unsigned int y = 0; y < height / 2; y++)
 					{
 						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255-color), static_cast<unsigned char>(255) };
-						textures[0]->UpdatePixel(Int2(x, y), data, 4);
+						m_textures[0]->UpdatePixel(Int2(x, y), data, 4);
 					}
 				}
 				color += 20 * colorDir;
 				if (color == 0 || color == 240)
 					colorDir *= -1;
 
-				textures[0]->ApplyChanges();
+				m_textures[0]->ApplyChanges();
 			}
 
 
-			//Render Windows
-			for (int i = 0; i < windows.size(); i++)
+			RenderWindows();
+			
+		}
+	}
+	void UpdateObjects(float dt)
+	{
+		static float t = 0.0f;
+		t += dt;
+		if (t > 2.0f * 3.14159265f)
+		{
+			t -= 2.0f * 3.14159265f;
+		}
+
+		for (int i = 0; i < m_objects.size(); i++)
+		{
+			//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
+			m_objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
+		}
+	}
+	void UpdateInput()
+	{
+		// This input handler is shared between windows
+		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+
+		//The global input needs to be reset each frame, before any HandleWindowEvents() is called.
+		input_Global.Reset();
+		
+		//Handle window events to detect window movement, window destruction, input etc. 
+		for (size_t i = 0; i < m_windows.size(); i++)
+		{
+			m_windows[i]->HandleWindowEvents();
+		}
+	}
+	void ProcessGlobalInput()
+	{
+		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+		int techniqueToUse = 0;
+
+		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
+			m_demoMovement[0] = true;
+		}
+		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_2)) {
+			m_demoMovement[1] = true;
+		}
+		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_3)) {
+			m_demoMovement[0] = m_demoMovement[1] = true;
+		}
+		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
+			techniqueToUse = (techniqueToUse + 1) % 2;
+			m_blueprints[0]->technique = m_techniques[techniqueToUse];
+			m_blueprints[1]->technique = m_techniques[techniqueToUse];
+		}
+	}
+	void ProcessLocalInput(float dt)
+	{
+		std::vector<WindowInput*> inputs;
+
+		for (size_t i = 0; i < m_windows.size(); i++)
+		{
+			inputs.push_back(&m_windows[i]->GetLocalWindowInputHandler());
+		}
+
+		for (size_t i = 0; i < m_windows.size(); i++)
+		{
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
 			{
-				renderer->ClearSubmissions();
-				for (int i = 0; i < objects.size(); i++)
-				{
-					//renderer->Submit({ objects[i]->blueprint, objects[i]->transform}, cameras[0]);
-				}
-
-				renderer->Submit({ &terrainBlueprint}, cameras[0], 1);
-
-				renderer->Frame(windows[i], cameras[i]);	//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
-				renderer->Present(windows[i]);//Present frame to screen
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (m_ms * dt));
 			}
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
+			{
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(m_ms * dt));
+			}
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
+			{
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(m_ms * dt));
+			}
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
+			{
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (m_ms * dt));
+			}
+		}
 
-#pragma endregion
+		// Rotation is based on delta time
+		Int2 mouseMovement = inputs[0]->GetMouseMovement();
+		m_cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
+		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), mouseMovement.y * dt);
+	}
+	void RenderWindows()
+	{
+		Camera* cam0 = m_cameras[0];
+		Camera* cam;
+		Window* window;
+		Object* obj;
+
+		size_t nWindows = m_windows.size();
+		size_t nObjects = m_objects.size();
+		for (int i = 0; i < nWindows; i++)
+		{
+			m_renderer->ClearSubmissions();
+			window = m_windows[i];
+			cam = m_cameras[i];
+
+			for (int j = 0; j < nObjects; j++)
+			{
+				obj = m_objects[j];
+				m_renderer->Submit({ obj->blueprint, obj->transform }, cam0);
+			}
+			m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
+
+			//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
+			m_renderer->Frame(window, cam);
+			m_renderer->Present(window);
 		}
 	}
 
 private:
-	Renderer*					renderer;
-	ShaderManager* sm;
-	std::vector<Window*>		windows;
+	Renderer*					m_renderer;
+	ShaderManager*				m_sm;
+	std::vector<Window*>		m_windows;
 
 	//Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?
-	std::vector<Blueprint*>		blueprints;
-	std::vector<Mesh*>			meshes;
-	std::vector<Material*>		materials;
-	std::vector<Texture*>		textures;
-	std::vector<Technique*>		techniques;
-	std::vector<RenderState*>	renderStates;
-	std::vector<Camera*>		cameras;
-	std::vector<Object*>		objects;
-	Terrain* terrain;
-	Blueprint terrainBlueprint;
+
+	std::vector<Blueprint*>		m_blueprints;
+	std::vector<Mesh*>			m_meshes;
+	std::vector<Material*>		m_materials;
+	std::vector<Texture*>		m_textures;
+	std::vector<Technique*>		m_techniques;
+	std::vector<RenderState*>	m_renderStates;
+	std::vector<Camera*>		m_cameras;
+	std::vector<Object*>		m_objects;
+	Terrain* m_terrain;
+	Blueprint m_terrainBlueprint;
 
 	float m_time = 0.0f;
+	float m_ms = 300.0f;
+	bool m_demoMovement[2];
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/
