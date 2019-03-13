@@ -144,7 +144,9 @@ public:
 		Mesh* mesh4 = m_renderer->MakeMesh();
 		Mesh* mesh5 = m_renderer->MakeMesh();
 
-		mesh1->LoadFromFile("walker.obj");
+		//mesh1->LoadFromFile("walker.obj");
+		mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+
 		mesh2->LoadFromFile("turret.obj");
 		mesh3->LoadFromFile("enemy_flying.obj");
 		mesh4->LoadFromFile("disc.obj");

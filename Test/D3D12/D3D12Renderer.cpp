@@ -239,6 +239,15 @@ void D3D12Renderer::ClearSubmissions()
 
 void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 {
+	D3D12Camera* camera = static_cast<D3D12Camera*>(c);
+
+	Sphere sphere;
+	sphere.center = item.transform.pos;
+	sphere.radius = max(item.transform.scale.x, max(item.transform.scale.y, item.transform.scale.z));
+
+	if (!camera->GetFrustum().CheckAgainstFrustum(sphere))
+		return;
+
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 
