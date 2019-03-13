@@ -342,7 +342,7 @@ public:
 		{
 			then = now;
 			now = Clock::now();
-			float dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count() * 0.001f;
+			double dt = (double)(std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count()) * 0.001;
 
 			m_time += dt;
 
@@ -404,7 +404,7 @@ public:
 				m_textures[0]->ApplyChanges();
 			}
 
-
+			UpdateObjects(dt);
 			RenderWindows();
 			
 		}
@@ -512,7 +512,7 @@ public:
 				obj = m_objects[j];
 				m_renderer->Submit({ obj->blueprint, obj->transform }, cam0);
 			}
-			m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
+			//m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
 
 			//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			m_renderer->Frame(window, cam);
@@ -538,7 +538,7 @@ private:
 	Terrain* m_terrain;
 	Blueprint m_terrainBlueprint;
 
-	float m_time = 0.0f;
+	double m_time = 0.0f;
 	float m_ms = 300.0f;
 	bool m_demoMovement[2];
 };
