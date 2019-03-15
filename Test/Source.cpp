@@ -342,7 +342,7 @@ public:
 		{
 			then = now;
 			now = Clock::now();
-			double dt = (double)(std::chrono::duration_cast<std::chrono::milliseconds>(now - then).count()) * 0.001;
+			double dt = (double)((now - then).count()) * 0.000000001;
 
 			m_time += dt;
 
@@ -409,9 +409,9 @@ public:
 			
 		}
 	}
-	void UpdateObjects(float dt)
+	void UpdateObjects(double dt)
 	{
-		static float t = 0.0f;
+		static double t = 0.0f;
 		t += dt;
 		if (t > 2.0f * 3.14159265f)
 		{
@@ -458,7 +458,7 @@ public:
 			m_blueprints[1]->technique = m_techniques[techniqueToUse];
 		}
 	}
-	void ProcessLocalInput(float dt)
+	void ProcessLocalInput(double dt)
 	{
 		std::vector<WindowInput*> inputs;
 
@@ -538,8 +538,8 @@ private:
 	Terrain* m_terrain;
 	Blueprint m_terrainBlueprint;
 
-	double m_time = 0.0f;
-	float m_ms = 300.0f;
+	double m_time = 0.0;
+	double m_ms = 300.0;
 	bool m_demoMovement[2];
 };
 
