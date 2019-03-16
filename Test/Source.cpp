@@ -76,6 +76,10 @@ public:
 			delete e;
 		}
 
+		if (m_terrain)
+		{
+			delete m_terrain;
+		}
 		delete m_renderer;
 		delete m_sm;
 	}
@@ -290,10 +294,12 @@ public:
 		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
 		m_textures.push_back(tex);
 
-		Terrain* terrain = m_renderer->MakeTerrain();
-		terrain->InitializeHeightMap(tex, 100);
+		m_terrain = m_renderer->MakeTerrain();
+		m_terrain->InitializeHeightMap(tex, 100);
 
-		m_terrainBlueprint.mesh = terrain->GetMesh();
+		m_terrainBlueprint.mesh = m_terrain->GetMesh();
+		m_meshes.push_back(m_terrainBlueprint.mesh);
+
 		m_terrainBlueprint.technique = tech_terrain;
 	}
 
