@@ -311,93 +311,97 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	// Fill out the render information vectors
-	SetUpRenderInstructions();
 
 
-#ifdef MULTI_THREADED
-	// How many instructions will each thread record
-	// If any instructions would remain, each thread records an additional one
-	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
-	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
 
-	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
-	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
 
-	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
-
-	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
-	{
-		ResetCommandListAndAllocator(backBufferIndex, i+1);
-		
-		SetThreadWork(
-			i,
-			window,
-			cam,
-			backBufferIndex,
-			i * numInstrPerThread,
-			numInstrPerThread
-		);
-	}
-
-	{
-		// Set the number of active worker threads
-		std::unique_lock<std::mutex> lock(m_mutex);
-		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
-	}
-
-	m_frames_recorded[0]++;
-
-	{
-		// Wake up the worker threads
-		std::unique_lock<std::mutex> lock(m_mutex);
-		m_cv_workers.notify_all();
-	}
-
-	// Map matrix data to GPU
-	SetMatrixDataAndTextures(backBufferIndex);
-
-	// Create a resource barrier transition from present to render target
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
-	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-	// Main command list commands
-	mainCommandList->ResourceBarrier(1, &barrierDesc);
-	window->ClearRenderTarget(mainCommandList);
-
-	// Wait until each worker thread has finished their recording
-	{
-		std::unique_lock<std::mutex> lock(m_mutex);
-		while (m_numActiveWorkerThreads != 0) {
-			//std::unique_lock<std::mutex> lock2(m_mutex_cv_main);
-			m_cv_main.wait_for(lock, std::chrono::seconds(2), [this]() { return m_numActiveWorkerThreads == 0; });
-		}
-	}
-#else
-	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
-	{
-		ResetCommandListAndAllocator(i);
-	}
-	// Map matrix data to GPU
-	MapMatrixData(backBufferIndex);
-
-	// Create a resource barrier transition from present to render target
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
-	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-	// Main command list commands
-	mainCommandList->ResourceBarrier(1, &barrierDesc);
-	window->ClearRenderTarget(mainCommandList);
-	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
-#endif
+//	// Fill out the render information vectors
+//	SetUpRenderInstructions();
+//
+//
+//#ifdef MULTI_THREADED
+//	// How many instructions will each thread record
+//	// If any instructions would remain, each thread records an additional one
+//	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
+//	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
+//
+//	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
+//	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
+//
+//	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
+//
+//	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+//	{
+//		ResetCommandListAndAllocator(backBufferIndex, i+1);
+//		
+//		SetThreadWork(
+//			i,
+//			window,
+//			cam,
+//			backBufferIndex,
+//			i * numInstrPerThread,
+//			numInstrPerThread
+//		);
+//	}
+//
+//	{
+//		// Set the number of active worker threads
+//		std::unique_lock<std::mutex> lock(m_mutex);
+//		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
+//	}
+//
+//	m_frames_recorded[0]++;
+//
+//	{
+//		// Wake up the worker threads
+//		std::unique_lock<std::mutex> lock(m_mutex);
+//		m_cv_workers.notify_all();
+//	}
+//
+//	// Map matrix data to GPU
+//	SetMatrixDataAndTextures(backBufferIndex);
+//
+//	// Create a resource barrier transition from present to render target
+//	D3D12_RESOURCE_BARRIER barrierDesc = {};
+//	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+//	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+//	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+//	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+//	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+//
+//	// Main command list commands
+//	mainCommandList->ResourceBarrier(1, &barrierDesc);
+//	window->ClearRenderTarget(mainCommandList);
+//
+//	// Wait until each worker thread has finished their recording
+//	{
+//		std::unique_lock<std::mutex> lock(m_mutex);
+//		while (m_numActiveWorkerThreads != 0) {
+//			//std::unique_lock<std::mutex> lock2(m_mutex_cv_main);
+//			m_cv_main.wait_for(lock, std::chrono::seconds(2), [this]() { return m_numActiveWorkerThreads == 0; });
+//		}
+//	}
+//#else
+//	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+//	{
+//		ResetCommandListAndAllocator(i);
+//	}
+//	// Map matrix data to GPU
+//	MapMatrixData(backBufferIndex);
+//
+//	// Create a resource barrier transition from present to render target
+//	D3D12_RESOURCE_BARRIER barrierDesc = {};
+//	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+//	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+//	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+//	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+//	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+//
+//	// Main command list commands
+//	mainCommandList->ResourceBarrier(1, &barrierDesc);
+//	window->ClearRenderTarget(mainCommandList);
+//	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
+//#endif
 
 }
 void D3D12Renderer::Present(Window * w)
@@ -958,4 +962,9 @@ bool D3D12Renderer::InitializeTextureDescriptorHeap()
 	}*/
 
 	return true;
+}
+
+bool D3D12Renderer::InitializeFullscreenPass()
+{
+	return false;
 }

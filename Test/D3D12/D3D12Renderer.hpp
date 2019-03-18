@@ -94,6 +94,7 @@ private:
 	bool InitializeRootSignature();
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
+	bool InitializeFullscreenPass();
 
 	void SetUpRenderInstructions();
 	void ResetCommandListAndAllocator(int backbufferIndex, int index);
