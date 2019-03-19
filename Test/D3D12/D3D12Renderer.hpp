@@ -4,6 +4,7 @@
 #include "GlobalSettings.hpp"
 #include <thread>
 #include <mutex>
+#include <d3d12.h>
 
 struct ID3D12Device4;
 struct ID3D12CommandAllocator;
@@ -11,6 +12,7 @@ struct ID3D12GraphicsCommandList3;
 struct ID3D12DescriptorHeap;
 struct ID3D12RootSignature;
 struct ID3D12Resource;
+struct ID3D12Fence1;
 
 class D3D12VertexBuffer;
 class D3D12TextureLoader;
@@ -18,6 +20,7 @@ class D3D12Window;
 class D3D12Camera;
 class D3D12VertexBufferLoader;
 class FullScreenPass;
+class FXAAPass;
 
 /*
 	Documentation goes here ^^
@@ -62,7 +65,7 @@ public:
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
 	static const unsigned MAIN_COMMAND_INDEX = 0U;
 	static const unsigned NUM_DESCRIPTORS_PER_SWAP_BUFFER = NUM_MATRICES_IN_BUFFER;
-	static const unsigned NUM_DESCRIPTORS_IN_HEAP = NUM_SWAP_BUFFERS * (NUM_DESCRIPTORS_PER_SWAP_BUFFER + 3);
+	static const unsigned NUM_DESCRIPTORS_IN_HEAP = NUM_SWAP_BUFFERS * NUM_DESCRIPTORS_PER_SWAP_BUFFER + 3 * NUM_SWAP_BUFFERS;
 
 private:
 	struct SortingItem
@@ -144,6 +147,11 @@ private:
 
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
 	FullScreenPass* m_fullScreenPass;
+	FXAAPass* m_FXAAPass;
+
+	ID3D12Fence1*				m_Fence_fxaa = nullptr;
+	HANDLE						m_EventHandle_fxaa = nullptr;
+	UINT64						m_FenceValue_fxaa = 0;
 
 	unsigned short m_closestMeshType_float[100];
 	unsigned short m_closestMeshType[100];

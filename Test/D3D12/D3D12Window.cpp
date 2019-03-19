@@ -481,9 +481,18 @@ bool D3D12Window::InitializeRenderTargets()
 		m_Renderer->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
 		cdh.ptr += m_RenderTargetDescriptorSize;
 
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+
 		D3D12_CPU_DESCRIPTOR_HANDLE cdh2 = m_Renderer->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-		cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - (3 * m_Renderer->NUM_DESCRIPTORS_PER_SWAP_BUFFER) + 3 * n) * SRV_SIZE;
-		m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], nullptr, cdh2);
+		cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * n + 2) * SRV_SIZE;
+		
+		std::cout << "RT SRV: " << cdh2.ptr << std::endl;
+
+		m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], &srvDesc, cdh2);
 	}
 
 	return true;
@@ -552,13 +561,6 @@ bool D3D12Window::InitializeDepthBuffer()
 	m_Renderer->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return true;
-}
-
-bool D3D12Window::InitializeFXAA()
-{
-	for (size_t i = 0; i < NUM_SWAP_BUFFERS; i++)
-	{}
-	return false;
 }
 
 bool D3D12Window::InitializeRawInput()

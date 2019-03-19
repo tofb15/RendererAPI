@@ -129,6 +129,5 @@ private:
 	bool InitializeSwapChain();		//3.
 	bool InitializeRenderTargets();	//4.
 	bool InitializeDepthBuffer();	//5.
-	bool InitializeFXAA();			//6.
 	bool InitializeRawInput();
 };

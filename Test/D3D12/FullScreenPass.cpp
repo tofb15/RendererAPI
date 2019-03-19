@@ -52,11 +52,8 @@ void FullScreenPass::Record(ID3D12GraphicsCommandList3 * list, D3D12Window* wind
 	list->SetDescriptorHeaps(1, &descHeap);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE cdh = descHeap->GetGPUDescriptorHandleForHeapStart();
-	cdh.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - (3 * m_renderer->NUM_DESCRIPTORS_PER_SWAP_BUFFER) + 3 * backBufferIndex) * m_srv_cbv_uav_size;
+	cdh.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 2) * m_srv_cbv_uav_size;
 	list->SetGraphicsRootDescriptorTable(0, cdh);
-
-	window->ClearRenderTarget(list);
-	window->SetRenderTarget(list);
 
 	list->DrawInstanced(3, 1, 0, 0);
 }

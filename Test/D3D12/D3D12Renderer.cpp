@@ -15,6 +15,8 @@
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
 #include "FullScreenPass.hpp"
+#include "FXAAPass.hpp"
+
 
 #include <iostream>
 #include <comdef.h>
@@ -26,7 +28,7 @@
 
 #pragma comment(lib, "d3d12.lib")
 
-//#define MULTI_THREADED
+#define MULTI_THREADED
 
 /*Release a Interface that will not be used anymore*/
 template<class Interface>
@@ -83,6 +85,8 @@ D3D12Renderer::~D3D12Renderer()
 		m_structuredBufferResources[i]->Release();
 	}
 
+	std::this_thread::sleep_for(std::chrono::seconds(2));
+
 	m_descriptorHeap->Release();
 	m_rootSignature->Release();
 
@@ -92,7 +96,6 @@ D3D12Renderer::~D3D12Renderer()
 		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
 	}
 	
-	std::this_thread::sleep_for(std::chrono::seconds(2));
 
 	//m_device->Release();
 
@@ -132,7 +135,12 @@ bool D3D12Renderer::Initialize()
 	}
 
 	m_fullScreenPass = new FullScreenPass;
-	m_fullScreenPass->Initialize(this);
+	if (!m_fullScreenPass->Initialize(this))
+		return false;
+
+	m_FXAAPass = new FXAAPass;
+	if (!m_FXAAPass->Initialize(this))
+		return false;
 
 	m_textureLoader = new D3D12TextureLoader(this);
 	if (!m_textureLoader->Initialize())
@@ -160,6 +168,17 @@ bool D3D12Renderer::Initialize()
 		printf("Error: Could not initialize vertex buffer loader\n");
 		return false;
 	}
+
+	HRESULT hr;
+	hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence_fxaa));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	m_FenceValue_fxaa = 1;
+	//Create an event handle to use for GPU synchronization.
+	m_EventHandle_fxaa = CreateEvent(0, false, false, 0);
 
 	return true;
 }
@@ -335,7 +354,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	SetMatrixDataAndTextures(backBufferIndex);
+	/*SetMatrixDataAndTextures(backBufferIndex);
 
 	m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX]->Reset();
 	mainCommandList->Reset(m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX], nullptr);
@@ -348,95 +367,95 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
 	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
-	m_fullScreenPass->Record(mainCommandList, window);
+	m_fullScreenPass->Record(mainCommandList, window);*/
 
-//	// Fill out the render information vectors
-//	SetUpRenderInstructions();
-//
-//
-//#ifdef MULTI_THREADED
-//	// How many instructions will each thread record
-//	// If any instructions would remain, each thread records an additional one
-//	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
-//	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
-//
-//	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
-//	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
-//
-//	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
-//
-//	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
-//	{
-//		ResetCommandListAndAllocator(backBufferIndex, i+1);
-//		
-//		SetThreadWork(
-//			i,
-//			window,
-//			cam,
-//			backBufferIndex,
-//			i * numInstrPerThread,
-//			numInstrPerThread
-//		);
-//	}
-//
-//	{
-//		// Set the number of active worker threads
-//		std::unique_lock<std::mutex> lock(m_mutex);
-//		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
-//	}
-//
-//	m_frames_recorded[0]++;
-//
-//	{
-//		// Wake up the worker threads
-//		std::unique_lock<std::mutex> lock(m_mutex);
-//		m_cv_workers.notify_all();
-//	}
-//
-//	// Map matrix data to GPU
-//	SetMatrixDataAndTextures(backBufferIndex);
-//
-//	// Create a resource barrier transition from present to render target
-//	D3D12_RESOURCE_BARRIER barrierDesc = {};
-//	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-//	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
-//	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-//	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-//	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-//
-//	// Main command list commands
-//	mainCommandList->ResourceBarrier(1, &barrierDesc);
-//	window->ClearRenderTarget(mainCommandList);
-//
-//	// Wait until each worker thread has finished their recording
-//	{
-//		std::unique_lock<std::mutex> lock(m_mutex);
-//		while (m_numActiveWorkerThreads != 0) {
-//			//std::unique_lock<std::mutex> lock2(m_mutex_cv_main);
-//			m_cv_main.wait_for(lock, std::chrono::seconds(2), [this]() { return m_numActiveWorkerThreads == 0; });
-//		}
-//	}
-//#else
-//	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
-//	{
-//		ResetCommandListAndAllocator(i);
-//	}
-//	// Map matrix data to GPU
-//	MapMatrixData(backBufferIndex);
-//
-//	// Create a resource barrier transition from present to render target
-//	D3D12_RESOURCE_BARRIER barrierDesc = {};
-//	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-//	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
-//	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-//	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-//	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-//
-//	// Main command list commands
-//	mainCommandList->ResourceBarrier(1, &barrierDesc);
-//	window->ClearRenderTarget(mainCommandList);
-//	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
-//#endif
+	// Fill out the render information vectors
+	SetUpRenderInstructions();
+
+
+#ifdef MULTI_THREADED
+	// How many instructions will each thread record
+	// If any instructions would remain, each thread records an additional one
+	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
+	numInstrPerThread += (m_renderInstructions.size() % NUM_RECORDING_THREADS ? 1U : 0U);
+
+	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
+	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
+
+	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
+
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+	{
+		ResetCommandListAndAllocator(backBufferIndex, i+1);
+		
+		SetThreadWork(
+			i,
+			window,
+			cam,
+			backBufferIndex,
+			i * numInstrPerThread,
+			numInstrPerThread
+		);
+	}
+
+	{
+		// Set the number of active worker threads
+		std::unique_lock<std::mutex> lock(m_mutex);
+		m_numActiveWorkerThreads = NUM_RECORDING_THREADS;
+	}
+
+	m_frames_recorded[0]++;
+
+	{
+		// Wake up the worker threads
+		std::unique_lock<std::mutex> lock(m_mutex);
+		m_cv_workers.notify_all();
+	}
+
+	// Map matrix data to GPU
+	SetMatrixDataAndTextures(backBufferIndex);
+
+	// Create a resource barrier transition from present to render target
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+	// Main command list commands
+	mainCommandList->ResourceBarrier(1, &barrierDesc);
+	window->ClearRenderTarget(mainCommandList);
+
+	// Wait until each worker thread has finished their recording
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+		while (m_numActiveWorkerThreads != 0) {
+			//std::unique_lock<std::mutex> lock2(m_mutex_cv_main);
+			m_cv_main.wait_for(lock, std::chrono::seconds(2), [this]() { return m_numActiveWorkerThreads == 0; });
+		}
+	}
+#else
+	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
+	{
+		ResetCommandListAndAllocator(i);
+	}
+	// Map matrix data to GPU
+	MapMatrixData(backBufferIndex);
+
+	// Create a resource barrier transition from present to render target
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+	// Main command list commands
+	mainCommandList->ResourceBarrier(1, &barrierDesc);
+	window->ClearRenderTarget(mainCommandList);
+	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
+#endif
 
 }
 void D3D12Renderer::Present(Window * w)
@@ -445,37 +464,56 @@ void D3D12Renderer::Present(Window * w)
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
 	DXGI_PRESENT_PARAMETERS pp = {};
-	ID3D12CommandList* listsToExecute[1];
-	//ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
+	//ID3D12CommandList* listsToExecute[1];
+	ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
 
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
 	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
 
-	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
-	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->Close();
-	listsToExecute[0] = m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX];
-	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
-
-	//// Set the barrier in the last command list
-	//m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
-
-	//// Close the command lists
-	//for (int i = 0; i < NUM_COMMAND_LISTS; i++)
-	//{
-	//	m_commandLists[backBufferIndex][i]->Close();
-	//}
-
-	//// Set the command lists
-	//for (int i = 0; i < NUM_COMMAND_LISTS; i++)
-	//{
-	//	listsToExecute[i] = m_commandLists[backBufferIndex][i];
-	//}
-
+	//m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
+	//m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->Close();
+	//listsToExecute[0] = m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX];
 	//window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+
+	m_fullScreenPass->Record(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], window);
+	// Set the barrier in the last command list
+	m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
+
+	// Close the command lists
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	{
+		m_commandLists[backBufferIndex][i]->Close();
+	}
+
+	// Set the command lists
+	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	{
+		listsToExecute[i] = m_commandLists[backBufferIndex][i];
+	}
+
+	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+	
+	//Wait for REnder before FXAA.
+
+	// Tell last frame to signal when done
+	const UINT64 fence_fxaa = m_FenceValue_fxaa;
+	window->GetCommandQueue()->Signal(m_Fence_fxaa, fence_fxaa);
+	m_FenceValue_fxaa++;
+
+	//Wait until command queue is done.
+	if (m_Fence_fxaa->GetCompletedValue() < fence_fxaa)
+	{
+		m_Fence_fxaa->SetEventOnCompletion(fence_fxaa, m_EventHandle_fxaa);
+		WaitForSingleObject(m_EventHandle_fxaa, INFINITE);
+	}
+
+	//Apply FXAA
+	m_FXAAPass->ApplyFXAA(window);
+	
 
 	//Present the frame.
 	window->GetSwapChain()->Present1(0, 0, &pp);
