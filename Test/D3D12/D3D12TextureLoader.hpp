@@ -36,8 +36,8 @@ private:
 	void WaitForCopy(UINT64 fence);
 	bool AddDescriptorHeap();
 
-	bool CreateDefaultCommittedResource(D3D12Texture* texture, ID3D12Resource* textureResource);
-	bool CreateUploadCommittedResource(D3D12Texture* texture, ID3D12Resource* textureResource);
+	bool CreateDefaultCommittedResource(D3D12Texture* texture, ID3D12Resource** textureResource);
+	bool CreateUploadCommittedResource(D3D12Texture* texture, ID3D12Resource** uploadResource, UINT64 bufferSize);
 
 	std::mutex m_mutex_TextureResources;
 	std::condition_variable m_cv_not_empty;	//Notify that there is work to be done.
