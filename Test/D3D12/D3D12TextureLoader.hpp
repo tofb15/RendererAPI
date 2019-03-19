@@ -36,6 +36,9 @@ private:
 	void WaitForCopy(UINT64 fence);
 	bool AddDescriptorHeap();
 
+	bool CreateDefaultCommittedResource(D3D12Texture* texture, ID3D12Resource* textureResource);
+	bool CreateUploadCommittedResource(D3D12Texture* texture, ID3D12Resource* textureResource);
+
 	std::mutex m_mutex_TextureResources;
 	std::condition_variable m_cv_not_empty;	//Notify that there is work to be done.
 	std::condition_variable m_cv_empty;		//Notify that there is no work to be done.
@@ -44,6 +47,9 @@ private:
 
 	//Temp Storage
 	std::vector<D3D12Texture*> m_texturesToLoadToGPU;
+
+	//Upload storage (can only grow)
+	ID3D12Resource* m_uploadResource;
 
 	//Permanent Storage
 	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 100;
