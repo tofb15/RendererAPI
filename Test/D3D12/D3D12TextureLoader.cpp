@@ -195,9 +195,9 @@ void D3D12TextureLoader::DoWork()
 		textureData.pData = reinterpret_cast<void*>(texture->m_Image_CPU.data());//;reinterpret_cast<UINT8*>(rgb);
 		textureData.RowPitch = texture->m_Width * texture->m_BytesPerPixel;
 		textureData.SlicePitch = textureData.RowPitch * texture->m_Height;
+#pragma endregion
 
 		UpdateSubresources<1>(m_commandList, textureResource, uploadResource, 0, 0, 1, &textureData);
-#pragma endregion
 
 		////// Describe and create a SRV for the texture.
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
