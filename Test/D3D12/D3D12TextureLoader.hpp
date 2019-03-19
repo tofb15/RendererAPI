@@ -3,7 +3,6 @@
 #include <d3d12.h>
 #include <thread>
 #include <mutex>
-#include "../Math.hpp"
 
 class D3D12Texture;
 class D3D12Renderer;
@@ -47,7 +46,7 @@ private:
 
 	//Upload storage (can only grow)
 	ID3D12Resource* m_uploadResource = nullptr;
-	Int2 m_uploadBufferDims;
+	UINT64 m_uploadBufferSize = 0;
 
 	//Permanent Storage
 	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 100;
