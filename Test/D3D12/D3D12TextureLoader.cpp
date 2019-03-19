@@ -209,7 +209,7 @@ void D3D12TextureLoader::DoWork()
 		//
 		// Release and recreate the upload heap if it's not big enough to fit the texture
 		//
-		if (true)//m_uploadBufferSize < texture->GetWidth() * texture->GetHeight())
+		if (m_uploadBufferSize < texture->GetWidth() * texture->GetHeight())
 		{
 			// Release the resource only if it exists (prevents first frame issues)
 			if (m_uploadResource)
