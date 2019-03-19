@@ -392,7 +392,7 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (frameCount % 100 == 0) {
+			if (frameCount % 1 == 0) {
 				unsigned width = m_textures[0]->GetWidth();
 				unsigned height = m_textures[0]->GetHeight();
 				for (unsigned int x = 0; x < width; x++)
