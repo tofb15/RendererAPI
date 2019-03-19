@@ -8,7 +8,7 @@ struct VSOut
 float4 main(VSOut input) : SV_TARGET0
 {
     //float4 finalColor = float4(1, 0, 1, 1);
-	float4 finalColor = g_texture.Load(int3(10,10, 0));
+	float4 finalColor = g_texture.Load(int3(input.pos.xy, 0));
 	
 	return finalColor;
 }

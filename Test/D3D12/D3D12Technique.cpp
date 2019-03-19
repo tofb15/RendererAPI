@@ -124,6 +124,9 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 		return false;
 	}
 
+	std::wstring name = L"Technique #" + std::wstring(std::to_wstring(2));
+	m_pipelineState->SetName(LPCWSTR(name.c_str()));
+
 	delete[] ied;
 
 	return true;

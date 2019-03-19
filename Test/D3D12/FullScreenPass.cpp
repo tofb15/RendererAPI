@@ -26,6 +26,7 @@ FullScreenPass::~FullScreenPass()
 bool FullScreenPass::Initialize(D3D12Renderer* renderer)
 {
 	m_renderer = renderer;
+	m_srv_cbv_uav_size = m_renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	if (!InitializeShaders())
 		return false;
@@ -39,14 +40,25 @@ bool FullScreenPass::Initialize(D3D12Renderer* renderer)
 
 void FullScreenPass::Record(ID3D12GraphicsCommandList3 * list, D3D12Window* window)
 {
+	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+
 	list->SetPipelineState(m_pipelineState);
 	list->SetGraphicsRootSignature(m_rootSignature);
 	list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	list->RSSetViewports(1, window->GetViewport());
 	list->RSSetScissorRects(1, window->GetScissorRect());
 
+	ID3D12DescriptorHeap* descHeap = m_renderer->GetDescriptorHeap();
+	list->SetDescriptorHeaps(1, &descHeap);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE cdh = descHeap->GetGPUDescriptorHandleForHeapStart();
+	cdh.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - (3 * m_renderer->NUM_DESCRIPTORS_PER_SWAP_BUFFER) + 3 * backBufferIndex) * m_srv_cbv_uav_size;
+	list->SetGraphicsRootDescriptorTable(0, cdh);
+
 	window->ClearRenderTarget(list);
 	window->SetRenderTarget(list);
+
+	list->DrawInstanced(3, 1, 0, 0);
 }
 
 bool FullScreenPass::InitializeShaders()
@@ -149,8 +161,8 @@ bool FullScreenPass::InitializeRootSignature()
 	D3D12_DESCRIPTOR_RANGE dr[1] = {};
 	D3D12_ROOT_DESCRIPTOR_TABLE rootDescTable = {};
 
-	D3D12_ROOT_SIGNATURE_DESC rootSigDesc;
-	D3D12_ROOT_PARAMETER rootParams[1];
+	D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
+	D3D12_ROOT_PARAMETER rootParams[1] = {};
 	ID3DBlob* sBlob;
 
 	dr[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -164,12 +176,8 @@ bool FullScreenPass::InitializeRootSignature()
 	// Root constants
 	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParams[0].DescriptorTable = rootDescTable;
-	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	rootSigDesc.Flags =
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 	rootSigDesc.NumParameters = sizeof(rootParams) / sizeof(D3D12_ROOT_PARAMETER);
 	rootSigDesc.pParameters = rootParams;
 	rootSigDesc.NumStaticSamplers = 0;
@@ -195,6 +203,8 @@ bool FullScreenPass::InitializeRootSignature()
 		return false;
 	}
 
+	m_rootSignature->SetName(L"FullScreen Tri Root");
+
 	return true;
 }
 
@@ -206,7 +216,7 @@ bool FullScreenPass::InitializePSO()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsd = {};
 
 	// Specify pipeline stages
-	gpsd.pRootSignature = m_renderer->GetRootSignature();
+	gpsd.pRootSignature = m_rootSignature;
 	gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	gpsd.VS.pShaderBytecode = vs_blob->GetBufferPointer();
 	gpsd.VS.BytecodeLength =  vs_blob->GetBufferSize();
@@ -262,6 +272,9 @@ bool FullScreenPass::InitializePSO()
 	{
 		return false;
 	}
+
+	m_pipelineState->SetName(L"FullScreen tri PSO");
+
 
 
 	return true;

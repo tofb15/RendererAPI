@@ -42,6 +42,7 @@ inline void SafeRelease(Interface **ppInterfaceToRelease)
 
 D3D12Renderer::D3D12Renderer()
 {
+
 }
 D3D12Renderer::~D3D12Renderer()
 {
@@ -81,9 +82,25 @@ D3D12Renderer::~D3D12Renderer()
 		//m_descriptorHeap[i]->Release();
 		m_structuredBufferResources[i]->Release();
 	}
+
 	m_descriptorHeap->Release();
 	m_rootSignature->Release();
-	m_device->Release();
+
+	HRESULT hr = m_device->GetDeviceRemovedReason();
+	if (FAILED(hr)) {
+		_com_error err2(hr);
+		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+	}
+	
+	std::this_thread::sleep_for(std::chrono::seconds(2));
+
+	//m_device->Release();
+
+	//hr = m_device->GetDeviceRemovedReason();
+	//_com_error err3(hr);
+	//std::cout << "Device Status: " << err3.ErrorMessage() << std::endl;
+
+	int i;
 }
 
 bool D3D12Renderer::Initialize()
@@ -318,8 +335,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	//SetMatrixDataAndTextures(backBufferIndex);
-	m_device->CopyDescriptorsSimple(1, m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_textureLoader->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(m_items[0].item.blueprint->textures[0])), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	SetMatrixDataAndTextures(backBufferIndex);
 
 	m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX]->Reset();
 	mainCommandList->Reset(m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX], nullptr);
@@ -332,17 +348,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
 	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
-	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->SetDescriptorHeaps(1, &m_descriptorHeap);
-
-
 	m_fullScreenPass->Record(mainCommandList, window);
-
-	D3D12_GPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	cdh.ptr += 0;// backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER * m_cbv_srv_uav_size;
-	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->SetGraphicsRootDescriptorTable(0, cdh);
-
-	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->DrawInstanced(3, 1, 0, 0);
-
 
 //	// Fill out the render information vectors
 //	SetUpRenderInstructions();
@@ -995,6 +1001,8 @@ bool D3D12Renderer::InitializeTextureDescriptorHeap()
 	hr = m_device->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&m_descriptorHeap));
 	if (FAILED(hr))
 		return false;
+
+	m_descriptorHeap->SetName(L"Big Shared Heap");
 	/*for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
 		hr = m_device->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&m_descriptorHeap[i]));

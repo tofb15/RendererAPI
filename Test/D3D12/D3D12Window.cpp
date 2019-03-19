@@ -458,12 +458,15 @@ bool D3D12Window::InitializeRenderTargets()
 	{
 		return false;
 	}
+	m_RenderTargetsHeap->SetName(L"RT DescHeap");
+
 
 	//Create resources for the render targets.
 	m_RenderTargetDescriptorSize = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//mCBV_SRV_UAV_DescriptorSize = mDevice5->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	UINT SRV_SIZE = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	//One RTV for each frame.
 	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
@@ -473,9 +476,14 @@ bool D3D12Window::InitializeRenderTargets()
 		{
 			return false;
 		}
+		m_RenderTargets[n]->SetName(L"RT");
 
 		m_Renderer->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
 		cdh.ptr += m_RenderTargetDescriptorSize;
+
+		D3D12_CPU_DESCRIPTOR_HANDLE cdh2 = m_Renderer->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+		cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - (3 * m_Renderer->NUM_DESCRIPTORS_PER_SWAP_BUFFER) + 3 * n) * SRV_SIZE;
+		m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], nullptr, cdh2);
 	}
 
 	return true;
@@ -544,6 +552,13 @@ bool D3D12Window::InitializeDepthBuffer()
 	m_Renderer->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return true;
+}
+
+bool D3D12Window::InitializeFXAA()
+{
+	for (size_t i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{}
+	return false;
 }
 
 bool D3D12Window::InitializeRawInput()

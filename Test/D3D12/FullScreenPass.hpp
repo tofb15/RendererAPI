@@ -23,5 +23,7 @@ private:
 	D3D12Renderer* m_renderer;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
+
+	UINT m_srv_cbv_uav_size;
 };
 
