@@ -14,6 +14,8 @@
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
+#include "FullScreenPass.hpp"
+
 #include <iostream>
 #include <comdef.h>
 
@@ -24,7 +26,7 @@
 
 #pragma comment(lib, "d3d12.lib")
 
-#define MULTI_THREADED
+//#define MULTI_THREADED
 
 /*Release a Interface that will not be used anymore*/
 template<class Interface>
@@ -63,8 +65,11 @@ D3D12Renderer::~D3D12Renderer()
 	if (m_vertexBufferLoader)
 		delete m_vertexBufferLoader;
 
-	// These are safe to release as long as each window has been deleted first,
-	// since the windows wait for their queues to finish all their work
+	if (m_fullScreenPass)
+		delete m_fullScreenPass;
+
+	 //These are safe to release as long as each window has been deleted first,
+	 //since the windows wait for their queues to finish all their work
 
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
@@ -109,6 +114,8 @@ bool D3D12Renderer::Initialize()
 		return false;
 	}
 
+	m_fullScreenPass = new FullScreenPass;
+	m_fullScreenPass->Initialize(this);
 
 	m_textureLoader = new D3D12TextureLoader(this);
 	if (!m_textureLoader->Initialize())
@@ -311,8 +318,30 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
+	//SetMatrixDataAndTextures(backBufferIndex);
+	m_device->CopyDescriptorsSimple(1, m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_textureLoader->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(m_items[0].item.blueprint->textures[0])), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX]->Reset();
+	mainCommandList->Reset(m_commandAllocators[backBufferIndex][MAIN_COMMAND_INDEX], nullptr);
+	
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->SetDescriptorHeaps(1, &m_descriptorHeap);
 
 
+	m_fullScreenPass->Record(mainCommandList, window);
+
+	D3D12_GPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	cdh.ptr += 0;// backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER * m_cbv_srv_uav_size;
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->SetGraphicsRootDescriptorTable(0, cdh);
+
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->DrawInstanced(3, 1, 0, 0);
 
 
 //	// Fill out the render information vectors
@@ -410,7 +439,8 @@ void D3D12Renderer::Present(Window * w)
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
 	DXGI_PRESENT_PARAMETERS pp = {};
-	ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
+	ID3D12CommandList* listsToExecute[1];
+	//ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
 
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
@@ -418,22 +448,28 @@ void D3D12Renderer::Present(Window * w)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
-	// Set the barrier in the last command list
-	m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
 
-	// Close the command lists
-	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
-	{
-		m_commandLists[backBufferIndex][i]->Close();
-	}
-
-	// Set the command lists
-	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
-	{
-		listsToExecute[i] = m_commandLists[backBufferIndex][i];
-	}
-
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
+	m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->Close();
+	listsToExecute[0] = m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX];
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+
+	//// Set the barrier in the last command list
+	//m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
+
+	//// Close the command lists
+	//for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	//{
+	//	m_commandLists[backBufferIndex][i]->Close();
+	//}
+
+	//// Set the command lists
+	//for (int i = 0; i < NUM_COMMAND_LISTS; i++)
+	//{
+	//	listsToExecute[i] = m_commandLists[backBufferIndex][i];
+	//}
+
+	//window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
 	//Present the frame.
 	window->GetSwapChain()->Present1(0, 0, &pp);
@@ -729,6 +765,11 @@ D3D12VertexBufferLoader * D3D12Renderer::GetVertexBufferLoader() const
 	return m_vertexBufferLoader;
 }
 
+ID3D12DescriptorHeap * D3D12Renderer::GetDescriptorHeap() const
+{
+	return m_descriptorHeap;
+}
+
 bool D3D12Renderer::InitializeDirect3DDevice()
 {
 #ifndef _DEBUG
@@ -962,9 +1003,4 @@ bool D3D12Renderer::InitializeTextureDescriptorHeap()
 	}*/
 
 	return true;
-}
-
-bool D3D12Renderer::InitializeFullscreenPass()
-{
-	return false;
 }

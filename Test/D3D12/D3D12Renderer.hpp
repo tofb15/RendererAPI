@@ -17,6 +17,7 @@ class D3D12TextureLoader;
 class D3D12Window;
 class D3D12Camera;
 class D3D12VertexBufferLoader;
+class FullScreenPass;
 
 /*
 	Documentation goes here ^^
@@ -52,6 +53,7 @@ public:
 	ID3D12RootSignature* GetRootSignature() const;
 	D3D12TextureLoader* GetTextureLoader() const;
 	D3D12VertexBufferLoader* GetVertexBufferLoader() const;
+	ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
 private:
 	struct SortingItem
@@ -94,7 +96,6 @@ private:
 	bool InitializeRootSignature();
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
-	bool InitializeFullscreenPass();
 
 	void SetUpRenderInstructions();
 	void ResetCommandListAndAllocator(int backbufferIndex, int index);
@@ -143,6 +144,7 @@ private:
 	//ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
+	FullScreenPass* m_fullScreenPass;
 
 	unsigned short m_closestMeshType_float[100];
 	unsigned short m_closestMeshType[100];
