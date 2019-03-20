@@ -55,6 +55,15 @@ void FXAAPass::ApplyFXAA(D3D12Window * window)
 	m_commandAllocator[backbufferIndex]->Reset();
 	m_commandList[backbufferIndex]->Reset(m_commandAllocator[backbufferIndex], m_pipelineState);
 
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+	//barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	//barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	//barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	//barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+	//barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+	//m_commandList[backbufferIndex]->ResourceBarrier(1,&barrierDesc);
+
 	m_commandList[backbufferIndex]->SetComputeRootSignature(m_rootSignature);
 	ID3D12DescriptorHeap* tempDescriptorHeap = m_renderer->GetDescriptorHeap();
 	m_commandList[backbufferIndex]->SetDescriptorHeaps(1, &tempDescriptorHeap);
@@ -65,6 +74,15 @@ void FXAAPass::ApplyFXAA(D3D12Window * window)
 	m_commandList[backbufferIndex]->SetComputeRootDescriptorTable(0, descHndGPU);
 
 	m_commandList[backbufferIndex]->Dispatch(1,1,1);
+
+	//barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	//barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
+	//barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	//barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+	//barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+	//m_commandList[backbufferIndex]->ResourceBarrier(1, &barrierDesc);
+
 	m_commandList[backbufferIndex]->Close();
 
 	ID3D12CommandList* commandList = m_commandList[backbufferIndex];
@@ -132,6 +150,8 @@ bool FXAAPass::InitializeShaders()
 	}
 
 	shaderFile.close();
+
+	return true;
 }
 
 bool FXAAPass::InitializeRootSignature()
@@ -190,7 +210,7 @@ bool FXAAPass::InitializeRootSignature()
 		return false;
 	}
 
-	m_rootSignature->SetName(L"FullScreen Tri Root");
+	m_rootSignature->SetName(L"FXAA Root");
 
 	return true;
 }

@@ -14,8 +14,7 @@
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
-#include "FullScreenPass.hpp"
-#include "FXAAPass.hpp"
+#include "ParticleSystem.hpp"
 
 
 #include <iostream>
@@ -68,8 +67,11 @@ D3D12Renderer::~D3D12Renderer()
 	if (m_vertexBufferLoader)
 		delete m_vertexBufferLoader;
 
-	if (m_fullScreenPass)
-		delete m_fullScreenPass;
+	if (m_particleSystem)
+		delete m_particleSystem;
+
+	//if (m_fullScreenPass)
+	//	delete m_fullScreenPass;
 
 	 //These are safe to release as long as each window has been deleted first,
 	 //since the windows wait for their queues to finish all their work
@@ -134,13 +136,17 @@ bool D3D12Renderer::Initialize()
 		return false;
 	}
 
-	m_fullScreenPass = new FullScreenPass;
-	if (!m_fullScreenPass->Initialize(this))
+	m_particleSystem = new ParticleSystem;
+	if (!m_particleSystem->Initialize(this))
 		return false;
 
-	m_FXAAPass = new FXAAPass;
-	if (!m_FXAAPass->Initialize(this))
-		return false;
+	//m_fullScreenPass = new FullScreenPass;
+	//if (!m_fullScreenPass->Initialize(this))
+	//	return false;
+
+	//m_FXAAPass = new FXAAPass;
+	//if (!m_FXAAPass->Initialize(this))
+	//	return false;
 
 	m_textureLoader = new D3D12TextureLoader(this);
 	if (!m_textureLoader->Initialize())
@@ -160,7 +166,6 @@ bool D3D12Renderer::Initialize()
 		std::cout << std::hex << m_recorderThreads[i].get_id() << std::dec << std::endl;
 	}
 #endif
-
 
 	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
@@ -339,11 +344,18 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 	m_items.push_back(s);
 }
 
+
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	D3D12Camera* cam = static_cast<D3D12Camera*>(c);
 	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[window->GetCurrentBackBufferIndex()][MAIN_COMMAND_INDEX];
+	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+
+	static float particle_time = 0.0f;
+
+	particle_time += 0.001f;
+	m_particleSystem->Update(particle_time, backBufferIndex);
 
 	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
@@ -352,7 +364,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		return a.sortingIndex > b.sortingIndex;
 	});
 
-	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
 	/*SetMatrixDataAndTextures(backBufferIndex);
 
@@ -435,6 +446,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 			m_cv_main.wait_for(lock, std::chrono::seconds(2), [this]() { return m_numActiveWorkerThreads == 0; });
 		}
 	}
+
+	m_particleSystem->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], backBufferIndex, cam);
 #else
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
@@ -462,16 +475,16 @@ void D3D12Renderer::Present(Window * w)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
 	DXGI_PRESENT_PARAMETERS pp = {};
 	//ID3D12CommandList* listsToExecute[1];
 	ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
 
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
 	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
 	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
 
 	//m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX]->ResourceBarrier(1, &barrierDesc);
@@ -479,7 +492,7 @@ void D3D12Renderer::Present(Window * w)
 	//listsToExecute[0] = m_commandLists[backBufferIndex][MAIN_COMMAND_INDEX];
 	//window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
-	m_fullScreenPass->Record(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], window);
+	//m_fullScreenPass->Record(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], window);
 	// Set the barrier in the last command list
 	m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
 
@@ -499,20 +512,20 @@ void D3D12Renderer::Present(Window * w)
 	
 	//Wait for REnder before FXAA.
 
-	// Tell last frame to signal when done
-	const UINT64 fence_fxaa = m_FenceValue_fxaa;
-	window->GetCommandQueue()->Signal(m_Fence_fxaa, fence_fxaa);
-	m_FenceValue_fxaa++;
+	//// Tell last frame to signal when done
+	//const UINT64 fence_fxaa = m_FenceValue_fxaa;
+	//window->GetCommandQueue()->Signal(m_Fence_fxaa, fence_fxaa);
+	//m_FenceValue_fxaa++;
 
-	//Wait until command queue is done.
-	if (m_Fence_fxaa->GetCompletedValue() < fence_fxaa)
-	{
-		m_Fence_fxaa->SetEventOnCompletion(fence_fxaa, m_EventHandle_fxaa);
-		WaitForSingleObject(m_EventHandle_fxaa, INFINITE);
-	}
+	////Wait until command queue is done.
+	//if (m_Fence_fxaa->GetCompletedValue() < fence_fxaa)
+	//{
+	//	m_Fence_fxaa->SetEventOnCompletion(fence_fxaa, m_EventHandle_fxaa);
+	//	WaitForSingleObject(m_EventHandle_fxaa, INFINITE);
+	//}
 
 	//Apply FXAA
-	m_FXAAPass->ApplyFXAA(window);
+	//m_FXAAPass->ApplyFXAA(window);
 	
 
 	//Present the frame.

@@ -52,7 +52,9 @@ void FullScreenPass::Record(ID3D12GraphicsCommandList3 * list, D3D12Window* wind
 	list->SetDescriptorHeaps(1, &descHeap);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE cdh = descHeap->GetGPUDescriptorHandleForHeapStart();
-	cdh.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 2) * m_srv_cbv_uav_size;
+	cdh.ptr  += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 2) * m_srv_cbv_uav_size;
+	   //.ptr  += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 1) * m_srv_cbv_uav_size;
+
 	list->SetGraphicsRootDescriptorTable(0, cdh);
 
 	list->DrawInstanced(3, 1, 0, 0);
@@ -214,7 +216,7 @@ bool FullScreenPass::InitializePSO()
 
 	// Specify pipeline stages
 	gpsd.pRootSignature = m_rootSignature;
-	gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	gpsd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	gpsd.VS.pShaderBytecode = vs_blob->GetBufferPointer();
 	gpsd.VS.BytecodeLength =  vs_blob->GetBufferSize();
 

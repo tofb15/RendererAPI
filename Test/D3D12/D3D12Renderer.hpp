@@ -19,8 +19,7 @@ class D3D12TextureLoader;
 class D3D12Window;
 class D3D12Camera;
 class D3D12VertexBufferLoader;
-class FullScreenPass;
-class FXAAPass;
+class ParticleSystem;
 
 /*
 	Documentation goes here ^^
@@ -65,7 +64,7 @@ public:
 	static const unsigned NUM_RECORDING_THREADS = NUM_COMMAND_LISTS - 1U;
 	static const unsigned MAIN_COMMAND_INDEX = 0U;
 	static const unsigned NUM_DESCRIPTORS_PER_SWAP_BUFFER = NUM_MATRICES_IN_BUFFER;
-	static const unsigned NUM_DESCRIPTORS_IN_HEAP = NUM_SWAP_BUFFERS * NUM_DESCRIPTORS_PER_SWAP_BUFFER + 3 * NUM_SWAP_BUFFERS;
+	static const unsigned NUM_DESCRIPTORS_IN_HEAP = NUM_SWAP_BUFFERS * NUM_DESCRIPTORS_PER_SWAP_BUFFER + NUM_SWAP_BUFFERS;
 
 private:
 	struct SortingItem
@@ -146,8 +145,9 @@ private:
 	//ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
 
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
-	FullScreenPass* m_fullScreenPass;
-	FXAAPass* m_FXAAPass;
+	//FullScreenPass* m_fullScreenPass;
+	//FXAAPass* m_FXAAPass;
+	ParticleSystem* m_particleSystem = nullptr;
 
 	ID3D12Fence1*				m_Fence_fxaa = nullptr;
 	HANDLE						m_EventHandle_fxaa = nullptr;

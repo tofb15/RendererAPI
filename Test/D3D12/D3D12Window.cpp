@@ -481,18 +481,18 @@ bool D3D12Window::InitializeRenderTargets()
 		m_Renderer->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
 		cdh.ptr += m_RenderTargetDescriptorSize;
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = 1;
+		//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		//srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		//srvDesc.Texture2D.MipLevels = 1;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE cdh2 = m_Renderer->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-		cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * n + 2) * SRV_SIZE;
-		
-		std::cout << "RT SRV: " << cdh2.ptr << std::endl;
+		//D3D12_CPU_DESCRIPTOR_HANDLE cdh2 = m_Renderer->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+		//cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * n + 2) * SRV_SIZE;
+		//
+		//std::cout << "RT SRV: " << cdh2.ptr << std::endl;
 
-		m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], &srvDesc, cdh2);
+		//m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], &srvDesc, cdh2);
 	}
 
 	return true;

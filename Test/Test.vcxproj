@@ -132,6 +132,7 @@
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
     <ClCompile Include="D3D12\FullScreenPass.cpp" />
     <ClCompile Include="D3D12\FXAAPass.cpp" />
+    <ClCompile Include="D3D12\ParticleSystem.cpp" />
     <ClCompile Include="Terrain.cpp" />
     <ClCompile Include="WindowInput.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="D3D12\D3D12VertexBufferLoader.hpp" />
     <ClInclude Include="D3D12\FullScreenPass.hpp" />
     <ClInclude Include="D3D12\FXAAPass.hpp" />
+    <ClInclude Include="D3D12\ParticleSystem.hpp" />
     <ClInclude Include="Terrain.hpp" />
     <ClInclude Include="WindowInput.hpp" />
     <ClInclude Include="Material.hpp" />
