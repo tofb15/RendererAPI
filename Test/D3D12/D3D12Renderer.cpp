@@ -14,7 +14,7 @@
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
-#include "ParticleSystem.hpp"
+#include "D3D12ParticleSystem.hpp"
 
 
 #include <iostream>
@@ -67,8 +67,8 @@ D3D12Renderer::~D3D12Renderer()
 	if (m_vertexBufferLoader)
 		delete m_vertexBufferLoader;
 
-	if (m_particleSystem)
-		delete m_particleSystem;
+	//if (m_particleSystem)
+	//	delete m_particleSystem;
 
 	//if (m_fullScreenPass)
 	//	delete m_fullScreenPass;
@@ -136,9 +136,9 @@ bool D3D12Renderer::Initialize()
 		return false;
 	}
 
-	m_particleSystem = new ParticleSystem;
-	if (!m_particleSystem->Initialize(this))
-		return false;
+	//m_particleSystem = new D3D12ParticleSystem;
+	//if (!m_particleSystem->Initialize(this))
+	//	return false;
 
 	//m_fullScreenPass = new FullScreenPass;
 	//if (!m_fullScreenPass->Initialize(this))
@@ -214,6 +214,19 @@ Terrain * D3D12Renderer::MakeTerrain()
 {
 	return new D3D12Terrain(this);
 }
+ParticleSystem * D3D12Renderer::MakeParticleSystem()
+{
+	if (++m_particlesSystemCreated == 0)
+		return nullptr;
+
+	D3D12ParticleSystem* ps = new D3D12ParticleSystem(this, m_particlesSystemCreated);
+	if (!ps->Initialize()) {
+		delete ps;
+		return nullptr;
+	}
+
+	return ps;
+}
 Material * D3D12Renderer::MakeMaterial()
 {
 	return new D3D12Material;
@@ -271,6 +284,7 @@ void D3D12Renderer::ClearFrame()
 void D3D12Renderer::ClearSubmissions()
 {
 	m_items.clear();
+	m_particles.clear();
 
 	int max = m_techniquesCreated * m_meshesCreated;
 	for (size_t i = 0; i < 100; i++)
@@ -293,8 +307,8 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 	sphere.center = item.transform.pos;
 	sphere.radius = max(item.transform.scale.x, max(item.transform.scale.y, item.transform.scale.z));
 
-	if (!camera->GetFrustum().CheckAgainstFrustum(sphere))
-		return;
+	//if (!camera->GetFrustum().CheckAgainstFrustum(sphere))
+	//	return;
 
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
@@ -344,6 +358,11 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 	m_items.push_back(s);
 }
 
+void D3D12Renderer::Submit(ParticleSystem * p)
+{
+	m_particles.push_back(static_cast<D3D12ParticleSystem*>(p));
+}
+
 
 void D3D12Renderer::Frame(Window* w, Camera* c)
 {
@@ -352,10 +371,9 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	ID3D12GraphicsCommandList3* mainCommandList = m_commandLists[window->GetCurrentBackBufferIndex()][MAIN_COMMAND_INDEX];
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
 
-	static float particle_time = 0.0f;
-
-	particle_time += 0.001f;
-	m_particleSystem->Update(particle_time, backBufferIndex);
+	//static float particle_time = 0.0f;
+	//particle_time += 0.001f;
+	//m_particleSystem->Update(particle_time, backBufferIndex);
 
 	// Sort the objects to be rendered
 	std::sort(m_items.begin(), m_items.end(),
@@ -447,7 +465,12 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		}
 	}
 
-	m_particleSystem->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], backBufferIndex, cam);
+	//m_particleSystem->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], backBufferIndex, cam);
+	for (D3D12ParticleSystem* p : m_particles)
+	{
+		p->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], cam);
+	}
+
 #else
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{

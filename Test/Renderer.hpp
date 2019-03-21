@@ -12,6 +12,7 @@ class Material;
 class RenderState;
 class Technique;
 class ShaderManager;
+class ParticleSystem;
 struct ShaderProgram;
 
 
@@ -96,7 +97,14 @@ public:
 
 		@return a pointer to a Terrain instance if successful, nullptr if not
 	*/
-	virtual Terrain*			MakeTerrain() = 0;
+	virtual Terrain*		MakeTerrain() = 0;
+
+	/*
+	Create a ParticleSystem instance
+
+	@return a pointer to a ParticleSystem instance if successful, nullptr if not
+    */
+	virtual ParticleSystem*		MakeParticleSystem() = 0;
 
 	/*
 		Create a Material instance
@@ -134,6 +142,7 @@ public:
 		@param camera the camera which will be used for rendering
 	*/
 	virtual void			Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) = 0;
+	virtual void			Submit(ParticleSystem* p) = 0;
 
 	/*
 		Clear previously submitted work

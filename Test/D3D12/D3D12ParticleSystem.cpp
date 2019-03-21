@@ -1,4 +1,5 @@
-#include "ParticleSystem.hpp"
+#include "D3D12ParticleSystem.hpp"
+
 #include <d3dcompiler.h>
 #include <string>
 #include <fstream>
@@ -9,18 +10,19 @@
 #include "D3D12Renderer.hpp"
 #include "D3D12Camera.hpp"
 
-ParticleSystem::ParticleSystem()
-{
-}
-
-ParticleSystem::~ParticleSystem()
-{
-}
-
-bool ParticleSystem::Initialize(D3D12Renderer * renderer)
+D3D12ParticleSystem::D3D12ParticleSystem(D3D12Renderer* renderer, short id) : ParticleSystem()
 {
 	m_renderer = renderer;
+	m_id = id;
+}
 
+D3D12ParticleSystem::~D3D12ParticleSystem()
+{
+
+}
+
+bool D3D12ParticleSystem::Initialize()
+{
 	if (!InitializeShaders())
 		return false;
 	if (!InitializeRootSignature_CS())
@@ -36,6 +38,7 @@ bool ParticleSystem::Initialize(D3D12Renderer * renderer)
 	if (!InitializeCommandInterfaces())
 		return false;
 
+#ifdef 	Particle_Single_Fence
 	HRESULT hr;
 	hr = m_renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
 	if (FAILED(hr))
@@ -46,38 +49,55 @@ bool ParticleSystem::Initialize(D3D12Renderer * renderer)
 	m_FenceValue = 1;
 	//Create an event handle to use for GPU synchronization.
 	m_EventHandle = CreateEvent(0, false, false, 0);
+#else
 
+	HRESULT hr;
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		hr = m_renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence[i]));
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		m_FenceValue[i] = 1;
+		//Create an event handle to use for GPU synchronization.
+		m_EventHandle[i] = CreateEvent(0, false, false, 0);
+	}
+#endif
 	return true;
 }
 
-void ParticleSystem::Update(float dt, int bufferIndex)
+void D3D12ParticleSystem::Update(float dt)
 {
-	if (bufferIndex < 0 || bufferIndex >= NUM_SWAP_BUFFERS)
-		std::cout << "BackBufferIndex: " << bufferIndex << std::endl;
+	m_time += dt;
 
-	m_commandAllocator[bufferIndex]->Reset();
-	m_commandList[bufferIndex]->Reset(m_commandAllocator[bufferIndex], m_pipelineState_CS);
+	m_commandAllocator[m_bufferIndex]->Reset();
+	m_commandList[m_bufferIndex]->Reset(m_commandAllocator[m_bufferIndex], m_pipelineState_CS);
 
-	m_commandList[bufferIndex]->SetComputeRootSignature(m_rootSignature_CS);
-	m_commandList[bufferIndex]->SetComputeRoot32BitConstants(1, 1, &dt, 0);
+	m_commandList[m_bufferIndex]->SetComputeRootSignature(m_rootSignature_CS);
+	m_commandList[m_bufferIndex]->SetComputeRoot32BitConstants(1, 1, &m_time, 0);
 
 	ID3D12DescriptorHeap* tempDescriptorHeap = m_renderer->GetDescriptorHeap();
-	m_commandList[bufferIndex]->SetDescriptorHeaps(1, &tempDescriptorHeap);
+	m_commandList[m_bufferIndex]->SetDescriptorHeaps(1, &tempDescriptorHeap);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE descHndGPU = m_renderer->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
-	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + bufferIndex) * m_srv_cbv_uav_size;
-	m_commandList[bufferIndex]->SetComputeRootDescriptorTable(0, descHndGPU);
+	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + m_bufferIndex) * m_srv_cbv_uav_size;
+	m_commandList[m_bufferIndex]->SetComputeRootDescriptorTable(0, descHndGPU);
 
-	m_commandList[bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
-	m_commandList[bufferIndex]->Close();
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Close();
 
-	ID3D12CommandList* commandList = m_commandList[bufferIndex];
+	ID3D12CommandList* commandList = m_commandList[m_bufferIndex];
 	m_commandQueue->ExecuteCommandLists(1, &commandList);
 
 	/*
 		THIS SHOULD BE REMOVED
 	*/
 
+	static UINT64 nWaits = 0;
+
+#ifdef Particle_Single_Fence
 	// Tell last frame to signal when done
 	const UINT64 fence = m_FenceValue;
 	m_commandQueue->Signal(m_Fence, fence);
@@ -86,13 +106,49 @@ void ParticleSystem::Update(float dt, int bufferIndex)
 	//Wait until command queue is done.
 	if (m_Fence->GetCompletedValue() < fence)
 	{
+		nWaits++;
+		std::string s = "Compute waits: " + std::to_string(nWaits) + "\n";
+		printf(s.c_str());
 		m_Fence->SetEventOnCompletion(fence, m_EventHandle);
 		WaitForSingleObject(m_EventHandle, INFINITE);
 	}
+#else
+	//Tell last update to signal when done
+	const UINT64 fence = m_FenceValue[m_bufferIndex];
+	m_commandQueue->Signal(m_Fence[m_bufferIndex], fence);
+	m_FenceValue[m_bufferIndex]++;
+
+	m_bufferIndex += 1;
+	m_bufferIndex %= NUM_SWAP_BUFFERS;
+
+	//Wait if needed
+	if (m_Fence[m_bufferIndex]->GetCompletedValue() < m_FenceValue[m_bufferIndex] - 1)
+	{
+		nWaits++;
+		std::string s = "Compute waits: " + std::to_string(nWaits) + "\n";
+		printf(s.c_str());
+		m_Fence[m_bufferIndex]->SetEventOnCompletion(m_FenceValue[m_bufferIndex] - 1, m_EventHandle[m_bufferIndex]);
+		WaitForSingleObject(m_EventHandle[m_bufferIndex], INFINITE);
+	}
+#endif
 }
 
-void ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, int bufferIndex, D3D12Camera* camera)
+void D3D12ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, D3D12Camera* camera)
 {
+#ifndef Particle_Single_Fence
+	//Get Last done update
+	int searchIndex = (m_bufferIndex - 1 + NUM_SWAP_BUFFERS) % NUM_SWAP_BUFFERS;
+	for (size_t i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		if (m_Fence[searchIndex]->GetCompletedValue() == m_FenceValue[searchIndex] - 1)
+		{
+			break;//Found one that is done!
+		}
+		searchIndex += (NUM_SWAP_BUFFERS - 1);
+		searchIndex %= (NUM_SWAP_BUFFERS);
+	}
+#endif // Particle_Single_Fence
+
 	DirectX::XMFLOAT4X4 viewPersp = camera->GetViewPerspective();
 
 	list->SetPipelineState(m_pipelineState_render);
@@ -103,7 +159,11 @@ void ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, int bufferIndex, 
 	list->SetDescriptorHeaps(1, &tempDescriptorHeap);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE descHndGPU = m_renderer->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
-	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + bufferIndex) * m_srv_cbv_uav_size;
+#ifdef Particle_Single_Fence
+	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + m_bufferIndex) * m_srv_cbv_uav_size;
+#else
+	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + searchIndex) * m_srv_cbv_uav_size;
+#endif
 	list->SetGraphicsRootDescriptorTable(0, descHndGPU);
 	list->SetGraphicsRoot32BitConstants(1, 16, &viewPersp, 0);
 
@@ -111,7 +171,7 @@ void ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, int bufferIndex, 
 
 }
 
-bool ParticleSystem::CompileShader(ID3DBlob** shaderBlob, const char * name, Shader_Type type)
+bool D3D12ParticleSystem::CompileShader(ID3DBlob** shaderBlob, const char * name, Shader_Type type)
 {
 	ID3DBlob* blob_err;
 
@@ -126,16 +186,16 @@ bool ParticleSystem::CompileShader(ID3DBlob** shaderBlob, const char * name, Sha
 	std::string model;
 	switch (type)
 	{
-	case ParticleSystem::VS:
+	case D3D12ParticleSystem::VS:
 		model = "vs_5_1";
 		break;
-	case ParticleSystem::GS:
+	case D3D12ParticleSystem::GS:
 		model = "gs_5_1";
 		break;
-	case ParticleSystem::PS:
+	case D3D12ParticleSystem::PS:
 		model = "ps_5_1";
 		break;
-	case ParticleSystem::CS:
+	case D3D12ParticleSystem::CS:
 		model = "cs_5_1";
 		break;
 	default:
@@ -178,7 +238,7 @@ bool ParticleSystem::CompileShader(ID3DBlob** shaderBlob, const char * name, Sha
 	return true;
 }
 
-bool ParticleSystem::InitializeRootSignature_Render()
+bool D3D12ParticleSystem::InitializeRootSignature_Render()
 {
 	HRESULT hr;
 	D3D12_DESCRIPTOR_RANGE dr[1] = {};
@@ -237,7 +297,7 @@ bool ParticleSystem::InitializeRootSignature_Render()
 	return true;
 }
 
-bool ParticleSystem::InitializePSO_Render()
+bool D3D12ParticleSystem::InitializePSO_Render()
 {
 	HRESULT hr;
 
@@ -310,7 +370,7 @@ bool ParticleSystem::InitializePSO_Render()
 	return true;
 }
 
-bool ParticleSystem::InitializeShaders()
+bool D3D12ParticleSystem::InitializeShaders()
 {
 	if (!CompileShader(&m_cs_blob, "ComputeShader_Particle", CS))
 		return false;
@@ -324,7 +384,7 @@ bool ParticleSystem::InitializeShaders()
 	return true;
 }
 
-bool ParticleSystem::InitializeRootSignature_CS()
+bool D3D12ParticleSystem::InitializeRootSignature_CS()
 {
 	HRESULT hr;
 	D3D12_DESCRIPTOR_RANGE dr[1] = {};
@@ -383,7 +443,7 @@ bool ParticleSystem::InitializeRootSignature_CS()
 	return true;
 }
 
-bool ParticleSystem::InitializePSO_CS()
+bool D3D12ParticleSystem::InitializePSO_CS()
 {
 	HRESULT hr;
 
@@ -406,7 +466,7 @@ bool ParticleSystem::InitializePSO_CS()
 	return true;
 }
 
-bool ParticleSystem::InitializeResources()
+bool D3D12ParticleSystem::InitializeResources()
 {
 	D3D12_RESOURCE_DESC resourceDesc = {};
 	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -422,7 +482,6 @@ bool ParticleSystem::InitializeResources()
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-	HRESULT hr;
 	D3D12_HEAP_PROPERTIES heapProperties = {};
 	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heapProperties.CreationNodeMask = 1; //used when multi-gpu
@@ -474,7 +533,7 @@ bool ParticleSystem::InitializeResources()
 	return true;
 }
 
-bool ParticleSystem::InitializeCommandInterfaces()
+bool D3D12ParticleSystem::InitializeCommandInterfaces()
 {
 	HRESULT hr;
 

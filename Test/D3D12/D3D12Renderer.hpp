@@ -19,7 +19,7 @@ class D3D12TextureLoader;
 class D3D12Window;
 class D3D12Camera;
 class D3D12VertexBufferLoader;
-class ParticleSystem;
+class D3D12ParticleSystem;
 
 /*
 	Documentation goes here ^^
@@ -38,6 +38,7 @@ public:
 	virtual Texture * MakeTexture() override;
 	virtual Mesh * MakeMesh() override;
 	virtual Terrain* MakeTerrain() override;
+	virtual ParticleSystem*	MakeParticleSystem() override;
 	virtual Material * MakeMaterial() override;
 	virtual RenderState * MakeRenderState() override;
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
@@ -47,6 +48,7 @@ public:
 	virtual void ClearFrame() override;
 	virtual void ClearSubmissions() override;
 	virtual void Submit(SubmissionItem item, Camera* c = nullptr, unsigned char layer = 0) override;
+	virtual void Submit(ParticleSystem* p) override;
 
 	virtual void Frame(Window * window, Camera * c) override;
 	virtual void Present(Window * w) override;
@@ -119,10 +121,13 @@ private:
 	unsigned short m_meshesCreated = 0;
 	unsigned short m_techniquesCreated = 0;
 	unsigned short m_texturesCreated = 0;
+	unsigned short m_particlesSystemCreated = 0;
 
 	unsigned int m_cbv_srv_uav_size;
 
 	std::vector<SortingItem> m_items;
+	std::vector<D3D12ParticleSystem*> m_particles;
+
 	D3D12TextureLoader* m_textureLoader;
 	std::thread m_thread_texture;
 
@@ -147,7 +152,7 @@ private:
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
 	//FullScreenPass* m_fullScreenPass;
 	//FXAAPass* m_FXAAPass;
-	ParticleSystem* m_particleSystem = nullptr;
+	//D3D12ParticleSystem* m_particleSystem = nullptr;
 
 	ID3D12Fence1*				m_Fence_fxaa = nullptr;
 	HANDLE						m_EventHandle_fxaa = nullptr;

@@ -8,6 +8,8 @@
 #include "Texture.hpp"
 #include "ShaderManager.hpp"
 #include "Terrain.hpp"
+#include "ParticleSystem.hpp"
+
 
 #include <iostream>
 #include <crtdbg.h>
@@ -75,6 +77,9 @@ public:
 		for (auto e : m_meshes) {
 			delete e;
 		}
+		for (auto e : m_particles) {
+			delete e;
+		}
 
 		if (m_terrain)
 		{
@@ -102,6 +107,8 @@ public:
 		InitializeBlueprints();
 		InitializeObjects();
 		InitializeHeightMap();
+
+		m_particles.push_back(m_renderer->MakeParticleSystem());
 
 		return true;
 	}
@@ -417,6 +424,11 @@ public:
 	}
 	void UpdateObjects(double dt)
 	{
+		for (ParticleSystem* p : m_particles)
+		{
+			p->Update((float)dt);
+		}
+
 		static double t = 0.0f;
 		t += dt;
 		if (t > 2.0f * 3.14159265f)
@@ -518,6 +530,13 @@ public:
 				obj = m_objects[j];
 				m_renderer->Submit({ obj->blueprint, obj->transform }, cam0);
 			}
+
+			//std::cout << "Num Particles: " << m_particles.size() << std::endl;
+			for (size_t part = 0; part < m_particles.size(); part++)
+			{
+				m_renderer->Submit(m_particles[part]);
+			}
+
 			//m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
 
 			//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
@@ -541,6 +560,8 @@ private:
 	std::vector<RenderState*>	m_renderStates;
 	std::vector<Camera*>		m_cameras;
 	std::vector<Object*>		m_objects;
+	std::vector<ParticleSystem*>m_particles;
+
 	Terrain* m_terrain;
 	Blueprint m_terrainBlueprint;
 

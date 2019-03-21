@@ -99,7 +99,10 @@
     <ClCompile Include="D3D12\FXAAPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12\ParticleSystem.cpp">
+    <ClCompile Include="D3D12\D3D12ParticleSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -194,7 +197,10 @@
     <ClInclude Include="D3D12\FXAAPass.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12\ParticleSystem.hpp">
+    <ClInclude Include="D3D12\D3D12ParticleSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
