@@ -43,12 +43,13 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 	Copy vertex data from file to temporary vector
 	Load material name
 	*/
+
+	bool hasNor, hasUV;
 	while (std::getline(inFile, line))
 	{
 		type = "";
 
 		std::istringstream iss(line);
-
 		iss >> type;
 
 		if (type == "mtllib")
@@ -65,12 +66,15 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 		}
 		else if (type == "vn")
 		{
+			hasNor = true;
 			Float3 vn;
 			iss >> vn.x >> vn.y >> vn.z;
 			normals.push_back(vn);
 		}
 		else if (type == "vt")
 		{
+			hasUV = true;
+
 			Float2 vt;
 			iss >> vt.x >> vt.y;
 			uvs.push_back(vt);
@@ -86,16 +90,25 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 			std::string str;
 			while (iss >> str)
 			{
-				str.replace(str.find("/"), 1, " ");
-				str.replace(str.find("/"), 1, " ");
+				if(hasNor)
+					str.replace(str.find("/"), 1, " ");
+				if(hasUV)
+					str.replace(str.find("/"), 1, " ");
 
 				std::istringstream stringStream2(str);
 
-				stringStream2 >> pIdx[nrOfVertsOnFace] >> uvIdx[nrOfVertsOnFace] >> nIdx[nrOfVertsOnFace];
-
+				stringStream2 >> pIdx[nrOfVertsOnFace];
 				pIdx[nrOfVertsOnFace]--;
-				nIdx[nrOfVertsOnFace]--;
-				uvIdx[nrOfVertsOnFace]--;
+
+				if (hasUV) {
+					stringStream2 >> uvIdx[nrOfVertsOnFace];
+					uvIdx[nrOfVertsOnFace]--;
+				}
+				if (hasNor) {
+					stringStream2 >> nIdx[nrOfVertsOnFace];
+					nIdx[nrOfVertsOnFace]--;
+				}
+				
 				nrOfVertsOnFace++;
 			}
 

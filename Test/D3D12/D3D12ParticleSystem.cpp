@@ -18,7 +18,30 @@ D3D12ParticleSystem::D3D12ParticleSystem(D3D12Renderer* renderer, short id) : Pa
 
 D3D12ParticleSystem::~D3D12ParticleSystem()
 {
+	//Wait if needed
+	if (m_Fence[m_bufferIndex]->GetCompletedValue() < m_FenceValue[m_bufferIndex] - 1)
+	{
+		m_Fence[m_bufferIndex]->SetEventOnCompletion(m_FenceValue[m_bufferIndex] - 1, m_EventHandle[m_bufferIndex]);
+		WaitForSingleObject(m_EventHandle[m_bufferIndex], INFINITE);
+	}
 
+	m_cs_blob->Release();
+	m_rootSignature_CS->Release();
+	m_pipelineState_CS->Release();
+	m_UA_Resource[NUM_SWAP_BUFFERS]->Release();
+
+	m_vs_blob->Release();
+	m_gs_blob->Release();
+	m_ps_blob->Release();
+	m_rootSignature_render->Release();
+	m_pipelineState_render->Release();
+
+	for (size_t i = 0; i < NUM_SWAP_BUFFERS; i++)
+	{
+		m_commandList[i]->Release();
+		m_commandAllocator[i]->Release();
+	}
+	m_commandQueue->Release();
 }
 
 bool D3D12ParticleSystem::Initialize()

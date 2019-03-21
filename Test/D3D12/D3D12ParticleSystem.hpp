@@ -47,7 +47,6 @@ private:
 	ID3D12RootSignature* m_rootSignature_CS = nullptr;
 	ID3D12PipelineState* m_pipelineState_CS = nullptr;
 	ID3D12Resource* m_UA_Resource[NUM_SWAP_BUFFERS] = { nullptr };
-	ID3D12Resource* m_UA_Resource_test;
 
 	ID3DBlob* m_vs_blob;
 	ID3DBlob* m_gs_blob;
