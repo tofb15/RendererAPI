@@ -15,6 +15,9 @@
 #include <crtdbg.h>
 #include <chrono>
 
+// Bad
+#include "D3D12/D3D12Timing.hpp"
+
 
 const bool SINGLE_WINDOW = true;
 
@@ -573,6 +576,8 @@ private:
 /*This main is only an exemple of how this API could/should be used to render a scene.*/
 int main() {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	D3D12Timing::Get()->InitializeCPUStartCycle();
 
 	Game game;
 	game.Initialize();

@@ -118,6 +118,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D12\D3D12Terrain.cpp" />
     <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
+    <ClCompile Include="D3D12\D3D12Timing.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
     <ClCompile Include="D3D12\D3D12Camera.cpp" />
     <ClCompile Include="D3D12\D3D12Material.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="D3D12\D3D12Terrain.hpp" />
     <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
+    <ClInclude Include="D3D12\D3D12Timing.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
     <ClInclude Include="D3D12\D3D12Camera.hpp" />
     <ClInclude Include="D3D12\D3D12Material.hpp" />

@@ -38,6 +38,7 @@ D3D12ParticleSystem::~D3D12ParticleSystem()
 
 	for (size_t i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
+		m_Fence[i]->Release();
 		m_commandList[i]->Release();
 		m_commandAllocator[i]->Release();
 	}

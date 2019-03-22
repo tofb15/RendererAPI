@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 
 #include "D3D12Renderer.hpp"
+#include "D3D12Timing.hpp"
 
 #pragma comment (lib, "DXGI.lib")
 //#pragma comment (lib, "d3d12.lib")
@@ -69,7 +70,7 @@ D3D12Window::D3D12Window(D3D12Renderer* renderer)
 	m_ScissorRect->right = (long)0;
 	m_ScissorRect->top = (long)0;
 	m_ScissorRect->bottom = (long)0;
-
+	
 	m_numWaits = 0;
 }
 
@@ -167,6 +168,10 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 		//Create an event handle to use for GPU synchronization.
 		m_EventHandle[i] = CreateEvent(0, false, false, 0);
 	}
+
+
+	m_queueTimingIndex = D3D12Timing::Get()->InitializeNewQueue(m_CommandQueue);
+
 
 	return true;
 }
@@ -333,6 +338,11 @@ ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
 UINT D3D12Window::GetCurrentBackBufferIndex() const
 {
 	return m_SwapChain4->GetCurrentBackBufferIndex();
+}
+
+int D3D12Window::GetQueueTimingIndex() const
+{
+	return m_queueTimingIndex;
 }
 
 bool D3D12Window::InitializeWindow()

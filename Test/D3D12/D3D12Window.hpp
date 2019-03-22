@@ -94,6 +94,7 @@ public:
 		@Return current backbuffer index.
 	*/
 	UINT GetCurrentBackBufferIndex() const;
+	int GetQueueTimingIndex() const;
 	void WaitForGPU();
 	void WaitForGPU(int index);
 
@@ -123,6 +124,9 @@ private:
 	Int2						m_mouseMovement;
 
 	int							m_numWaits;
+
+	int							m_queueTimingIndex;
+
 
 	bool InitializeWindow();		//1.
 	bool InitializeCommandQueue();	//2.

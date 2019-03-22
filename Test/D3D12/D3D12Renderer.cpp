@@ -15,7 +15,7 @@
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
 #include "D3D12ParticleSystem.hpp"
-
+#include "D3D12Timing.hpp"
 
 #include <iostream>
 #include <comdef.h>
@@ -58,7 +58,7 @@ D3D12Renderer::~D3D12Renderer()
 		m_recorderThreads[i].join();
 	}
 #endif
-
+	
 	m_textureLoader->Kill();	//Notify the other thread to stop.
 	m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
@@ -184,6 +184,9 @@ bool D3D12Renderer::Initialize()
 	m_FenceValue_fxaa = 1;
 	//Create an event handle to use for GPU synchronization.
 	m_EventHandle_fxaa = CreateEvent(0, false, false, 0);
+
+
+	D3D12Timing::Get()->SetDevice(m_device);
 
 	return true;
 }
@@ -452,6 +455,8 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
+	D3D12Timing::Get()->AddQueueTimeStamp(window->GetQueueTimingIndex(), mainCommandList);
+
 	// Main command list commands
 	mainCommandList->ResourceBarrier(1, &barrierDesc);
 	window->ClearRenderTarget(mainCommandList);
@@ -518,6 +523,9 @@ void D3D12Renderer::Present(Window * w)
 	//m_fullScreenPass->Record(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], window);
 	// Set the barrier in the last command list
 	m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]->ResourceBarrier(1, &barrierDesc);
+
+
+	D3D12Timing::Get()->AddQueueTimeStamp(window->GetQueueTimingIndex(), m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1]);
 
 	// Close the command lists
 	for (int i = 0; i < NUM_COMMAND_LISTS; i++)
