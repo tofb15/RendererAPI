@@ -6,6 +6,8 @@
 
 D3D12Timing::D3D12Timing()
 {
+	m_queues.reserve(100);
+	m_cpuTimeStamps.reserve(100);
 }
 
 D3D12Timing::~D3D12Timing()
@@ -62,6 +64,12 @@ D3D12Timing::~D3D12Timing()
 		std::ofstream ostr(std::string("TimeStamps") + std::to_string(i) + ".tsv");
 		if (ostr.is_open())
 		{
+			D3D12_COMMAND_LIST_TYPE type = item.queue->GetDesc().Type;
+			ostr << "#Index: " << i << ", Type: " <<
+				(type == D3D12_COMMAND_LIST_TYPE_DIRECT ? "Direct" :
+				(type == D3D12_COMMAND_LIST_TYPE_COPY ? "Copy" : "Compute"))
+				<< "\n";
+
 			int c = 0;
 			for (int j = 0; j < item.gpuTimeStamps.size(); j+=2)
 			{
@@ -83,6 +91,33 @@ D3D12Timing::~D3D12Timing()
 		item.queue->Release();
 	}
 
+	double cpuCycleToMys = (1'000'000.0 / m_cpuFreqCycle);
+
+	for (int i = 0; i < m_cpuTimeStamps.size(); i++)
+	{
+		CPUItem* item = &m_cpuTimeStamps[i];
+
+		std::ofstream ostr(std::string("TimeStampsCPU") + std::to_string(i) + ".tsv");
+
+		if (ostr.is_open())
+		{
+			ostr << "#Index: " << i << ", Name: " << item->name << "\n";
+			
+			int c = 0;
+
+			for (int j = 0; j < item->cpuTimeStamps.size(); j += 2)
+			{
+				long long began = (item->cpuTimeStamps[j] - m_cpuStartCycle) * cpuCycleToMys;
+				long long end = (item->cpuTimeStamps[j + 1] - m_cpuStartCycle) * cpuCycleToMys;
+
+				ostr << c << "\t" << began << "\n" << c << "\t" << end << "\n\n";
+				c++;
+			}
+
+			ostr.close();
+		}
+	}
+
 	fence->Release();
 }
 
@@ -99,7 +134,6 @@ bool D3D12Timing::InitializeQueryHeap(Item* item)
 	queryHeapDesc.NodeMask = 0;
 	queryHeapDesc.Count = MAX_TIME_STAMPS;
 	
-
 	switch (item->queue->GetDesc().Type)
 	{
 	case D3D12_COMMAND_LIST_TYPE_COMPUTE:
@@ -113,14 +147,11 @@ bool D3D12Timing::InitializeQueryHeap(Item* item)
 		return false;
 	}
 
-
 	hr = m_device->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&item->queryHeap));
 	if (FAILED(hr))
 	{
 		return false;
 	}
-
-
 
 	D3D12_RESOURCE_DESC resouceDesc;
 	ZeroMemory(&resouceDesc, sizeof(resouceDesc));
@@ -156,10 +187,6 @@ bool D3D12Timing::InitializeQueryHeap(Item* item)
 		return false;
 	}
 
-	std::wstring wstr = L"queryResource " + std::to_wstring(m_queues.size());
-
-	item->queryResourceCPU->SetName(wstr.c_str());
-
 	return true;
 }
 
@@ -184,40 +211,79 @@ int D3D12Timing::InitializeNewQueue(ID3D12CommandQueue * queue)
 
 	InitializeQueryHeap(&item);
 
-	m_queues.push_back(item);
+	int idx;
 
-	return m_queues.size() - 1;
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_queues.push_back(item);
+		idx = m_queues.size() - 1;
+	}
+
+	// Item is local, but queryResource is a pointer
+	std::wstring wstr = L"queryResource " + std::to_wstring(idx);
+	item.queryResourceCPU->SetName(wstr.c_str());
+
+	return idx;
+}
+
+int D3D12Timing::InitializeNewCPUConter(const char* name)
+{
+	CPUItem item;
+	item.name = name;
+
+	int idx;
+	{
+		std::lock_guard<std::mutex> lock(m_mutexCPU);
+		m_cpuTimeStamps.push_back(item);
+		idx = m_cpuTimeStamps.size() - 1;
+	}
+	
+	return idx;
 }
 
 void D3D12Timing::AddQueueTimeStamp(int idx, ID3D12GraphicsCommandList * cmdList)
 {
-	Item& item = m_queues[idx];
+	Item* item;
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		item = &m_queues[idx];
+	}
 
-	unsigned int queryHeapIndex = item.timeStampsCount % MAX_TIME_STAMPS;
+	unsigned int queryHeapIndex = item->timeStampsCount % MAX_TIME_STAMPS;
 
-	if (item.timeStampsCount >= MAX_TIME_STAMPS)
+	if (item->timeStampsCount >= MAX_TIME_STAMPS)
 	{
 		unsigned long long* mapMem = nullptr;
 		D3D12_RANGE readRange{ sizeof(UINT64) * queryHeapIndex, sizeof(UINT64) * (queryHeapIndex + 1) };
 		D3D12_RANGE writeRange{ 0, 0 };
-		if (SUCCEEDED(item.queryResourceCPU->Map(0, &readRange, (void**)&mapMem)))
+		if (SUCCEEDED(item->queryResourceCPU->Map(0, &readRange, (void**)&mapMem)))
 		{
 			mapMem += queryHeapIndex;
-			item.gpuTimeStamps.push_back(*mapMem);
-			item.queryResourceCPU->Unmap(0, &writeRange);
+			item->gpuTimeStamps.push_back(*mapMem);
+			item->queryResourceCPU->Unmap(0, &writeRange);
 		}
 	}
 
-
-	cmdList->EndQuery(item.queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, queryHeapIndex);
+	cmdList->EndQuery(item->queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, queryHeapIndex);
 	cmdList->ResolveQueryData(
-		item.queryHeap,
+		item->queryHeap,
 		D3D12_QUERY_TYPE_TIMESTAMP,
 		queryHeapIndex,
 		1,
-		item.queryResourceCPU,
+		item->queryResourceCPU,
 		sizeof(unsigned long long) * queryHeapIndex
 	);
 
-	item.timeStampsCount++;
+	item->timeStampsCount++;
+}
+
+void D3D12Timing::AddCPUTimeStamp(int idx)
+{
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
+
+	{
+		std::lock_guard<std::mutex> lock(m_mutexCPU);
+		m_cpuTimeStamps[idx].cpuTimeStamps.push_back(li.QuadPart);
+	}
 }

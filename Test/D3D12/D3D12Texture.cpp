@@ -71,7 +71,7 @@ void D3D12Texture::ApplyChanges()
 {
 	if (m_hasChanged) {
 		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
-		m_Renderer->GetTextureLoader()->SynchronizeWork();
+		//m_Renderer->GetTextureLoader()->SynchronizeWork();
 		m_hasChanged = false;
 	}
 }
@@ -89,4 +89,9 @@ const std::vector<unsigned char>& D3D12Texture::GetData_addr_const() const
 std::vector<unsigned char> D3D12Texture::GetData_cpy() const
 {
 	return m_Image_CPU;
+}
+
+unsigned char * D3D12Texture::GetData()
+{
+	return m_Image_CPU.data();
 }

@@ -29,6 +29,8 @@ public:
 	std::vector<unsigned char>& GetData_addr();
 	const std::vector<unsigned char>& GetData_addr_const() const;
 	std::vector<unsigned char> GetData_cpy() const;
+	virtual unsigned char* GetData() override;
+
 private:
 	friend D3D12TextureLoader;
 

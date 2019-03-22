@@ -186,4 +186,8 @@ private:
 	std::mutex m_mutex;
 	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
 	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
+
+
+	int m_recordTimesIndex;
+	int m_presentTimesIndex;
 };

@@ -148,6 +148,9 @@ bool D3D12Renderer::Initialize()
 	//if (!m_FXAAPass->Initialize(this))
 	//	return false;
 
+	// Texture loader needs device during initialization
+	D3D12Timing::Get()->SetDevice(m_device);
+
 	m_textureLoader = new D3D12TextureLoader(this);
 	if (!m_textureLoader->Initialize())
 	{
@@ -166,6 +169,8 @@ bool D3D12Renderer::Initialize()
 		std::cout << std::hex << m_recorderThreads[i].get_id() << std::dec << std::endl;
 	}
 #endif
+	m_recordTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record");
+	m_presentTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Present");
 
 	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
@@ -186,7 +191,8 @@ bool D3D12Renderer::Initialize()
 	m_EventHandle_fxaa = CreateEvent(0, false, false, 0);
 
 
-	D3D12Timing::Get()->SetDevice(m_device);
+
+
 
 	return true;
 }
@@ -438,6 +444,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	m_frames_recorded[0]++;
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
 	{
 		// Wake up the worker threads
 		std::unique_lock<std::mutex> lock(m_mutex);
@@ -540,7 +547,9 @@ void D3D12Renderer::Present(Window * w)
 	}
 
 	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
-	
+
+	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
+
 	//Wait for REnder before FXAA.
 
 	//// Tell last frame to signal when done
@@ -560,8 +569,12 @@ void D3D12Renderer::Present(Window * w)
 	
 
 	//Present the frame.
+	D3D12Timing::Get()->AddCPUTimeStamp(m_presentTimesIndex);
 	window->GetSwapChain()->Present1(0, 0, &pp);
+	D3D12Timing::Get()->AddCPUTimeStamp(m_presentTimesIndex);
+
 	window->WaitForGPU();
+
 }
 
 void D3D12Renderer::SetUpRenderInstructions()

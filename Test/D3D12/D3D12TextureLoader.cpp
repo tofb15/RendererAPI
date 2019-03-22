@@ -2,6 +2,7 @@
 #include "External/D3DX12/d3dx12.h"
 #include "D3D12Renderer.hpp"
 #include "D3D12Texture.hpp"
+#include "D3D12Timing.hpp"
 #include <chrono>
 
 D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : m_renderer(renderer)
@@ -75,6 +76,9 @@ bool D3D12TextureLoader::Initialize()
 	m_fenceValue = 1;
 	//Create an event handle to use for GPU synchronization.
 	m_eventHandle = CreateEvent(0, false, false, 0);
+
+
+	m_queueTimingIndex = D3D12Timing::Get()->InitializeNewQueue(m_commandQueue);
 
 	return true;
 }
@@ -196,7 +200,9 @@ void D3D12TextureLoader::DoWork()
 		textureData.RowPitch = texture->m_Width * texture->m_BytesPerPixel;
 		textureData.SlicePitch = textureData.RowPitch * texture->m_Height;
 
+		D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimingIndex, m_commandList);
 		UpdateSubresources<1>(m_commandList, textureResource, uploadResource, 0, 0, 1, &textureData);
+		D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimingIndex, m_commandList);
 #pragma endregion
 
 		////// Describe and create a SRV for the texture.

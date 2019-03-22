@@ -60,6 +60,8 @@ private:
 
 	UINT m_srv_cbv_uav_size;
 
+	int m_queueTimeIndex;
+
 #ifdef Particle_Single_Fence
 	ID3D12Fence1*				m_Fence = nullptr;
 	HANDLE						m_EventHandle = nullptr;

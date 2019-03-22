@@ -62,4 +62,6 @@ private:
 	ID3D12Fence1*				m_fence = nullptr;
 	HANDLE						m_eventHandle = nullptr;
 	UINT64						m_fenceValue = 0;
+
+	int m_queueTimingIndex;
 };

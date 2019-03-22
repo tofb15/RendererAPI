@@ -44,6 +44,8 @@ public:
 	virtual unsigned short GetIndex();
 	unsigned GetFlags() const;
 
+	virtual unsigned char* GetData() = 0;
+
 protected:
 	unsigned m_Flags;
 	unsigned short m_index;

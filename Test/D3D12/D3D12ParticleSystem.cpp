@@ -9,6 +9,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #include "D3D12Renderer.hpp"
 #include "D3D12Camera.hpp"
+#include "D3D12Timing.hpp"
 
 D3D12ParticleSystem::D3D12ParticleSystem(D3D12Renderer* renderer, short id) : ParticleSystem()
 {
@@ -62,6 +63,8 @@ bool D3D12ParticleSystem::Initialize()
 	if (!InitializeCommandInterfaces())
 		return false;
 
+	m_queueTimeIndex = D3D12Timing::Get()->InitializeNewQueue(m_commandQueue);
+
 #ifdef 	Particle_Single_Fence
 	HRESULT hr;
 	hr = m_renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
@@ -99,6 +102,8 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandAllocator[m_bufferIndex]->Reset();
 	m_commandList[m_bufferIndex]->Reset(m_commandAllocator[m_bufferIndex], m_pipelineState_CS);
 
+
+	D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimeIndex, m_commandList[m_bufferIndex]);
 	m_commandList[m_bufferIndex]->SetComputeRootSignature(m_rootSignature_CS);
 	m_commandList[m_bufferIndex]->SetComputeRoot32BitConstants(1, 1, &m_time, 0);
 
@@ -110,6 +115,108 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandList[m_bufferIndex]->SetComputeRootDescriptorTable(0, descHndGPU);
 
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+
+	D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimeIndex, m_commandList[m_bufferIndex]);
 	m_commandList[m_bufferIndex]->Close();
 
 	ID3D12CommandList* commandList = m_commandList[m_bufferIndex];

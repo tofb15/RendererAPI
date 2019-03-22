@@ -113,6 +113,8 @@ public:
 
 		m_particles.push_back(m_renderer->MakeParticleSystem());
 
+		m_updateCPUTimerIndex = D3D12Timing::Get()->InitializeNewCPUConter("Update");
+
 		return true;
 	}
 	bool InitializeRendererAndWindow()
@@ -402,27 +404,42 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			if (frameCount % 100 == -1) {
+			D3D12Timing::Get()->AddCPUTimeStamp(m_updateCPUTimerIndex);
+			UpdateObjects(dt);
+
+			if (frameCount % 1 == 0) {
 				unsigned width = m_textures[0]->GetWidth();
 				unsigned height = m_textures[0]->GetHeight();
-				for (unsigned int x = 0; x < width; x++)
-				{
-					for (unsigned int y = 0; y < height / 2; y++)
-					{
-						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255-color), static_cast<unsigned char>(255) };
-						m_textures[0]->UpdatePixel(Int2(x, y), data, 4);
-					}
-				}
+
+				union {
+					unsigned char data[4];
+					unsigned int myInt;
+				} d;
+
+				d.data[0] = static_cast<unsigned char>(0);
+				d.data[1] = color;
+				d.data[2] = static_cast<unsigned char>(255 - color);
+				d.data[3] = static_cast<unsigned char>(255);
+
+				std::memset(m_textures[0]->GetData(), color, width * height * 2);
+				m_textures[0]->UpdatePixel(Int2(0, 0), &color, 1);
+
+				//for (unsigned int x = 0; x < width; x++)
+				//{
+				//	for (unsigned int y = 0; y < height / 2; y++)
+				//	{
+				//		m_textures[0]->UpdatePixel(Int2(x, y), data, 4);
+				//	}
+				//}
 				color += 20 * colorDir;
 				if (color == 0 || color == 240)
 					colorDir *= -1;
 
 				m_textures[0]->ApplyChanges();
 			}
+			D3D12Timing::Get()->AddCPUTimeStamp(m_updateCPUTimerIndex);
 
-			UpdateObjects(dt);
 			RenderWindows();
-			
 		}
 	}
 	void UpdateObjects(double dt)
@@ -571,6 +588,9 @@ private:
 	double m_time = 0.0;
 	double m_ms = 300.0;
 	bool m_demoMovement[2];
+
+	int m_updateCPUTimerIndex;
+
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

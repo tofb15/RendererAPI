@@ -3,6 +3,7 @@
 #ifndef D3D12_TIMING_HPP
 #define D3D12_TIMING_HPP
 #include <vector>
+#include <mutex>
 
 struct ID3D12CommandQueue;
 struct ID3D12GraphicsCommandList;
@@ -23,6 +24,11 @@ class D3D12Timing
 		ID3D12QueryHeap* queryHeap = nullptr;
 		ID3D12Resource* queryResourceCPU = nullptr;
 	};
+	struct CPUItem
+	{
+		std::vector<unsigned long long> cpuTimeStamps;
+		const char* name;
+	};
 
 	D3D12Timing();
 	~D3D12Timing();
@@ -38,7 +44,9 @@ public:
 	void InitializeCPUStartCycle();
 
 	int InitializeNewQueue(ID3D12CommandQueue* queue);
+	int InitializeNewCPUConter(const char* name);
 	void AddQueueTimeStamp(int idx, ID3D12GraphicsCommandList* cmdList);
+	void AddCPUTimeStamp(int idx);
 
 private:
 	bool InitializeQueryHeap(Item* item);
@@ -49,8 +57,12 @@ private:
 	unsigned long long m_cpuFreqCycle;
 	std::vector<Item> m_queues;
 
+	std::vector<CPUItem> m_cpuTimeStamps;
+
+	std::mutex m_mutex;
+	std::mutex m_mutexCPU;
+
 	ID3D12Device* m_device = nullptr;
 };
-
 
 #endif
