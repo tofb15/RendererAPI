@@ -64,6 +64,7 @@ bool D3D12ParticleSystem::Initialize()
 		return false;
 
 	m_queueTimeIndex = D3D12Timing::Get()->InitializeNewQueue(m_commandQueue);
+	m_cpuRecordTimeIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record Compute");
 
 #ifdef 	Particle_Single_Fence
 	HRESULT hr;
@@ -103,6 +104,7 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandList[m_bufferIndex]->Reset(m_commandAllocator[m_bufferIndex], m_pipelineState_CS);
 
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_cpuRecordTimeIndex);
 	D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimeIndex, m_commandList[m_bufferIndex]);
 	m_commandList[m_bufferIndex]->SetComputeRootSignature(m_rootSignature_CS);
 	m_commandList[m_bufferIndex]->SetComputeRoot32BitConstants(1, 1, &m_time, 0);
@@ -216,6 +218,7 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_cpuRecordTimeIndex);
 	D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimeIndex, m_commandList[m_bufferIndex]);
 	m_commandList[m_bufferIndex]->Close();
 

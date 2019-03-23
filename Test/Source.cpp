@@ -404,7 +404,6 @@ public:
 			static unsigned char color = 0;
 			static short colorDir = 1;
 
-			D3D12Timing::Get()->AddCPUTimeStamp(m_updateCPUTimerIndex);
 			UpdateObjects(dt);
 
 			if (frameCount % 1 == 0) {
@@ -448,6 +447,7 @@ public:
 		{
 			p->Update((float)dt);
 		}
+		D3D12Timing::Get()->AddCPUTimeStamp(m_updateCPUTimerIndex);
 
 		static double t = 0.0f;
 		t += dt;

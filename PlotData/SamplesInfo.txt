@@ -1,0 +1,66 @@
+Draw/dispatch/copy information per frame:
+	Direct queue:
+		1024 Instances with a vertices
+		1024 Instances with b vertices
+		1024 Instances with c vertices
+		1024 Instances with d vertices
+		1024 Instances with e vertices
+		1024 Instances with a vertices
+		1024 Instances with b vertices
+		1024 Instances with c vertices
+		1024 Instances with d vertices
+		1024 Instances with e vertices
+	Compute queue:
+		1000000 Vertices x100
+	Copy queue:
+		1278400 Bytes
+
+Sample 1:
+	Swap Buffers:			2
+	Direct Child Record Threads:	2
+Sample 2:
+	Swap Buffers:			3
+	Direct Child Record Threads:	2
+Sample 3:
+	Swap Buffers:			4
+	Direct Child Record Threads:	2
+Sample 4:
+	Swap Buffers:			5
+	Direct Child Record Threads:	2
+Sample 5:
+	Swap Buffers:			6
+	Direct Child Record Threads:	2
+Sample 6:
+	Swap Buffers:			4
+	Direct Child Record Threads:	1
+Sample 7:
+	Swap Buffers:			4
+	Direct Child Record Threads:	0
+Sample 8:
+	Swap Buffers:			4
+	Direct Child Record Threads:	2
+	Direct queue change:
+		512 Instances with a vertices
+		512 Instances with b vertices
+		512 Instances with c vertices
+		512 Instances with d vertices
+		512 Instances with e vertices
+		512 Instances with a vertices
+		512 Instances with b vertices
+		512 Instances with c vertices
+		512 Instances with d vertices
+		512 Instances with e vertices
+Sample 9:
+	Swap Buffers:			4
+	Direct Child Record Threads:	2
+	Direct queue change:
+		2048 Instances with a vertices
+		2048 Instances with b vertices
+		2048 Instances with c vertices
+		2048 Instances with d vertices
+		2048 Instances with e vertices
+		2048 Instances with a vertices
+		2048 Instances with b vertices
+		2048 Instances with c vertices
+		2048 Instances with d vertices
+		2048 Instances with e vertices

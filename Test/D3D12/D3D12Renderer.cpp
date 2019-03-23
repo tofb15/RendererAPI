@@ -27,8 +27,6 @@
 
 #pragma comment(lib, "d3d12.lib")
 
-#define MULTI_THREADED
-
 /*Release a Interface that will not be used anymore*/
 template<class Interface>
 inline void SafeRelease(Interface **ppInterfaceToRelease)
@@ -47,8 +45,8 @@ D3D12Renderer::D3D12Renderer()
 }
 D3D12Renderer::~D3D12Renderer()
 {
+#ifdef MULTI_THREADED_RECORDING
 	m_isRunning = false;
-#ifdef MULTI_THREADED
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 		m_cv_workers.notify_all();
@@ -161,16 +159,19 @@ bool D3D12Renderer::Initialize()
 	//Start new Texture loading thread
 	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
+#ifdef MULTI_THREADED_RECORDING
 	m_numActiveWorkerThreads = 0;
-#ifdef MULTI_THREADED
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
 		m_recorderThreads[i] = std::thread(&D3D12Renderer::RecordCommands, this, i);
 		std::cout << std::hex << m_recorderThreads[i].get_id() << std::dec << std::endl;
+		std::string tmp_string = "Child Record Direct " + std::to_string(i);
+		m_childRecordTimesIndices[i] = D3D12Timing::Get()->InitializeNewCPUConter(tmp_string.c_str());
 	}
 #endif
-	m_recordTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record");
+	m_recordTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record Direct");
 	m_presentTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Present");
+	m_waitTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Wait");
 
 	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
@@ -410,8 +411,9 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	// Fill out the render information vectors
 	SetUpRenderInstructions();
 
+	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
 
-#ifdef MULTI_THREADED
+#ifdef MULTI_THREADED_RECORDING
 	// How many instructions will each thread record
 	// If any instructions would remain, each thread records an additional one
 	unsigned numInstrPerThread = static_cast<unsigned>(m_renderInstructions.size()) / NUM_RECORDING_THREADS;
@@ -419,8 +421,6 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	//unsigned numInstrPerThread = (m_renderInstructions.size() / 2) / NUM_RECORDING_THREADS;
 	//numInstrPerThread += ((m_renderInstructions.size() / 2) % NUM_RECORDING_THREADS ? 1U : 0U);
-
-	ResetCommandListAndAllocator(backBufferIndex, MAIN_COMMAND_INDEX);
 
 	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
 	{
@@ -444,12 +444,14 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 
 	m_frames_recorded[0]++;
 
-	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
 	{
 		// Wake up the worker threads
 		std::unique_lock<std::mutex> lock(m_mutex);
 		m_cv_workers.notify_all();
 	}
+#endif
+
+	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
 
 	// Map matrix data to GPU
 	SetMatrixDataAndTextures(backBufferIndex);
@@ -468,6 +470,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	mainCommandList->ResourceBarrier(1, &barrierDesc);
 	window->ClearRenderTarget(mainCommandList);
 
+#ifdef MULTI_THREADED_RECORDING
 	// Wait until each worker thread has finished their recording
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
@@ -477,33 +480,14 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 		}
 	}
 
-	//m_particleSystem->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], backBufferIndex, cam);
+#else
+	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
+#endif
+
 	for (D3D12ParticleSystem* p : m_particles)
 	{
 		p->Render(m_commandLists[backBufferIndex][NUM_COMMAND_LISTS - 1], cam);
 	}
-
-#else
-	for (int i = 0; i < NUM_RECORDING_THREADS; i++)
-	{
-		ResetCommandListAndAllocator(i);
-	}
-	// Map matrix data to GPU
-	MapMatrixData(backBufferIndex);
-
-	// Create a resource barrier transition from present to render target
-	D3D12_RESOURCE_BARRIER barrierDesc = {};
-	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrierDesc.Transition.pResource = window->GetCurrentRenderTargetResource();
-	barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-	// Main command list commands
-	mainCommandList->ResourceBarrier(1, &barrierDesc);
-	window->ClearRenderTarget(mainCommandList);
-	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
-#endif
 
 }
 void D3D12Renderer::Present(Window * w)
@@ -573,7 +557,9 @@ void D3D12Renderer::Present(Window * w)
 	window->GetSwapChain()->Present1(0, 0, &pp);
 	D3D12Timing::Get()->AddCPUTimeStamp(m_presentTimesIndex);
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_waitTimesIndex);
 	window->WaitForGPU();
+	D3D12Timing::Get()->AddCPUTimeStamp(m_waitTimesIndex);
 
 }
 
@@ -801,6 +787,7 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 	}
 }
 
+#ifdef MULTI_THREADED_RECORDING
 void D3D12Renderer::RecordCommands(int threadIndex)
 {
 	{
@@ -814,8 +801,10 @@ void D3D12Renderer::RecordCommands(int threadIndex)
 
 	while (m_isRunning)
 	{
+		D3D12Timing::Get()->AddCPUTimeStamp(m_childRecordTimesIndices[threadIndex]);
 		// Record the commands for this list/thread
 		RecordRenderInstructions(work->w, work->c, threadIndex + 1, work->backBufferIndex, work->firstInstructionIndex, work->numInstructions);
+		D3D12Timing::Get()->AddCPUTimeStamp(m_childRecordTimesIndices[threadIndex]);
 
 		{
 			// Decrement the counter of the number of active threads
@@ -838,7 +827,6 @@ void D3D12Renderer::RecordCommands(int threadIndex)
 		}
 	}
 }
-
 void D3D12Renderer::SetThreadWork(int threadIndex, D3D12Window * w, D3D12Camera * c, int backBufferIndex, int firstInstructionIndex, int numInstructions)
 {
 	m_threadWork[threadIndex].w = w;
@@ -847,6 +835,7 @@ void D3D12Renderer::SetThreadWork(int threadIndex, D3D12Window * w, D3D12Camera 
 	m_threadWork[threadIndex].firstInstructionIndex = firstInstructionIndex;
 	m_threadWork[threadIndex].numInstructions = numInstructions;
 }
+#endif
 
 ID3D12Device4 * D3D12Renderer::GetDevice() const
 {

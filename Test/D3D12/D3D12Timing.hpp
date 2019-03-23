@@ -4,6 +4,7 @@
 #define D3D12_TIMING_HPP
 #include <vector>
 #include <mutex>
+#include <string>
 
 struct ID3D12CommandQueue;
 struct ID3D12GraphicsCommandList;
@@ -27,7 +28,7 @@ class D3D12Timing
 	struct CPUItem
 	{
 		std::vector<unsigned long long> cpuTimeStamps;
-		const char* name;
+		std::string name;
 	};
 
 	D3D12Timing();

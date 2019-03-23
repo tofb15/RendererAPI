@@ -24,6 +24,9 @@ class D3D12ParticleSystem;
 /*
 	Documentation goes here ^^
 */
+
+#define MULTI_THREADED_RECORDING
+
 class D3D12Renderer : public Renderer {
 public:
 	
@@ -115,9 +118,11 @@ private:
 	void SetMatrixDataAndTextures(int backBufferIndex);
 	void RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, size_t firstInstructionIndex, size_t numInstructions);
 
+#ifdef MULTI_THREADED_RECORDING
 	void RecordCommands(int threadIndex);
 	void SetThreadWork(int threadIndex, D3D12Window* w, D3D12Camera* c, int backBufferIndex, int firstInstructionIndex, int numInstructions);
-	
+#endif
+
 	unsigned short m_meshesCreated = 0;
 	unsigned short m_techniquesCreated = 0;
 	unsigned short m_texturesCreated = 0;
@@ -167,6 +172,8 @@ private:
 	unsigned short m_closestTechniqueType_lastFrame[100];
 
 	// Multithreaded recording resources
+
+#ifdef MULTI_THREADED_RECORDING
 	struct RecordingThreadWork
 	{
 		D3D12Window* w;
@@ -186,8 +193,13 @@ private:
 	std::mutex m_mutex;
 	std::thread m_recorderThreads[NUM_RECORDING_THREADS];
 	RecordingThreadWork m_threadWork[NUM_RECORDING_THREADS];
-
+#endif
 
 	int m_recordTimesIndex;
 	int m_presentTimesIndex;
+	int m_waitTimesIndex;
+
+#ifdef MULTI_THREADED_RECORDING
+	int m_childRecordTimesIndices[NUM_RECORDING_THREADS];
+#endif
 };

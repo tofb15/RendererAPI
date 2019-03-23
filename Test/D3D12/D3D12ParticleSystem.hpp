@@ -61,6 +61,7 @@ private:
 	UINT m_srv_cbv_uav_size;
 
 	int m_queueTimeIndex;
+	int m_cpuRecordTimeIndex;
 
 #ifdef Particle_Single_Fence
 	ID3D12Fence1*				m_Fence = nullptr;

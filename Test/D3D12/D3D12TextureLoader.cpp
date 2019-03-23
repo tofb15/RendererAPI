@@ -79,6 +79,7 @@ bool D3D12TextureLoader::Initialize()
 
 
 	m_queueTimingIndex = D3D12Timing::Get()->InitializeNewQueue(m_commandQueue);
+	m_CPURecordTimingIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record Copy");
 
 	return true;
 }
@@ -200,8 +201,10 @@ void D3D12TextureLoader::DoWork()
 		textureData.RowPitch = texture->m_Width * texture->m_BytesPerPixel;
 		textureData.SlicePitch = textureData.RowPitch * texture->m_Height;
 
+		D3D12Timing::Get()->AddCPUTimeStamp(m_CPURecordTimingIndex);
 		D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimingIndex, m_commandList);
 		UpdateSubresources<1>(m_commandList, textureResource, uploadResource, 0, 0, 1, &textureData);
+		D3D12Timing::Get()->AddCPUTimeStamp(m_CPURecordTimingIndex);
 		D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimingIndex, m_commandList);
 #pragma endregion
 

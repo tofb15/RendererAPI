@@ -64,4 +64,5 @@ private:
 	UINT64						m_fenceValue = 0;
 
 	int m_queueTimingIndex;
+	int m_CPURecordTimingIndex;
 };
