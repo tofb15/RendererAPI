@@ -196,7 +196,7 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 	m_commandAllocators[DIRECT_INDEX]->Reset();
 	m_commandLists[DIRECT_INDEX]->Reset(m_commandAllocators[DIRECT_INDEX], nullptr);
 
-	// The only reason this queue and list exists is to transition to this state (and it did NOTHING... (in our test case))
+	// The only reason this queue and list exists is to transition to this state (and it did NOTHING for the performance... (in our test case))
 	rb.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
 	rb.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	m_commandLists[DIRECT_INDEX]->ResourceBarrier(1, &rb);

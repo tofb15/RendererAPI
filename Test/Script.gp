@@ -16,5 +16,6 @@ plot \
 "TimeStampsCPU3.tsv" u ($2):(1.0006) w lines t "CPU Main Record Direct" ls 4 lw 2,\
 "TimeStampsCPU4.tsv" u ($2):(1.0006) w lines t "CPU Main Present" ls 8 lw 2,\
 "TimeStampsCPU5.tsv" u ($2):(1.0006) w lines t "CPU Main Present Wait" ls 2 lw 2,\
-"TimeStampsCPU6.tsv" u ($2):(1.0006) w lines t "CPU Main Record Compute" ls 3 lw 2,\
-"TimeStampsCPU7.tsv" u ($2):(1.0006) w lines t "CPU Main Update" ls 7 lw 2
+"TimeStampsCPU6.tsv" u ($2):(1.0006) w lines t "CPU Main Set Matrices and Textures Descriptors" ls 1 lw 2,\
+"TimeStampsCPU7.tsv" u ($2):(1.0006) w lines t "CPU Main Record Compute" ls 3 lw 2,\
+"TimeStampsCPU8.tsv" u ($2):(1.0006) w lines t "CPU Main Update" ls 7 lw 2

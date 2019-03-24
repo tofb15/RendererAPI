@@ -172,6 +172,7 @@ bool D3D12Renderer::Initialize()
 	m_recordTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Record Direct");
 	m_presentTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Present");
 	m_waitTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("Wait");
+	m_matrixTexturesTimesIndex = D3D12Timing::Get()->InitializeNewCPUConter("MatrixTextures");
 
 	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
@@ -317,8 +318,10 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 	sphere.center = item.transform.pos;
 	sphere.radius = max(item.transform.scale.x, max(item.transform.scale.y, item.transform.scale.z));
 
+#ifndef DISABLE_FRUSTUM_CULLING
 	if (!camera->GetFrustum().CheckAgainstFrustum(sphere))
 		return;
+#endif
 
 	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
@@ -451,10 +454,11 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	}
 #endif
 
-	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_matrixTexturesTimesIndex);
 	// Map matrix data to GPU
 	SetMatrixDataAndTextures(backBufferIndex);
+	D3D12Timing::Get()->AddCPUTimeStamp(m_matrixTexturesTimesIndex);
 
 	// Create a resource barrier transition from present to render target
 	D3D12_RESOURCE_BARRIER barrierDesc = {};
@@ -464,6 +468,7 @@ void D3D12Renderer::Frame(Window* w, Camera* c)
 	barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
+	D3D12Timing::Get()->AddCPUTimeStamp(m_recordTimesIndex);
 	D3D12Timing::Get()->AddQueueTimeStamp(window->GetQueueTimingIndex(), mainCommandList);
 
 	// Main command list commands

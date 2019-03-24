@@ -198,6 +198,7 @@ private:
 	int m_recordTimesIndex;
 	int m_presentTimesIndex;
 	int m_waitTimesIndex;
+	int m_matrixTexturesTimesIndex;
 
 #ifdef MULTI_THREADED_RECORDING
 	int m_childRecordTimesIndices[NUM_RECORDING_THREADS];
