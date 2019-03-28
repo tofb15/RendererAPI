@@ -42,6 +42,8 @@ bool D3D12VertexBufferLoader::Initialize()
 	m_fenceValue = 1;
 	m_eventHandle = CreateEvent(0, false, false, 0);
 
+	device->Release();
+
 	return true;
 }
 
@@ -79,6 +81,8 @@ bool D3D12VertexBufferLoader::InitializeCommandInterfaces(const unsigned typeInd
 	{
 		return false;
 	}
+
+	device->Release();
 
 	return true;
 }

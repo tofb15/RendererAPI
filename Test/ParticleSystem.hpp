@@ -3,7 +3,7 @@ class ParticleSystem
 {
 public:
 	ParticleSystem();
-	~ParticleSystem();
+	virtual ~ParticleSystem();
 
 	virtual void Update(float dt) = 0;
 protected:

@@ -271,48 +271,7 @@ public:
 
 	void InitializeHeightMap() {
 
-#pragma region HeightMap
-		ShaderDescription sd_terrain = {};
-		sd_terrain.defines = "";
-		sd_terrain.name = "VertexShader_Terrain";
-		sd_terrain.type = ShaderType::VS;
-		Shader vs_terrain = m_sm->CompileShader(sd_terrain);
-		if (vs_terrain.type == ShaderType::UNKNOWN)
-			return;
 
-		sd_terrain.defines = "";
-		sd_terrain.name = "GS_Shader_Terrain";
-		sd_terrain.type = ShaderType::GS;
-		Shader gs_terrain = m_sm->CompileShader(sd_terrain);
-		if (gs_terrain.type == ShaderType::UNKNOWN)
-			return;
-
-		sd_terrain.defines = "#define NORMAL\n";
-		sd_terrain.name = "FragmentShader";
-		sd_terrain.type = ShaderType::FS;
-		Shader ps_terrain = m_sm->CompileShader(sd_terrain);
-		if (ps_terrain.type == ShaderType::UNKNOWN)
-			return;
-
-		ShaderProgram sp_terrain;
-		sp_terrain.VS = vs_terrain;
-		sp_terrain.GS = gs_terrain;
-		sp_terrain.FS = ps_terrain;
-
-		Technique* tech_terrain = m_renderer->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
-		m_techniques.push_back(tech_terrain);
-
-		Texture* tex = m_renderer->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
-		m_textures.push_back(tex);
-
-		m_terrain = m_renderer->MakeTerrain();
-		m_terrain->InitializeHeightMap(tex, 100);
-
-		m_terrainBlueprint.mesh = m_terrain->GetMesh();
-		m_meshes.push_back(m_terrainBlueprint.mesh);
-		
-		m_terrainBlueprint.technique = tech_terrain;
 	}
 
 	void InitializeCameras()

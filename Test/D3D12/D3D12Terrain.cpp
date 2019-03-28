@@ -9,7 +9,8 @@ D3D12Terrain::D3D12Terrain(D3D12Renderer * renderer) : Terrain()
 
 D3D12Terrain::~D3D12Terrain()
 {
-	delete m_mesh;
+	if(m_mesh)
+		delete m_mesh;
 }
 
 bool D3D12Terrain::InitializeHeightMap(Texture * _texture, float maxHeight)

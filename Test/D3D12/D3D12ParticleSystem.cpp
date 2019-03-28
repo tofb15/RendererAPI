@@ -117,7 +117,7 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandList[m_bufferIndex]->SetComputeRootDescriptorTable(0, descHndGPU);
 
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
-	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	/*m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
@@ -216,7 +216,7 @@ void D3D12ParticleSystem::Update(float dt)
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
 	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
-	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);
+	m_commandList[m_bufferIndex]->Dispatch(NUM_PARTICLES / 1000, 1, 1);*/
 
 	D3D12Timing::Get()->AddCPUTimeStamp(m_cpuRecordTimeIndex);
 	D3D12Timing::Get()->AddQueueTimeStamp(m_queueTimeIndex, m_commandList[m_bufferIndex]);
@@ -662,7 +662,6 @@ bool D3D12ParticleSystem::InitializeResources()
 		std::cout << "UAV created at: " << cdh2.ptr << std::endl;
 		cdh2.ptr += m_srv_cbv_uav_size;
 	}
-
 
 	return true;
 }

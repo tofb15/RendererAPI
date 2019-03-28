@@ -118,6 +118,7 @@ D3D12Timing::~D3D12Timing()
 		}
 	}
 
+	m_device->Release();
 	fence->Release();
 }
 
