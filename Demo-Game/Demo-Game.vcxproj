@@ -118,7 +118,7 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Test\Test.vcxproj">
+    <ProjectReference Include="..\D3D12Engine\D3D12Engine.vcxproj">
       <Project>{d6a4e757-0104-4fde-8551-828a230e8a15}</Project>
     </ProjectReference>
   </ItemGroup>
