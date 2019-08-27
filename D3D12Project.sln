@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{D6A4E757-0104-4FDE-8551-828A230E8A15}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3D12Engine", "Test\Test.vcxproj", "{D6A4E757-0104-4FDE-8551-828A230E8A15}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo-Game", "Demo-Game\Demo-Game.vcxproj", "{A2840856-E30C-4132-8EB3-9F623D362B25}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{D6A4E757-0104-4FDE-8551-828A230E8A15}.Release|x64.Build.0 = Release|x64
 		{D6A4E757-0104-4FDE-8551-828A230E8A15}.Release|x86.ActiveCfg = Release|Win32
 		{D6A4E757-0104-4FDE-8551-828A230E8A15}.Release|x86.Build.0 = Release|Win32
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Debug|x64.ActiveCfg = Debug|x64
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Debug|x64.Build.0 = Debug|x64
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Debug|x86.ActiveCfg = Debug|Win32
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Debug|x86.Build.0 = Debug|Win32
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Release|x64.ActiveCfg = Release|x64
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Release|x64.Build.0 = Release|x64
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Release|x86.ActiveCfg = Release|Win32
+		{A2840856-E30C-4132-8EB3-9F623D362B25}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

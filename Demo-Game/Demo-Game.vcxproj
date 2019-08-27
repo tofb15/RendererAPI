@@ -20,33 +20,32 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{D6A4E757-0104-4FDE-8551-828A230E8A15}</ProjectGuid>
-    <RootNamespace>Test</RootNamespace>
+    <ProjectGuid>{A2840856-E30C-4132-8EB3-9F623D362B25}</ProjectGuid>
+    <RootNamespace>DemoGame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
-    <ProjectName>D3D12Engine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,7 +70,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
@@ -79,7 +78,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
@@ -116,70 +115,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="D3D12\D3D12Terrain.cpp" />
-    <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
-    <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
-    <ClCompile Include="D3D12\D3D12Camera.cpp" />
-    <ClCompile Include="D3D12\D3D12Material.cpp" />
-    <ClCompile Include="D3D12\D3D12Mesh.cpp" />
-    <ClCompile Include="D3D12\D3D12Renderer.cpp" />
-    <ClCompile Include="D3D12\D3D12RenderState.cpp" />
-    <ClCompile Include="D3D12\D3D12Technique.cpp" />
-    <ClCompile Include="D3D12\D3D12Texture.cpp" />
-    <ClCompile Include="D3D12\D3D12VertexBufferLoader.cpp" />
-    <ClCompile Include="D3D12\D3D12Window.cpp" />
-    <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
-    <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
-    <ClCompile Include="D3D12\FullScreenPass.cpp" />
-    <ClCompile Include="D3D12\FXAAPass.cpp" />
-    <ClCompile Include="D3D12\D3D12ParticleSystem.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="Terrain.cpp" />
-    <ClCompile Include="WindowInput.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="RenderState.cpp" />
-    <ClCompile Include="ShaderManager.cpp" />
-    <ClCompile Include="Source.cpp" />
-    <ClCompile Include="Technique.cpp" />
-    <ClCompile Include="Texture.cpp" />
-    <ClCompile Include="Window.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="D3D12\D3D12Terrain.hpp" />
-    <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
-    <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
-    <ClInclude Include="D3D12\D3D12Camera.hpp" />
-    <ClInclude Include="D3D12\D3D12Material.hpp" />
-    <ClInclude Include="D3D12\D3D12Mesh.hpp" />
-    <ClInclude Include="D3D12\D3D12Renderer.hpp" />
-    <ClInclude Include="D3D12\D3D12RenderState.hpp" />
-    <ClInclude Include="D3D12\D3D12Technique.hpp" />
-    <ClInclude Include="D3D12\D3D12Texture.hpp" />
-    <ClInclude Include="D3D12\D3D12Window.hpp" />
-    <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
-    <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
-    <ClInclude Include="D3D12\GlobalSettings.hpp" />
-    <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
-    <ClInclude Include="D3D12\D3D12VertexBufferLoader.hpp" />
-    <ClInclude Include="D3D12\FullScreenPass.hpp" />
-    <ClInclude Include="D3D12\FXAAPass.hpp" />
-    <ClInclude Include="D3D12\D3D12ParticleSystem.hpp" />
-    <ClInclude Include="ParticleSystem.hpp" />
-    <ClInclude Include="Terrain.hpp" />
-    <ClInclude Include="WindowInput.hpp" />
-    <ClInclude Include="Material.hpp" />
-    <ClInclude Include="Math.hpp" />
-    <ClInclude Include="Mesh.hpp" />
-    <ClInclude Include="Renderer.hpp" />
-    <ClInclude Include="RenderState.hpp" />
-    <ClInclude Include="ShaderManager.hpp" />
-    <ClInclude Include="Technique.hpp" />
-    <ClInclude Include="Texture.hpp" />
-    <ClInclude Include="Window.hpp" />
+    <ProjectReference Include="..\Test\Test.vcxproj">
+      <Project>{d6a4e757-0104-4fde-8551-828a230e8a15}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
