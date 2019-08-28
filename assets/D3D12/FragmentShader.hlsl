@@ -53,7 +53,7 @@ float4 main(VSOut input) : SV_TARGET0
 	bumpNormal = bumpMapColor.x * input.tangent + bumpMapColor.y * input.binormal + bumpMapColor.z * input.normal.xyz;
 	bumpNormal = normalize(bumpNormal);
 
-	textureColor = saturate(textureColor * dot(lightDir, bumpNormal)) + textureColor * 0.1;
+	textureColor = saturate(textureColor * dot(lightDir, bumpNormal)) + textureColor * 0.01;
 	//textureColor = float4(bumpNormal.x,0, bumpNormal.z,0);// saturate(textureColor * dot(lightDir, bumpNormal)) + textureColor * 0.1;
 	textureColor.w = 1.0f;
 
@@ -62,7 +62,7 @@ float4 main(VSOut input) : SV_TARGET0
 
 	#ifdef NORMAL
 
-	textureColor = saturate(textureColor * dot(lightDir, input.normal.xyz)) + textureColor * 0.1;
+	textureColor = saturate(textureColor * dot(lightDir, input.normal.xyz)) + textureColor * 0.01;
 	textureColor.w = 1.0f;
 
 

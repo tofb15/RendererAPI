@@ -197,7 +197,7 @@ public:
 		m_textures.push_back(tex);
 
 		tex = m_renderer->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/NMAP.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../assets/Textures/NMAP2.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 	}
 

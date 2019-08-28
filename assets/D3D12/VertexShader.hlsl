@@ -64,14 +64,14 @@ VSOut main(VSIn input, uint index : SV_VertexID, uint instanceID : SV_InstanceID
 	output.color = float4(color.xyz, 1.0f);
 #endif
 #ifdef NMAP
-	/*float3 tangent = mul(input.tangent.xyz, (float3x3)sr[matrixIndex + instanceID]);
+	float3 tangent = mul(input.tangent.xyz, (float3x3)sr[matrixIndex + instanceID]);
 	float3 binormal = mul(input.binormal.xyz, (float3x3)sr[matrixIndex + instanceID]);
 
 	tangent = normalize(tangent);
 	binormal = normalize(binormal);
 
 	output.tangent = float4(tangent,0);
-	output.binormal = float4(binormal,0);*/
+	output.binormal = float4(binormal,0);
 #endif
 
 	return output;
