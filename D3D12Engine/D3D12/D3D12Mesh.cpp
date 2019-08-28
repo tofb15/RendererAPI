@@ -56,7 +56,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 		{
 			iss >> line;
 
-			mDefaultMaterialName = line.c_str();
+			m_DefaultMaterialName = line.c_str();
 		}
 		else if (type == "v")
 		{
@@ -175,6 +175,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 
 bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 {
+
 	if (vertexBufferFlags & Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION) {
 
 		Float3 data[] = {
@@ -274,6 +275,63 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 			return false;
 	}
 
+	if (vertexBufferFlags & Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL) {
+		//POS
+		Float3 posData[] = {
+			//Front
+			{-0.5f, 0.5, -0.5f}, { 0.5f,  0.5, -0.5f }, { 0.5f,  -0.5, -0.5f },
+			{ 0.5f,  -0.5, -0.5f }, { -0.5f,  -0.5, -0.5f }, { -0.5f,  0.5, -0.5f },
+
+			//Right
+			{ 0.5f,  0.5, -0.5f }, { 0.5f,  0.5, 0.5f }, { 0.5f,  -0.5, 0.5f },
+			{ 0.5f,  -0.5, 0.5f }, { 0.5f,  -0.5, -0.5f }, { 0.5f,  0.5, -0.5f },
+
+			//Back
+			{ 0.5f,  0.5, 0.5f }, { -0.5f,  -0.5, 0.5f }, { 0.5f,  -0.5, 0.5f },
+			{ -0.5f,  -0.5, 0.5f }, { 0.5f,  0.5, 0.5f }, { -0.5f,  0.5, 0.5f },
+
+			//Left
+			{ -0.5f,  0.5, 0.5f }, { -0.5f,  0.5, -0.5f }, { -0.5f,  -0.5, -0.5f },
+			{ -0.5f,  -0.5, -0.5f }, { -0.5f,  -0.5, 0.5f }, { -0.5f,  0.5, 0.5f },
+
+			//Top
+			{ -0.5f,  0.5, 0.5f}, { 0.5f,  0.5, 0.5f }, { 0.5f,  0.5, -0.5f },
+			{ 0.5f,  0.5, -0.5f}, { -0.5f,  0.5, -0.5f }, { -0.5f,  0.5, 0.5f },
+
+			//Bottom
+			{ 0.5f,  -0.5, -0.5f }, { 0.5f,  -0.5, 0.5f }, { -0.5f,  -0.5, 0.5f },
+			{ -0.5f,  -0.5, 0.5f }, { -0.5f,  -0.5, -0.5f }, { 0.5f,  -0.5, -0.5f },
+		};
+		//UV
+		Float2 UVdata[] = {
+			//Front
+			{ 0.0f,  0.0f }, { 1.0f,  0.0f }, { 1.0f,  1.0f },
+			{ 1.0f,  1.0f }, { 0.0f,  1.0f }, { 0.0f,  0.0f },
+
+			//Right
+			{ 0.0f,  0.0f }, { 1.0f,  0.0f }, { 1.0f,  1.0f },
+			{ 1.0f,  1.0f }, { 0.0f,  1.0f }, { 0.0f,  0.0f },
+
+			//Back
+			{ 0.0f,  0.0f }, { 1.0f,  1.0f }, { 0.0f,  1.0f },
+			{ 1.0f,  1.0f }, { 0.0f,  0.0f }, { 1.0f,  0.0f },
+
+			//Left
+			{ 0.0f,  0.0f }, { 1.0f,  0.0f }, { 1.0f,  1.0f },
+			{ 1.0f,  1.0f }, { 0.0f,  1.0f }, { 0.0f,  0.0f },
+
+			//Top
+			{ 0.0f,  0.0f }, { 1.0f,  0.0f }, { 1.0f,  1.0f },
+			{ 1.0f,  1.0f }, { 0.0f,  1.0f }, { 0.0f,  0.0f },
+
+			//Bottom
+			{ 1.0f,  0.0f }, { 1.0f,  1.0f }, { 0.0f,  1.0f },
+			{ 0.0f,  1.0f }, { 0.0f,  0.0f }, { 1.0f,  0.0f },
+		};
+
+		CalculateTangentAndBinormal(posData, UVdata, 36);
+	}
+
 	return true;
 }
 
@@ -284,10 +342,10 @@ bool D3D12Mesh::InitializeSphere(const uint16_t verticalSections, const uint16_t
 
 bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType)
 {
-	if (mVertexBufferFlags & bufferType)
+	if (m_VertexBufferFlags & bufferType)
 		return false;
 	
-	mVertexBufferFlags |= bufferType;
+	m_VertexBufferFlags |= bufferType;
 
 	//Create Vertexbuffer
 	D3D12VertexBuffer* vertexBuffer = m_renderer->MakeVertexBuffer();
@@ -296,6 +354,58 @@ bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh
 		return false;
 	}
 	m_vertexBuffers.push_back(vertexBuffer);
+
+	return true;
+}
+
+bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements)
+{
+	int condition = VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION | VertexBufferFlag::VERTEX_BUFFER_FLAG_UV;
+	if ((m_VertexBufferFlags & condition) != condition || m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL) {
+		return false;
+	}
+
+	//Needed Variables
+	//D3D12VertexBuffer* positions = m_vertexBuffers[0];
+	//D3D12VertexBuffer* uvs = m_vertexBuffers[(m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL) ? 2 : 1];
+	std::vector<Float3> tangentsAndBinormal;
+
+	for (size_t i = 0; i < nElements; i+=3)
+	{
+		Float3 vL[2];			// Vectors between vertices in Local space
+		Float2 vT[2];			// Vectors between vertices in tangent space
+		float denominator;
+		Float3 tempTangent;
+		Float3 tempBinormal;
+
+		vL[0] = Float3(positions[1]) - positions[0];	// Vectors between vertices in Local space
+		vL[1] = Float3(positions[2]) - positions[0];
+		vT[0] = Float2(uvs[1]) - uvs[0];		// Vectors between vertices in UV space
+		vT[1] = Float2(uvs[2]) - uvs[0];
+
+		tempTangent = Float3(
+			vT[1].y * vL[0].x - vT[0].y * vL[1].x,
+			vT[1].y * vL[0].y - vT[0].y * vL[1].y,
+			vT[1].y * vL[0].z - vT[0].y * vL[1].z);
+
+		tempBinormal = Float3(
+			vT[1].x * vL[0].x - vT[0].x * vL[1].x,
+			vT[1].x * vL[0].y - vT[0].x * vL[1].y,
+			vT[1].x * vL[0].z - vT[0].x * vL[1].z);
+
+		denominator = vT[0].x * vT[1].y - vT[1].x * vT[0].y;
+		tempTangent /= denominator;
+		tempBinormal /= denominator;
+
+		tempTangent.normalize();
+		tempBinormal.normalize();
+
+		tangentsAndBinormal.push_back({ tempTangent.x, tempTangent.y, tempTangent.z });		//add Tangent
+		tangentsAndBinormal.push_back({ tempBinormal.x, tempBinormal.y, tempBinormal.z});	//add Binormal
+	}
+
+	if (!AddVertexBuffer(tangentsAndBinormal.size()/2 , sizeof(Float3)*2, (void*)&tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL))
+		return false;
 
 	return true;
 }

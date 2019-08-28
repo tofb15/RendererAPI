@@ -4,7 +4,7 @@ sampler samp : register(s0);
 
 struct VSOut
 {
-    float4 pos : SV_POSITION;
+	float4 pos		: SV_POSITION;
 	uint instanceID : INSTANCE;
 
 #ifdef NORMAL
@@ -13,9 +13,13 @@ struct VSOut
 #ifdef TEXTCOORD
 	float2 uv		: UV;
 #endif
-
+	//#ifdef DIFFUSE_TINT
 	float4 color	: COL;
-
+	//#endif
+#ifdef NMAP
+	float4 tangent	: TAN;
+	float4 binormal	: BI;
+#endif
 };
 
 

@@ -71,10 +71,10 @@ public:
 	const char* GetMaterialName() const;
 protected:
 	Mesh();
-	const char* mDefaultMaterialName;
-	unsigned mVertexBufferFlags;
+	const char* m_DefaultMaterialName;
+	unsigned m_VertexBufferFlags;
 private:
-	bool mIsCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
+	bool m_IsCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;
 	//Technique* tech; //Moved To blueprint
 };
