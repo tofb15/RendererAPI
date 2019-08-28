@@ -76,7 +76,7 @@ public:
 	};
 
 	WindowInput();
-	~WindowInput();
+	virtual ~WindowInput();
 
 	void Reset();
 	void SetKeyDown(char key, bool isDown);

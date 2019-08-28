@@ -11,7 +11,7 @@ class D3D12ParticleSystem : public ParticleSystem
 {
 public:
 	D3D12ParticleSystem(D3D12Renderer* renderer, short id);
-	~D3D12ParticleSystem();
+	virtual ~D3D12ParticleSystem();
 	bool Initialize();
 
 	void Update(float dt);

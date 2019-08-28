@@ -99,7 +99,7 @@ D3D12Renderer::~D3D12Renderer()
 	}
 	
 
-	//m_device->Release();
+	m_device->Release();
 
 	//hr = m_device->GetDeviceRemovedReason();
 	//_com_error err3(hr);

@@ -106,7 +106,7 @@ public:
 		InitializeTextures();
 		InitializeBlueprints();
 		InitializeObjects();
-		InitializeHeightMap();
+		//InitializeHeightMap();
 
 		m_particles.push_back(m_renderer->MakeParticleSystem());
 

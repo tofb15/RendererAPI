@@ -7,7 +7,7 @@ class Terrain
 {
 public:
 	Terrain();
-	~Terrain();
+	virtual ~Terrain();
 
 	/*
 		Initialize mesh from a heightMap.
@@ -16,5 +16,5 @@ public:
 	Mesh* GetMesh();
 
 protected:
-	Mesh* m_mesh;
+	Mesh* m_mesh = nullptr;
 };
