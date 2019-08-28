@@ -164,6 +164,7 @@ public:
 		m_sm = m_renderer->MakeShaderManager();
 		ShaderDescription sd = {};
 
+		//sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
 		sd.defines = "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n";
 		sd.name = "VertexShader";
 		sd.type = ShaderType::VS;
@@ -192,11 +193,11 @@ public:
 		//Create a Texture
 		Texture* tex;
 		tex = m_renderer->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../assets/Textures/red.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
 		tex = m_renderer->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../assets/Textures/NMAP.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 	}
 
@@ -209,6 +210,7 @@ public:
 		blueprint->technique = m_techniques[0];
 		blueprint->mesh = m_meshes[0];
 		blueprint->textures.push_back(m_textures[0]);
+		blueprint->textures.push_back(m_textures[1]);
 		m_blueprints.push_back(blueprint);
 
 		//for (size_t nTechs = 0; nTechs < 2; nTechs++)
@@ -364,7 +366,7 @@ public:
 		for (int i = 0; i < m_objects.size(); i++)
 		{
 			//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-			m_objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
+			m_objects[i]->transform.rotation.y = sinf(m_time*0.01 +i) * cosf(m_time*0.01 * 2 + i) * 3.14159265f * 2.0f;
 		}
 	}
 	void UpdateInput()
@@ -484,7 +486,7 @@ private:
 	//Blueprint m_terrainBlueprint;
 
 	double m_time = 0.0;
-	double m_ms = 300.0;
+	double m_ms = 50.0;
 	bool m_demoMovement[2];
 };
 

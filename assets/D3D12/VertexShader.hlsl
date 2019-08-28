@@ -4,12 +4,12 @@ struct VSIn
 #ifdef NORMAL
 	float3 normal	: NORM;
 #endif
+#ifdef TEXTCOORD
+	float2 uv		: UV;
+#endif
 #ifdef NMAP
 	float3 tangent	: TAN;
 	float3 binormal	: BI;
-#endif
-#ifdef TEXTCOORD
-	float2 uv		: UV;
 #endif
 };
 

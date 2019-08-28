@@ -400,8 +400,12 @@ bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int 
 		tempTangent.normalize();
 		tempBinormal.normalize();
 
-		tangentsAndBinormal.push_back({ tempTangent.x, tempTangent.y, tempTangent.z });		//add Tangent
-		tangentsAndBinormal.push_back({ tempBinormal.x, tempBinormal.y, tempBinormal.z});	//add Binormal
+		for (size_t j = 0; j < 3; j++)
+		{
+			tangentsAndBinormal.push_back({ tempTangent.x, tempTangent.y, tempTangent.z });		//add Tangent
+			tangentsAndBinormal.push_back({ tempBinormal.x, tempBinormal.y, tempBinormal.z });	//add Binormal
+		}
+
 	}
 
 	if (!AddVertexBuffer(tangentsAndBinormal.size()/2 , sizeof(Float3)*2, (void*)&tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL))
