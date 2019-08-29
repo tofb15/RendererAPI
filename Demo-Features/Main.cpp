@@ -265,7 +265,7 @@ public:
 	void InitializeObjects()
 	{
 		size_t nBlueprints = m_blueprints.size();
-		for (size_t i = 0; i < 1U; i++)
+		for (size_t i = 0; i < 1024U; i++)
 		{
 			Object* object = new Object;
 			object->blueprint = m_blueprints[i % nBlueprints];
@@ -467,9 +467,8 @@ public:
 
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_cameras[0]->Rotate({ 0, 1, 0 }, (float)(mouseMovement.x * dt * 5));
-		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (float)(mouseMovement.y * dt * 5));
-		inputs[0]->SetMouseMovement(Int2(0,0));
+		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
+		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
 	void RenderWindows()
 	{
