@@ -191,6 +191,11 @@ public:
 		//Create Technique from renderstate
 		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
 		m_techniques.push_back(tech);
+		
+		//===WireFrame Texture Shader===
+		//Create Technique from renderstate
+		tech = m_renderer->MakeTechnique(m_renderStates[1], &sp, m_sm);
+		m_techniques.push_back(tech);
 
 		return true;
 	}
@@ -208,6 +213,10 @@ public:
 
 		tex = m_renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test1.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/map.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 	}
 
@@ -228,6 +237,13 @@ public:
 		blueprint->technique = m_techniques[1];
 		blueprint->mesh = m_meshes[1];
 		blueprint->textures.push_back(m_textures[2]);
+		m_blueprints.push_back(blueprint);
+
+		//===Textured WireFrame Cube===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[2];
+		blueprint->mesh = m_meshes[1];
+		blueprint->textures.push_back(m_textures[3]);
 		m_blueprints.push_back(blueprint);
 
 		//for (size_t nTechs = 0; nTechs < 2; nTechs++)
