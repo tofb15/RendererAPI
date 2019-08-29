@@ -37,6 +37,7 @@ cbuffer CB : register(b0)
 {
     float4x4 viewPerspective;
 	int matrixIndex;
+	int textureIndex;
 }
 
 StructuredBuffer<float4x4> sr : register(t1);

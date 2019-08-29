@@ -137,9 +137,17 @@ public:
 	}
 	void InitializeMeshesMaterialsAndRenderStates()
 	{
-		Mesh* mesh2 = m_renderer->MakeMesh();
-		mesh2->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV | Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL);
-		m_meshes.push_back(mesh2);
+		Mesh* mesh;
+
+		//==NormalMap Cube===
+		mesh = m_renderer->MakeMesh();
+		mesh->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV | Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL);
+		m_meshes.push_back(mesh);
+
+		//==Textured Cube===
+		mesh = m_renderer->MakeMesh();
+		mesh->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+		m_meshes.push_back(mesh);
 
 		//Create a material
 		Material* mat = m_renderer->MakeMaterial();
@@ -147,14 +155,19 @@ public:
 		m_materials.push_back(mat);
 
 		//Create RenderState
-		RenderState* renderState = m_renderer->MakeRenderState();
-		renderState->SetWireframe(false);
-		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
-		m_renderStates.push_back(renderState);
+		RenderState* renderState;
 
+		//===Default RenderState===
 		renderState = m_renderer->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
+		renderState->SetUsingDepthBuffer(true);
+		m_renderStates.push_back(renderState);
+
+		//===WireFrame RenderState===
+		renderState = m_renderer->MakeRenderState();
+		renderState->SetWireframe(true);
+		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
 		renderState->SetUsingDepthBuffer(true);
 		m_renderStates.push_back(renderState);
 	}
@@ -162,29 +175,22 @@ public:
 	bool InitializeShadersAndTechniques()
 	{
 		m_sm = m_renderer->MakeShaderManager();
-		ShaderDescription sd = {};
-
-		//sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
-		sd.defines = "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n";
-		sd.name = "VertexShader";
-		sd.type = ShaderType::VS;
-		Shader vs = m_sm->CompileShader(sd);
-
-		sd.name = "FragmentShader";
-		sd.type = ShaderType::FS;
-		Shader fs = m_sm->CompileShader(sd);
-
 		ShaderProgram sp = {};
+		Technique* tech;
 
-		sp.VS = vs;
-		sp.FS = fs;
-
+		//===Normal Map Shader===
+		sp.VS = m_sm->CompileShader({ShaderType::VS, "VertexShader", "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n"});
+		sp.FS = m_sm->CompileShader({ ShaderType::FS, "FragmentShader", "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n" });
 		//Create Technique from renderstate
-		Technique* tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
 		m_techniques.push_back(tech);
 
-		//tech = m_renderer->MakeTechnique(m_renderStates[1], &sp, m_sm);
-		//m_techniques.push_back(tech);
+		//===Texture Shader===
+		sp.VS = m_sm->CompileShader({ ShaderType::VS, "VertexShader", "#define NORMAL\n#define TEXTCOORD\n" });
+		sp.FS = m_sm->CompileShader({ ShaderType::FS, "FragmentShader", "#define NORMAL\n#define TEXTCOORD\n" });
+		//Create Technique from renderstate
+		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		m_techniques.push_back(tech);
 
 		return true;
 	}
@@ -199,6 +205,10 @@ public:
 		tex = m_renderer->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/NMAP2.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
+
+		tex = m_renderer->MakeTexture();
+		tex->LoadFromFile("../assets/Textures/test1.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
 	}
 
 	void InitializeBlueprints()
@@ -206,11 +216,18 @@ public:
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint;
 
+		//===NormalMap Cube===
 		blueprint = new Blueprint;
 		blueprint->technique = m_techniques[0];
 		blueprint->mesh = m_meshes[0];
 		blueprint->textures.push_back(m_textures[0]);
 		blueprint->textures.push_back(m_textures[1]);
+		m_blueprints.push_back(blueprint);
+		//===Textured Cube===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[1];
+		blueprint->mesh = m_meshes[1];
+		blueprint->textures.push_back(m_textures[2]);
 		m_blueprints.push_back(blueprint);
 
 		//for (size_t nTechs = 0; nTechs < 2; nTechs++)

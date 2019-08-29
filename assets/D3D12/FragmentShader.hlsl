@@ -22,6 +22,10 @@ struct VSOut
 #endif
 };
 
+//cbuffer CB : register(b0)
+//{
+//	int textureStart;
+//}
 
 float timeWaster(float input)
 {
@@ -45,7 +49,7 @@ float4 main(VSOut input) : SV_TARGET0
 	float3 bumpNormal;
 
 	textureColor = g_texture[0 + input.instanceID * 2].Sample(samp, input.uv);
-	textureColor = float4(1,1,1,1);
+	//textureColor = float4(1,1,1,1);
 	bumpMapColor = g_texture[1 + input.instanceID * 2].Sample(samp, input.uv);
 	// Change interval from (0, 1) to (-1, 1)
 	bumpMapColor = bumpMapColor * 2.0f - 1.0f;

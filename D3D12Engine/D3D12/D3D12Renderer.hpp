@@ -135,6 +135,7 @@ private:
 	//-1 means new technique. everything else is number of instances to draw.
 	std::vector<int> m_renderInstructions;
 	std::vector<int> m_instanceOffsets;
+	std::vector<int> m_textureOffsets;
 
 	// Default resources
 	ID3D12Device4*				m_device								= nullptr;

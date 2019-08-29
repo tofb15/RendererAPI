@@ -563,19 +563,23 @@ void D3D12Renderer::SetUpRenderInstructions()
 	unsigned short meshID_curr;
 	unsigned short techID_curr;
 	unsigned int nrOfInstances = 0;
+	unsigned int nrOfTextures = 0;
 
 	// Clear render instructions from previous frame
 	m_renderInstructions.clear();
 	m_instanceOffsets.clear();
+	m_textureOffsets.clear();
 
 	// Start with setting new technique
 	m_renderInstructions.push_back(-1);
-
+	
 	// Setting a new technique does not increase the total instance count
 	m_instanceOffsets.push_back(0);
+	m_textureOffsets.push_back(0);
 
 	// The first draw call has no instance offset
 	m_instanceOffsets.push_back(0);
+	m_textureOffsets.push_back(0);
 
 	// Create render instructions
 	size_t nItems = m_items.size();
@@ -596,14 +600,19 @@ void D3D12Renderer::SetUpRenderInstructions()
 
 			// Add up the total amount of instances in this draw call
 			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+			// Add up the total amount of textures in this draw call
+			m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
 
 			// Add a technique swap instruction
 			m_renderInstructions.push_back(-1);
 
 			// Setting a new technique does not increase the total instance count
 			m_instanceOffsets.push_back(m_instanceOffsets.back());
+			// Setting a new technique does not increase the total texture count
+			m_textureOffsets.push_back(m_textureOffsets.back());
 
 			nrOfInstances = 0;
+			nrOfTextures = 0;
 
 			if (meshID_curr != meshID_last)
 			{
@@ -621,10 +630,14 @@ void D3D12Renderer::SetUpRenderInstructions()
 
 			// Add up the total amount of instances in this draw call
 			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+			// Add up the total amount of textures in this draw call
+			m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
 
 			nrOfInstances = 0;
+			nrOfTextures = 0;
 		}
 		nrOfInstances++;
+		nrOfTextures += m_items[i].item.blueprint->textures.size();
 	}
 
 	//Start with setting new technique
@@ -747,6 +760,7 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 	{
 		int instruction = m_renderInstructions[instructionIndex];
 		int instanceOffset = m_instanceOffsets[instructionIndex];
+		int textureOffset = m_textureOffsets[instructionIndex];
 
 		if (instruction == -1)
 		{
@@ -764,7 +778,7 @@ void D3D12Renderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int
 			//D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap[backBufferIndex]->GetGPUDescriptorHandleForHeapStart();
 			//handle.ptr += instanceOffset * m_cbv_srv_uav_size;
 			D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-			handle.ptr += (backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER + instanceOffset) * m_cbv_srv_uav_size;
+			handle.ptr += (backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER + textureOffset) * m_cbv_srv_uav_size;
 			commandList->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
@@ -981,7 +995,7 @@ bool D3D12Renderer::InitializeRootSignature()
 
 	// Root constants
 	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParams[0].Constants.Num32BitValues = 16 + 4;		// 1 * float4x4 + 1 * int
+	rootParams[0].Constants.Num32BitValues = 16 + 8;		// 1 * float4x4 + 2 * int
 	rootParams[0].Constants.RegisterSpace = 0;
 	rootParams[0].Constants.ShaderRegister = 0;
 	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
