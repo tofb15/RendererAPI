@@ -316,7 +316,7 @@ void D3D12Renderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
 	SortingItem s;
 	s.item = item;
 	s.sortingIndex = 0U;
-
+	s.layer = ((static_cast<D3D12Technique*>(item.blueprint->technique))->GetAllowTransparency() ? 1 : 0);
 	//int i2 = sizeof(INT64);
 	//int i = sizeof(s.sortingIndex);
 	int meshTechindex = (techIndex - 1) * m_meshesCreated + (meshIndex - 1);

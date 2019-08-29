@@ -25,8 +25,11 @@ public:
 
 	ID3D12PipelineState* GetPipelineState();
 
+	bool GetAllowTransparency();
+
 private:
 	unsigned short m_id;
+	bool m_allowTransparency = false;
 	D3D12Renderer* m_renderer;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 

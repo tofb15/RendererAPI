@@ -170,6 +170,14 @@ public:
 		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
 		renderState->SetUsingDepthBuffer(true);
 		m_renderStates.push_back(renderState);
+
+		//===Transparent RenderState===
+		renderState = m_renderer->MakeRenderState();
+		renderState->SetWireframe(false);
+		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
+		renderState->SetUsingDepthBuffer(true);
+		renderState->SetAllowTransparency(true);
+		m_renderStates.push_back(renderState);
 	}
 
 	bool InitializeShadersAndTechniques()
@@ -190,6 +198,10 @@ public:
 		sp.FS = m_sm->CompileShader({ ShaderType::FS, "FragmentShader", "#define NORMAL\n#define TEXTCOORD\n" });
 		//Create Technique from renderstate
 		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		m_techniques.push_back(tech);
+
+		//===Transparent Texture Shader===
+		tech = m_renderer->MakeTechnique(m_renderStates[2], &sp, m_sm);
 		m_techniques.push_back(tech);
 
 		return true;
@@ -226,6 +238,12 @@ public:
 		//===Textured Cube===
 		blueprint = new Blueprint;
 		blueprint->technique = m_techniques[1];
+		blueprint->mesh = m_meshes[1];
+		blueprint->textures.push_back(m_textures[2]);
+		m_blueprints.push_back(blueprint);
+		//===Transparent Textured Cube===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[2];
 		blueprint->mesh = m_meshes[1];
 		blueprint->textures.push_back(m_textures[2]);
 		m_blueprints.push_back(blueprint);

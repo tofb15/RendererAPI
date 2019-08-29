@@ -127,8 +127,22 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 		D3D12_LOGIC_OP_NOOP, D3D12_COLOR_WRITE_ENABLE_ALL
 	};
 
-	for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-		gpsd.BlendState.RenderTarget[i] = defaultRTdesc;
+	for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
+		if (!rs->GetAllowTransparency()) {
+			gpsd.BlendState.RenderTarget[i] = defaultRTdesc;
+		}
+		else {
+			m_allowTransparency = true;
+			gpsd.BlendState.RenderTarget[i].BlendEnable = true;
+			gpsd.BlendState.RenderTarget[i].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+			gpsd.BlendState.RenderTarget[i].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+			gpsd.BlendState.RenderTarget[i].BlendOp = D3D12_BLEND_OP_ADD;
+			gpsd.BlendState.RenderTarget[i].SrcBlendAlpha = D3D12_BLEND_ONE;
+			gpsd.BlendState.RenderTarget[i].DestBlendAlpha = D3D12_BLEND_ZERO;
+			gpsd.BlendState.RenderTarget[i].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+			gpsd.BlendState.RenderTarget[i].RenderTargetWriteMask = 0x0f;
+		}
+	}
 
 	hr = m_renderer->GetDevice()->CreateGraphicsPipelineState(&gpsd, IID_PPV_ARGS(&m_pipelineState));
 	if (FAILED(hr))
@@ -169,4 +183,9 @@ unsigned short D3D12Technique::GetID() const
 ID3D12PipelineState * D3D12Technique::GetPipelineState()
 {
 	return m_pipelineState;
+}
+
+bool D3D12Technique::GetAllowTransparency()
+{
+	return m_allowTransparency;
 }

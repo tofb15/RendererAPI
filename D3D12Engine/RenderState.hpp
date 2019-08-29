@@ -31,6 +31,8 @@ public:
 	*/
 	void SetUsingDepthBuffer(const bool depthBuffer);
 
+	void SetAllowTransparency(const bool allowTransparency);
+
 	/*
 		@Return true if the render state is using wireframe.
 	*/
@@ -42,6 +44,9 @@ public:
 	*/
 	bool GetIsUsingDepthBuffer() const;
 
+	bool GetAllowTransparency();
+
+
 protected:
 	RenderState();
 
@@ -49,4 +54,5 @@ private:
 	bool m_wireframe;
 	FaceCulling m_faceCulling;
 	bool m_useDepthBuffer;
+	bool m_allowTransparency;
 };

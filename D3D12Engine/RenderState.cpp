@@ -19,6 +19,11 @@ void RenderState::SetUsingDepthBuffer(const bool depthBuffer)
 	m_useDepthBuffer = depthBuffer;
 }
 
+void RenderState::SetAllowTransparency(const bool allowTransparency)
+{
+	m_allowTransparency = allowTransparency;
+}
+
 bool RenderState::GetWireframe() const
 {
 	return m_wireframe;
@@ -34,9 +39,15 @@ bool RenderState::GetIsUsingDepthBuffer() const
 	return m_useDepthBuffer;
 }
 
+bool RenderState::GetAllowTransparency()
+{
+	return m_allowTransparency;
+}
+
 RenderState::RenderState()
 {
 	m_wireframe = false;
 	m_faceCulling = FaceCulling::NONE;
 	m_useDepthBuffer = true;
+	m_allowTransparency = false;
 }

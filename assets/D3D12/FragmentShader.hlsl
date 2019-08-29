@@ -60,7 +60,8 @@ float4 main(VSOut input) : SV_TARGET0
 
 	textureColor = saturate(textureColor * saturate(dot(lightDir, bumpNormal))) + textureColor * 0.01;
 	//textureColor = float4(bumpNormal.x,0, bumpNormal.z,0);// saturate(textureColor * dot(lightDir, bumpNormal)) + textureColor * 0.1;
-	textureColor.w = 1.0f;
+	//textureColor.r = 1.0f;
+	//textureColor.w = 0.7f;
 
 #else
 	textureColor = g_texture[input.instanceID].Sample(samp, input.uv);
@@ -68,7 +69,7 @@ float4 main(VSOut input) : SV_TARGET0
 	#ifdef NORMAL
 
 	textureColor = saturate(textureColor * dot(lightDir, input.normal.xyz)) + textureColor * 0.01;
-	textureColor.w = 1.0f;
+	//textureColor.w = 0.6f;
 
 
 	/*for (int i = 0; i < 100000; i++)
