@@ -4,6 +4,7 @@
 #include "D3D12ShaderManager.hpp"
 #include "D3D12Renderer.hpp"
 #include <d3d12.h>
+#include <comdef.h>
 
 D3D12Technique::D3D12Technique(D3D12Renderer * renderer, unsigned short id) : m_renderer(renderer), m_id(id)
 {
@@ -17,7 +18,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsd = {};
-	bool hasPos = false, hasNorm = false, hasUV = false;
+	bool hasPos = false, hasNorm = false, hasUV = false, hasNMap = false;
 	int n_inputs = 0;
 
 	std::string defines = sm->GetVertexDefines(sp->VS.handle);
@@ -42,6 +43,13 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 
 		hasUV = true;
 	}
+	if (defines.find("NMAP") != defines.npos)
+	{
+		if (!hasNMap)
+			n_inputs+=2;
+
+		hasNMap = true;
+	}
 
 	ied = new D3D12_INPUT_ELEMENT_DESC[n_inputs];
 	int idx = 0;
@@ -57,7 +65,11 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	{
 		ied[idx++] = { "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 2, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
 	}
-
+	if (hasNMap)
+	{
+		ied[idx++] = { "TAN", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+		ied[idx++] = { "BI", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	}
 	inputLayoutDesc.pInputElementDescs = ied;
 	//inputLayoutDesc.NumElements = ARRAYSIZE(ied);
 	inputLayoutDesc.NumElements = n_inputs;
@@ -121,6 +133,8 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 	hr = m_renderer->GetDevice()->CreateGraphicsPipelineState(&gpsd, IID_PPV_ARGS(&m_pipelineState));
 	if (FAILED(hr))
 	{
+		_com_error err2(hr);
+		std::cout << err2.ErrorMessage() << std::endl;
 		return false;
 	}
 

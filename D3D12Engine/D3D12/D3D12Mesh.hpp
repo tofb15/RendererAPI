@@ -15,10 +15,11 @@ public:
 
 	// Note: this is limited to only reading triangles as of now
 	virtual bool LoadFromFile(const char * fileName) override;
-
 	virtual bool InitializeCube(unsigned int vertexBufferFlags) override;
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) override;
 	virtual bool AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType) override;
+
+	virtual bool CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements);
 
 	std::vector<D3D12VertexBuffer*>* GetVertexBuffers();
 	unsigned short GetID() const;

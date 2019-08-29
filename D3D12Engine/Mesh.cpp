@@ -6,12 +6,12 @@ Mesh::~Mesh()
 
 unsigned Mesh::GetVertexBufferFlags() const
 {
-	return mVertexBufferFlags;
+	return m_VertexBufferFlags;
 }
 
 const char * Mesh::GetMaterialName() const
 {
-	return mDefaultMaterialName;
+	return m_DefaultMaterialName;
 }
 
 Mesh::Mesh()
