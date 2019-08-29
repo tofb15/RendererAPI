@@ -228,11 +228,19 @@ void D3D12Window::HandleWindowEvents()
 				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, (LPVOID)g_rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER));
 
 				RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
+				tagRAWMOUSE;
 				switch (rawInput->header.dwType)
 				{
 				case RIM_TYPEMOUSE:
-					mouseMovement.x = static_cast<int>(rawInput->data.mouse.lLastX);
-					mouseMovement.y = static_cast<int>(rawInput->data.mouse.lLastY);
+					tagRAWMOUSE m = rawInput->data.mouse;
+					if (m.usFlags == 0) {
+						mouseMovement.x = static_cast<int>(m.lLastX);
+						mouseMovement.y = static_cast<int>(m.lLastY);
+					}
+					else {
+						mouseMovement.x = 0;
+						mouseMovement.y = 0;
+					}
 					break;
 				case RIM_TYPEKEYBOARD:
 					break;
