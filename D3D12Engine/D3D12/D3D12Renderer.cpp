@@ -558,15 +558,18 @@ void D3D12Renderer::Present(Window * w)
 
 void D3D12Renderer::SetUpRenderInstructions()
 {
+	// Clear render instructions from previous frame
+	m_renderInstructions.clear();
+	m_instanceOffsets.clear();
+
+	if (m_items.size() == 0)
+		return;
+
 	unsigned short meshID_last = m_items[0].meshIndex;
 	unsigned short techID_last = m_items[0].techniqueIndex;
 	unsigned short meshID_curr;
 	unsigned short techID_curr;
 	unsigned int nrOfInstances = 0;
-
-	// Clear render instructions from previous frame
-	m_renderInstructions.clear();
-	m_instanceOffsets.clear();
 
 	// Start with setting new technique
 	m_renderInstructions.push_back(-1);
