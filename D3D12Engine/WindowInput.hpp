@@ -82,13 +82,17 @@ public:
 	void SetKeyDown(char key, bool isDown);
 	void SetKeyPressed(char key, bool isPressed);
 	void SetMouseMovement(Int2 mouseMovement);
+	void SetMouseWheelMovement(int mouseWheelMovement);
 
 	bool IsKeyDown(char key)	const;
 	bool IsKeyUp(char key)		const;
 	bool IsKeyPressed(char key) const;
 	Int2 GetMouseMovement()		const;
+	int GetMouseWheelMovement()		const;
+
 private:
 	bool m_isKeysDown[NUM_KEYS];
 	bool m_isKeysPressed[NUM_KEYS];
 	Int2 m_mouseMovement;
+	int m_mouseWheelMovement;
 };

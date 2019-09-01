@@ -188,7 +188,8 @@ void D3D12Window::HandleWindowEvents()
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
-	Int2 mouseMovement;
+	Int2 mouseMovement(0,0);
+	int mouseWheelMovement = 0;
 
 	while (CheckMessage)
 	{
@@ -233,6 +234,11 @@ void D3D12Window::HandleWindowEvents()
 				case RIM_TYPEMOUSE:
 					mouseMovement.x = static_cast<int>(rawInput->data.mouse.lLastX);
 					mouseMovement.y = static_cast<int>(rawInput->data.mouse.lLastY);
+
+					if (rawInput->data.mouse.usButtonFlags == RI_MOUSE_WHEEL) {
+						mouseWheelMovement = (short)rawInput->data.mouse.usButtonData;
+					}
+
 					break;
 				case RIM_TYPEKEYBOARD:
 					break;
@@ -270,6 +276,7 @@ void D3D12Window::HandleWindowEvents()
 		}
 	}
 	m_input.SetMouseMovement(mouseMovement);
+	m_input.SetMouseWheelMovement(mouseWheelMovement);
 }
 
 bool D3D12Window::WindowClosed()

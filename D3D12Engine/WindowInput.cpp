@@ -35,6 +35,11 @@ void WindowInput::SetMouseMovement(Int2 mouseMovement)
 	m_mouseMovement = mouseMovement;
 }
 
+void WindowInput::SetMouseWheelMovement(int mouseWheelMovement)
+{
+	m_mouseWheelMovement = mouseWheelMovement;
+}
+
 bool WindowInput::IsKeyDown(char key) const
 {
 	if (key < NUM_KEYS)
@@ -62,4 +67,9 @@ bool WindowInput::IsKeyPressed(char key) const
 Int2 WindowInput::GetMouseMovement() const
 {
 	return m_mouseMovement;
+}
+
+int WindowInput::GetMouseWheelMovement() const
+{
+	return m_mouseWheelMovement;
 }

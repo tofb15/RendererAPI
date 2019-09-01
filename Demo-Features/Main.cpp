@@ -465,6 +465,10 @@ public:
 			}
 		}
 
+		//Scroll
+		int mouseWheelMovement = inputs[0]->GetMouseWheelMovement();
+		m_cameras[0]->Move(m_cameras[0]->GetTargetDirection().normalized() * (mouseWheelMovement * m_ms * dt));
+
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
 		m_cameras[0]->Rotate({ 0, 1, 0 }, (float)(mouseMovement.x * dt * 5));
