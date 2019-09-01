@@ -5,9 +5,14 @@ class WindowInput
 {
 public:
 	static const unsigned NUM_KEYS = 256;
+	static const unsigned NUM_MOUSE_KEYS = 3;
 
 	enum KEY_CODES
 	{
+		MOUSE_KEY_CODE_LEFT = 0,
+		MOUSE_KEY_CODE_MIDDLE,
+		MOUSE_KEY_CODE_RIGHT,
+
 		//Special
 		KEY_CODE_backspace = 8,
 		KEY_CODE_TAB = 9,
@@ -75,11 +80,20 @@ public:
 		KEY_CODE_F12,
 	};
 
+	//enum MOUSE_KEY_CODES
+	//{
+	//	MOUSE_KEY_CODE_LEFT = KEY_CODES::MOUSE_KEY_CODE_LEFT,
+	//	MOUSE_KEY_CODE_MIDDLE,
+	//	MOUSE_KEY_CODE_RIGHT,
+	//};
+
 	WindowInput();
 	virtual ~WindowInput();
 
 	void Reset();
 	void SetKeyDown(char key, bool isDown);
+	void SetMouseKeyDown(char key, bool isDown);
+
 	void SetKeyPressed(char key, bool isPressed);
 	void SetMouseMovement(Int2 mouseMovement);
 	void SetMouseWheelMovement(int mouseWheelMovement);
@@ -93,6 +107,10 @@ public:
 private:
 	bool m_isKeysDown[NUM_KEYS];
 	bool m_isKeysPressed[NUM_KEYS];
+
+	//bool m_isMouseKeysDown[NUM_MOUSE_KEYS];
+	//bool m_isMouseKeysPressed[NUM_MOUSE_KEYS];
+
 	Int2 m_mouseMovement;
 	int m_mouseWheelMovement;
 };

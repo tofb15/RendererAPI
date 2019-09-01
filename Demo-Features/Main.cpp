@@ -10,6 +10,7 @@
 #include "../D3D12Engine/Terrain.hpp"
 #include "../D3D12Engine/ParticleSystem.hpp"
 
+//#include <Windows.h>
 
 #include <iostream>
 #include <crtdbg.h>
@@ -436,6 +437,7 @@ public:
 			m_blueprints[1]->technique = m_techniques[techniqueToUse];
 		}
 	}
+
 	void ProcessLocalInput(double dt)
 	{
 		std::vector<WindowInput*> inputs;
@@ -445,13 +447,16 @@ public:
 			inputs.push_back(&m_windows[i]->GetLocalWindowInputHandler());
 		}
 
+		//if (inputs[0]->IsKeyPressed(WindowInput::MOUSE_KEY_CODE_RIGHT))
+		//	MessageBoxA(NULL, "Test", "Test", 0);
+
 		for (size_t i = 0; i < m_windows.size(); i++)
 		{
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W) && !inputs[i]->IsKeyDown(WindowInput::MOUSE_KEY_CODE_LEFT))
 			{
 				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (m_ms * dt));
 			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S) || inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W) && inputs[i]->IsKeyDown(WindowInput::MOUSE_KEY_CODE_LEFT))
 			{
 				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(m_ms * dt));
 			}
@@ -459,10 +464,11 @@ public:
 			{
 				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(m_ms * dt));
 			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D) || (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_F) && inputs[i]->IsKeyPressed(WindowInput::MOUSE_KEY_CODE_RIGHT)))
 			{
 				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (m_ms * dt));
 			}
+
 		}
 
 		//Scroll

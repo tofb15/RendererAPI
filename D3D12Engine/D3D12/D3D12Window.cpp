@@ -184,7 +184,7 @@ void D3D12Window::Hide()
 void D3D12Window::HandleWindowEvents()
 {
 	/*Reset Previus State*/
-	//m_input.Reset();
+	m_input.Reset();
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
@@ -242,8 +242,31 @@ void D3D12Window::HandleWindowEvents()
 							mouseMovement.y = static_cast<int>(m.lLastY);
 						}
 
-						if (rawInput->data.mouse.usButtonFlags == RI_MOUSE_WHEEL) {
+						switch (m.usButtonFlags)
+						{
+						case RI_MOUSE_LEFT_BUTTON_DOWN:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_LEFT, true);
+							break;
+						case RI_MOUSE_LEFT_BUTTON_UP:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_LEFT, false);
+							break;
+						case RI_MOUSE_MIDDLE_BUTTON_DOWN:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_MIDDLE, true);
+							break;
+						case RI_MOUSE_MIDDLE_BUTTON_UP:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_MIDDLE, false);
+							break;
+						case RI_MOUSE_RIGHT_BUTTON_DOWN:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_RIGHT, true);
+							break;
+						case RI_MOUSE_RIGHT_BUTTON_UP:
+							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_RIGHT, false);
+							break;
+						case RI_MOUSE_WHEEL:
 							mouseWheelMovement = (short)rawInput->data.mouse.usButtonData;
+							break;
+						default:
+							break;
 						}
 
 						break;
