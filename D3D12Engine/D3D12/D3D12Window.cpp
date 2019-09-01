@@ -226,25 +226,36 @@ void D3D12Window::HandleWindowEvents()
 			case WM_INPUT:
 			{
 				UINT dwSize;
-				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, (LPVOID)g_rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER));
+				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 
-				RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
-				switch (rawInput->header.dwType)
-				{
-				case RIM_TYPEMOUSE:
-					mouseMovement.x = static_cast<int>(rawInput->data.mouse.lLastX);
-					mouseMovement.y = static_cast<int>(rawInput->data.mouse.lLastY);
+				if (dwSize < 50) {
+					GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, (LPVOID)g_rawInputBuffer, &dwSize, sizeof(RAWINPUTHEADER));
 
-					if (rawInput->data.mouse.usButtonFlags == RI_MOUSE_WHEEL) {
-						mouseWheelMovement = (short)rawInput->data.mouse.usButtonData;
+					RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
+					tagRAWMOUSE;
+					switch (rawInput->header.dwType)
+					{
+					case RIM_TYPEMOUSE:
+						tagRAWMOUSE m = rawInput->data.mouse;
+						if (m.usFlags == 0) {
+							mouseMovement.x = static_cast<int>(m.lLastX);
+							mouseMovement.y = static_cast<int>(m.lLastY);
+						}
+
+						if (rawInput->data.mouse.usButtonFlags == RI_MOUSE_WHEEL) {
+							mouseWheelMovement = (short)rawInput->data.mouse.usButtonData;
+						}
+
+						break;
+					case RIM_TYPEKEYBOARD:
+						break;
+					default:
+						break;
 					}
-
-					break;
-				case RIM_TYPEKEYBOARD:
-					break;
-				default:
-					break;
 				}
+					
+
+				
 			}
 				break;
 

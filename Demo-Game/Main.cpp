@@ -507,8 +507,8 @@ public:
 
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_cameras[0]->Rotate({ 0, 1, 0 }, mouseMovement.x * dt);
-		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), mouseMovement.y * dt);
+		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
+		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
 	void RenderWindows()
 	{
