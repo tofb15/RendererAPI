@@ -4,7 +4,7 @@
 
 struct ShaderProgram;
 class D3D12RenderState;
-class D3D12Renderer;
+class D3D12API;
 class D3D12ShaderManager;
 struct ID3D12PipelineState;
 
@@ -14,7 +14,7 @@ struct ID3D12PipelineState;
 */
 class D3D12Technique : public Technique{
 public:
-	D3D12Technique(D3D12Renderer* renderer, unsigned short id);
+	D3D12Technique(D3D12API* renderer, unsigned short id);
 	virtual bool Initialize(D3D12RenderState*, ShaderProgram* sp, D3D12ShaderManager* sm);
 
 	virtual ~D3D12Technique();
@@ -27,7 +27,7 @@ public:
 
 private:
 	unsigned short m_id;
-	D3D12Renderer* m_renderer;
+	D3D12API* m_renderer;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 
 };

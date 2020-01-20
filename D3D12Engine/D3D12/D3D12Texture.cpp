@@ -2,10 +2,10 @@
 #include "External/LodePNG/lodepng.h"
 #include <iostream>
 #include <d3d12.h>
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include "External/D3DX12/d3dx12.h"
 
-D3D12Texture::D3D12Texture(D3D12Renderer* renderer, unsigned short index) : m_Renderer(renderer)
+D3D12Texture::D3D12Texture(D3D12API* renderer, unsigned short index) : m_Renderer(renderer)
 {
 	m_index = index;
 }

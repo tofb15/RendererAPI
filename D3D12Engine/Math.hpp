@@ -2,7 +2,12 @@
 #include <cmath>
 #include <iostream>
 
+typedef unsigned short     USHORT;
+typedef unsigned short     UINT16;
 typedef unsigned short     uint16_t;
+
+typedef unsigned int       UINT;
+typedef unsigned __int32   UINT32;
 
 struct UINT128 {
 	unsigned __int64 least;

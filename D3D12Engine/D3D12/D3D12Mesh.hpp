@@ -2,7 +2,7 @@
 #include "../Mesh.hpp"
 
 class D3D12VertexBuffer;
-class D3D12Renderer;
+class D3D12API;
 
 /*
 	Used to contain a model.
@@ -10,7 +10,7 @@ class D3D12Renderer;
 */
 class D3D12Mesh : public Mesh{
 public:
-	D3D12Mesh(D3D12Renderer* renderer, unsigned short id);
+	D3D12Mesh(D3D12API* renderer, unsigned short id);
 	virtual ~D3D12Mesh();
 
 	// Note: this is limited to only reading triangles as of now
@@ -25,6 +25,6 @@ public:
 	unsigned short GetID() const;
 private:
 	unsigned short m_id;
-	D3D12Renderer* m_renderer;
+	D3D12API* m_renderer;
 	std::vector<D3D12VertexBuffer*> m_vertexBuffers;
 };

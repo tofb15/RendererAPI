@@ -2,7 +2,7 @@
 #include <d3d12.h>
 #include "GlobalSettings.hpp"
 
-class D3D12Renderer;
+class D3D12API;
 class D3D12Window;
 
 class FXAAPass
@@ -11,7 +11,7 @@ public:
 	FXAAPass();
 	~FXAAPass();
 
-	bool Initialize(D3D12Renderer* renderer);
+	bool Initialize(D3D12API* renderer);
 	void ApplyFXAA(D3D12Window* window);
 
 private:
@@ -22,7 +22,7 @@ private:
 	bool InitializeCommandInterfaces();
 
 	ID3DBlob* m_cs_blob;
-	D3D12Renderer* m_renderer;
+	D3D12API* m_renderer;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	ID3D12Resource* m_UA_Resource[NUM_SWAP_BUFFERS] = {nullptr};

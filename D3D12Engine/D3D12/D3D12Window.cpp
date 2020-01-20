@@ -4,7 +4,7 @@
 
 #include <DirectXMath.h>
 
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 
 #pragma comment (lib, "DXGI.lib")
 //#pragma comment (lib, "d3d12.lib")
@@ -52,7 +52,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-D3D12Window::D3D12Window(D3D12Renderer* renderer)
+D3D12Window::D3D12Window(D3D12API* renderer)
 {
 	m_Renderer = renderer;
 	m_Viewport = new D3D12_VIEWPORT;

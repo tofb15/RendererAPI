@@ -1,8 +1,8 @@
 #include "D3D12Terrain.hpp"
 #include "D3D12Texture.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 
-D3D12Terrain::D3D12Terrain(D3D12Renderer * renderer) : Terrain()
+D3D12Terrain::D3D12Terrain(D3D12API * renderer) : Terrain()
 {
 	m_mesh = renderer->MakeMesh();
 }

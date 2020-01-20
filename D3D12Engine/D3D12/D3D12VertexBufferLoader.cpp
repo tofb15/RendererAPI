@@ -1,8 +1,8 @@
 #include "D3D12VertexBufferLoader.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include <d3d12.h>
 
-D3D12VertexBufferLoader::D3D12VertexBufferLoader(D3D12Renderer * renderer)
+D3D12VertexBufferLoader::D3D12VertexBufferLoader(D3D12API * renderer)
 {
 	m_renderer = renderer;
 }

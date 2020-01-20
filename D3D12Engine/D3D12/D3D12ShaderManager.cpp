@@ -1,11 +1,11 @@
 #include "D3D12ShaderManager.hpp"
 #include <d3dcompiler.h>
 #include <fstream>
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 
 #pragma comment(lib, "d3dcompiler.lib")
 
-D3D12ShaderManager::D3D12ShaderManager(D3D12Renderer * renderer)
+D3D12ShaderManager::D3D12ShaderManager(D3D12API * renderer)
 {
 	m_renderer = renderer;
 }

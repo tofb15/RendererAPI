@@ -1,4 +1,4 @@
-#include "../D3D12Engine/Renderer.hpp"
+#include "../D3D12Engine/RenderAPI.hpp"
 #include "../D3D12Engine/Window.hpp"
 #include "../D3D12Engine/Camera.hpp"
 #include "../D3D12Engine/Mesh.hpp"
@@ -106,7 +106,7 @@ public:
 	{
 		//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
 
-		m_renderer = Renderer::MakeRenderer(Renderer::RendererBackend::D3D12);	//Specify Forward or Deferred Rendering?
+		m_renderer = RenderAPI::MakeRenderer(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
 		if (m_renderer == nullptr) {
 			std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
 			exit(-1);
@@ -510,7 +510,7 @@ public:
 	}
 
 private:
-	Renderer*					m_renderer;
+	RenderAPI*					m_renderer;
 	ShaderManager*				m_sm;
 	std::vector<Window*>		m_windows;
 

@@ -3,7 +3,7 @@
 #include <vector>
 #include <Windows.h>
 
-class D3D12Renderer;
+class D3D12API;
 struct ID3D12CommandQueue;
 struct ID3D12CommandAllocator;
 struct ID3D12GraphicsCommandList3;
@@ -21,7 +21,7 @@ struct GPUBuffer
 class D3D12VertexBufferLoader
 {
 public:
-	D3D12VertexBufferLoader(D3D12Renderer* renderer);
+	D3D12VertexBufferLoader(D3D12API* renderer);
 	~D3D12VertexBufferLoader();
 
 	bool Initialize();
@@ -32,7 +32,7 @@ private:
 	void WaitForGPU(const unsigned typeIndex);
 	bool InitializeCommandInterfaces(const unsigned typeIndex);
 
-	D3D12Renderer* m_renderer;
+	D3D12API* m_renderer;
 
 	static const unsigned COPY_INDEX = 0U;
 	static const unsigned DIRECT_INDEX = 1U;

@@ -1,12 +1,12 @@
 #include "D3D12Mesh.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12Texture.hpp"
 
 #include <sstream>
 #include <fstream>
 
-D3D12Mesh::D3D12Mesh(D3D12Renderer* renderer, unsigned short id) : m_id(id)
+D3D12Mesh::D3D12Mesh(D3D12API* renderer, unsigned short id) : m_id(id)
 {
 	m_renderer = renderer;
 }

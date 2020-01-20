@@ -1,4 +1,5 @@
 #include "D3D12ParticleSystem.hpp"
+#include "Renderers/D3D12ForwardRenderer.h"
 
 #include <d3dcompiler.h>
 #include <string>
@@ -7,10 +8,10 @@
 #include <math.h>
 
 #pragma comment(lib, "d3dcompiler.lib")
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include "D3D12Camera.hpp"
 
-D3D12ParticleSystem::D3D12ParticleSystem(D3D12Renderer* renderer, short id) : ParticleSystem()
+D3D12ParticleSystem::D3D12ParticleSystem(D3D12API* renderer, short id) : ParticleSystem()
 {
 	m_renderer = renderer;
 	m_id = id;
@@ -156,7 +157,7 @@ void D3D12ParticleSystem::Update(float dt)
 #endif
 }
 
-void D3D12ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, D3D12Camera* camera)
+void D3D12ParticleSystem::Render(D3D12ForwardRenderer* renderer, ID3D12GraphicsCommandList3 * list, D3D12Camera* camera)
 {
 #ifndef Particle_Single_Fence
 	//Get Last done update
@@ -178,14 +179,14 @@ void D3D12ParticleSystem::Render(ID3D12GraphicsCommandList3 * list, D3D12Camera*
 	list->SetGraphicsRootSignature(m_rootSignature_render);
 	list->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-	ID3D12DescriptorHeap* tempDescriptorHeap = m_renderer->GetDescriptorHeap();
+	ID3D12DescriptorHeap* tempDescriptorHeap = renderer->GetDescriptorHeap();
 	list->SetDescriptorHeaps(1, &tempDescriptorHeap);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE descHndGPU = m_renderer->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE descHndGPU = renderer->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 #ifdef Particle_Single_Fence
 	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + m_bufferIndex) * m_srv_cbv_uav_size;
 #else
-	descHndGPU.ptr += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + searchIndex) * m_srv_cbv_uav_size;
+	descHndGPU.ptr += (renderer->NUM_DESCRIPTORS_IN_HEAP - NUM_SWAP_BUFFERS + searchIndex) * m_srv_cbv_uav_size;
 #endif
 	list->SetGraphicsRootDescriptorTable(0, descHndGPU);
 	list->SetGraphicsRoot32BitConstants(1, 16, &viewPersp, 0);

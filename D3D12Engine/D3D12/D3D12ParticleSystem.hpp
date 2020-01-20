@@ -3,19 +3,19 @@
 #include "GlobalSettings.hpp"
 #include "../ParticleSystem.hpp"
 
-class D3D12Renderer;
+class D3D12API;
 class D3D12Camera;
-//#define Particle_Single_Fence
+class D3D12ForwardRenderer;
 
 class D3D12ParticleSystem : public ParticleSystem
 {
 public:
-	D3D12ParticleSystem(D3D12Renderer* renderer, short id);
+	D3D12ParticleSystem(D3D12API* renderer, short id);
 	virtual ~D3D12ParticleSystem();
 	bool Initialize();
 
 	void Update(float dt);
-	void Render(ID3D12GraphicsCommandList3* list, D3D12Camera* camera);
+	void Render(D3D12ForwardRenderer* renderer, ID3D12GraphicsCommandList3* list, D3D12Camera* camera);
 
 private:
 
@@ -39,7 +39,7 @@ private:
 	bool InitializeResources();
 	bool InitializeCommandInterfaces();
 
-	D3D12Renderer* m_renderer;
+	D3D12API* m_renderer;
 	short m_bufferIndex = 0;
 	float m_time = 0.0f;
 

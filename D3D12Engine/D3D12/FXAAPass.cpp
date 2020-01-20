@@ -1,5 +1,5 @@
 #include "FXAAPass.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include <string>
 #include <fstream>
 #include <comdef.h>
@@ -19,7 +19,7 @@ FXAAPass::~FXAAPass()
 {
 }
 
-bool FXAAPass::Initialize(D3D12Renderer * renderer)
+bool FXAAPass::Initialize(D3D12API * renderer)
 {
 	m_renderer = renderer;
 

@@ -1,10 +1,10 @@
 #include "D3D12TextureLoader.hpp"
 #include "External/D3DX12/d3dx12.h"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include "D3D12Texture.hpp"
 #include <chrono>
 
-D3D12TextureLoader::D3D12TextureLoader(D3D12Renderer * renderer) : m_renderer(renderer)
+D3D12TextureLoader::D3D12TextureLoader(D3D12API * renderer) : m_renderer(renderer)
 {
 
 }

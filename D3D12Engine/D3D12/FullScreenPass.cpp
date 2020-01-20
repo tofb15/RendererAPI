@@ -1,5 +1,5 @@
 #include "FullScreenPass.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include "D3D12Window.hpp"
 
 #include <string>
@@ -23,7 +23,7 @@ FullScreenPass::~FullScreenPass()
 
 }
 
-bool FullScreenPass::Initialize(D3D12Renderer* renderer)
+bool FullScreenPass::Initialize(D3D12API* renderer)
 {
 	m_renderer = renderer;
 	m_srv_cbv_uav_size = m_renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);

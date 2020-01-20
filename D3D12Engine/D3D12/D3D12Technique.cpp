@@ -2,11 +2,11 @@
 #include "D3D12Material.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
-#include "D3D12Renderer.hpp"
+#include "D3D12API.hpp"
 #include <d3d12.h>
 #include <comdef.h>
 
-D3D12Technique::D3D12Technique(D3D12Renderer * renderer, unsigned short id) : m_renderer(renderer), m_id(id)
+D3D12Technique::D3D12Technique(D3D12API * renderer, unsigned short id) : m_renderer(renderer), m_id(id)
 {
 
 }

@@ -5,7 +5,7 @@
 class D3D12Terrain : public Terrain
 {
 public:
-	D3D12Terrain(D3D12Renderer* renderer);
+	D3D12Terrain(D3D12API* renderer);
 	~D3D12Terrain();
 
 	// Inherited via Terrain

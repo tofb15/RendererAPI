@@ -5,7 +5,7 @@
 #include <mutex>
 
 class D3D12Texture;
-class D3D12Renderer;
+class D3D12API;
 struct ID3D12Resource;
 
 #include <vector>
@@ -14,7 +14,7 @@ class D3D12TextureLoader
 {
 public:
 
-	D3D12TextureLoader(D3D12Renderer* renderer);
+	D3D12TextureLoader(D3D12API* renderer);
 	~D3D12TextureLoader();
 
 	bool Initialize();
@@ -53,7 +53,7 @@ private:
 
 	unsigned m_CBV_SRV_UAV_DescriptorSize;
 
-	D3D12Renderer*				m_renderer;
+	D3D12API*				m_renderer;
 	ID3D12CommandQueue*			m_commandQueue = nullptr;
 	ID3D12CommandAllocator*		m_commandAllocator = nullptr;
 	ID3D12GraphicsCommandList3*	m_commandList = nullptr;

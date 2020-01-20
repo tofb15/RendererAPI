@@ -13,11 +13,11 @@
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
-class D3D12Renderer;
+class D3D12API;
 
 class D3D12Window : public Window {
 public:
-	D3D12Window(D3D12Renderer* renderer);
+	D3D12Window(D3D12API* renderer);
 	virtual ~D3D12Window();
 
 	// Inherited via Window
@@ -112,7 +112,7 @@ private:
 	D3D12_VIEWPORT*				m_Viewport;
 	D3D12_RECT*					m_ScissorRect;
 
-	D3D12Renderer* m_Renderer;
+	D3D12API* m_Renderer;
 
 	//Fences for the render targets
 	ID3D12Fence1*				m_Fence[NUM_SWAP_BUFFERS] = { nullptr };
