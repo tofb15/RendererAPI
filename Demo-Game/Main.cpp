@@ -102,29 +102,33 @@ public:
 		InitializeObjects();
 		//InitializeHeightMap();
 
-		m_particles.push_back(m_renderer->MakeParticleSystem());
-
 		return true;
 	}
 	bool InitializeRendererAndWindow()
 	{
 		//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
-
-		m_renderer = RenderAPI::MakeRenderer(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
-		if (m_renderer == nullptr) {
-			std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
-			exit(-1);
-		}
-		if (!m_renderer->Initialize())
+		m_renderAPI = RenderAPI::MakeAPI(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
+			
+		if (m_renderAPI == nullptr) {
+			std::cout << "Selected renderAPI was not implemented and could therefor not be created." << std::endl;
 			return false;
-		//renderer->InitForwardRendering();				//Init like this?
-		//renderer->InitDeferredRendering();			//Init like this?
+		}
+		if (!m_renderAPI->Initialize()) {
+			return false;
+		}
+		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Forward);
+		if (!m_renderer) {
+			std::cout << "Selected renderer was not implemented within the current renderAPI and could therefor not be created." << std::endl;
+			return false;
+		}
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
-		Window* window = m_renderer->MakeWindow();
+		Window* window = m_renderAPI->MakeWindow();
 		window->SetTitle("Window 1");
-		if (!window->Create(640, 640))
+		if (!window->Create(640, 640)){
 			return false;
+		}
+
 		window->Show();
 		m_windows.push_back(window);
 
@@ -133,11 +137,11 @@ public:
 
 	void InitializeMeshesMaterialsAndRenderStates()
 	{
-		Mesh* mesh1 = m_renderer->MakeMesh();
-		Mesh* mesh2 = m_renderer->MakeMesh();
-		Mesh* mesh3 = m_renderer->MakeMesh();
-		Mesh* mesh4 = m_renderer->MakeMesh();
-		Mesh* mesh5 = m_renderer->MakeMesh();
+		Mesh* mesh1 = m_renderAPI->MakeMesh();
+		Mesh* mesh2 = m_renderAPI->MakeMesh();
+		Mesh* mesh3 = m_renderAPI->MakeMesh();
+		Mesh* mesh4 = m_renderAPI->MakeMesh();
+		Mesh* mesh5 = m_renderAPI->MakeMesh();
 
 		//mesh1->LoadFromFile("walker.obj");
 		mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
@@ -155,17 +159,17 @@ public:
 
 
 		//Create a material
-		Material* mat = m_renderer->MakeMaterial();
+		Material* mat = m_renderAPI->MakeMaterial();
 		mat->LoadFromFile("generator.mtl");
 		m_materials.push_back(mat);
 
 		//Create RenderState
-		RenderState* renderState = m_renderer->MakeRenderState();
+		RenderState* renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		m_renderStates.push_back(renderState);
 
-		renderState = m_renderer->MakeRenderState();
+		renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderState->SetUsingDepthBuffer(true);
@@ -174,7 +178,7 @@ public:
 
 	bool InitializeShadersAndTechniques()
 	{
-		m_sm = m_renderer->MakeShaderManager();
+		m_sm = m_renderAPI->MakeShaderManager();
 		ShaderDescription sd = {};
 
 		sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
@@ -193,10 +197,10 @@ public:
 		sp.FS = fs;
 
 		//Create Technique from renderstate
-		Technique* tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		Technique* tech = m_renderAPI->MakeTechnique(m_renderStates[0], &sp, m_sm);
 		m_techniques.push_back(tech);
 
-		tech = m_renderer->MakeTechnique(m_renderStates[1], &sp, m_sm);
+		tech = m_renderAPI->MakeTechnique(m_renderStates[1], &sp, m_sm);
 		m_techniques.push_back(tech);
 
 		return true;
@@ -205,11 +209,11 @@ public:
 	{
 		//Create a Texture
 		Texture* tex;
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 	}
@@ -278,14 +282,14 @@ public:
 		sp_terrain.GS = gs_terrain;
 		sp_terrain.FS = ps_terrain;
 
-		Technique* tech_terrain = m_renderer->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
+		Technique* tech_terrain = m_renderAPI->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
 		m_techniques.push_back(tech_terrain);
 
-		Texture* tex = m_renderer->MakeTexture();
+		Texture* tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
 		m_textures.push_back(tex);
 
-		m_terrain = m_renderer->MakeTerrain();
+		m_terrain = m_renderAPI->MakeTerrain();
 		m_terrain->InitializeHeightMap(tex, 100);
 
 		m_terrainBlueprint.mesh = m_terrain->GetMesh();
@@ -296,13 +300,13 @@ public:
 
 	void InitializeCameras()
 	{
-		Camera* cam = m_renderer->MakeCamera();
+		Camera* cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		m_cameras.push_back(cam);
 
-		cam = m_renderer->MakeCamera();
+		cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
@@ -515,12 +519,6 @@ public:
 				m_renderer->Submit({ obj->blueprint, obj->transform }, cam0);
 			}
 
-			//std::cout << "Num Particles: " << m_particles.size() << std::endl;
-			for (size_t part = 0; part < m_particles.size(); part++)
-			{
-				m_renderer->Submit(m_particles[part]);
-			}
-
 			//m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
 
 			//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
@@ -530,7 +528,9 @@ public:
 	}
 
 private:
-	RenderAPI*					m_renderer;
+	RenderAPI*					m_renderAPI;
+	Renderer*					m_renderer;
+
 	ShaderManager*				m_sm;
 	std::vector<Window*>		m_windows;
 

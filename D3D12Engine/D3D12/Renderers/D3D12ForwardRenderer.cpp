@@ -49,16 +49,10 @@ D3D12ForwardRenderer::~D3D12ForwardRenderer()
 	}
 
 	m_descriptorHeap->Release();
-	m_rootSignature->Release();
 }
 
 bool D3D12ForwardRenderer::Initialize()
-{
-	if (!InitializeRootSignature())
-	{
-		printf("Error: Could not initialize root signature\n");
-		return false;
-	}
+{	
 	if (!InitializeMatrixStructuredBuffer())
 	{
 		printf("Error: Could not initialize structured buffer\n");
@@ -332,11 +326,6 @@ void D3D12ForwardRenderer::Present(Window* w)
 	window->WaitForGPU();
 }
 
-ID3D12RootSignature* D3D12ForwardRenderer::GetRootSignature() const
-{
-	return m_rootSignature;
-}
-
 ID3D12DescriptorHeap* D3D12ForwardRenderer::GetDescriptorHeap() const
 {
 	return m_descriptorHeap;
@@ -344,86 +333,6 @@ ID3D12DescriptorHeap* D3D12ForwardRenderer::GetDescriptorHeap() const
 
 //Private
 
-bool D3D12ForwardRenderer::InitializeRootSignature()
-{
-	HRESULT hr;
-	ID3DBlob* sBlob;
-	D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
-	D3D12_DESCRIPTOR_RANGE descRange[1] = {};
-	D3D12_ROOT_DESCRIPTOR_TABLE rootDescTable = {};
-	D3D12_ROOT_PARAMETER rootParams[3];
-	D3D12_ROOT_SIGNATURE_DESC rootSigDesc;
-
-	samplerDesc[0].RegisterSpace = 0;
-	samplerDesc[0].ShaderRegister = 0;
-	samplerDesc[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	samplerDesc[0].MinLOD = 0;
-	samplerDesc[0].MaxLOD = 1;
-	samplerDesc[0].MipLODBias = 0;
-	samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-
-	// Bindless texture descriptor range
-	descRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	descRange[0].NumDescriptors = -1; // No bounds (bindless)
-	descRange[0].BaseShaderRegister = 0;
-	descRange[0].RegisterSpace = 0;
-
-	rootDescTable.NumDescriptorRanges = 1;
-	rootDescTable.pDescriptorRanges = descRange;
-
-	// Root constants
-	rootParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-	rootParams[0].Constants.Num32BitValues = 16 + 8;		// 1 * float4x4 + 2 * int
-	rootParams[0].Constants.RegisterSpace = 0;
-	rootParams[0].Constants.ShaderRegister = 0;
-	rootParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-	// Texture descriptor table
-	rootParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rootParams[1].DescriptorTable = rootDescTable;
-
-	// Structured buffer view
-	rootParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	rootParams[2].Descriptor.ShaderRegister = 1;
-	rootParams[2].Descriptor.RegisterSpace = 0;
-
-	rootSigDesc.Flags =
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-	rootSigDesc.NumParameters = sizeof(rootParams) / sizeof(D3D12_ROOT_PARAMETER);
-	rootSigDesc.pParameters = rootParams;
-	rootSigDesc.NumStaticSamplers = 1;
-	rootSigDesc.pStaticSamplers = samplerDesc;
-
-	hr = D3D12SerializeRootSignature(
-		&rootSigDesc,
-		D3D_ROOT_SIGNATURE_VERSION_1,
-		&sBlob,
-		nullptr);
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	hr = m_d3d12->GetDevice()->CreateRootSignature(
-		0,
-		sBlob->GetBufferPointer(),
-		sBlob->GetBufferSize(),
-		IID_PPV_ARGS(&m_rootSignature));
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	return true;
-}
 bool D3D12ForwardRenderer::InitializeMatrixStructuredBuffer()
 {
 	HRESULT hr;
@@ -700,9 +609,17 @@ void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera*
 
 	DirectX::XMFLOAT4X4 viewPersp = c->GetViewPerspective();
 
-	// Set everything which is necessary to record draw commands
-	commandList->SetGraphicsRootSignature(m_rootSignature);
 	//commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
+	// Set a pipeline state unless the first instruction is to do so
+	int instanceOffset = m_instanceOffsets[firstInstructionIndex];
+	D3D12Technique* technique = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique);
+	if (m_renderInstructions[firstInstructionIndex] != -1)
+	{
+		// Set everything which is necessary to record draw commands
+		commandList->SetPipelineState(technique->GetPipelineState());
+	}
+	commandList->SetGraphicsRootSignature(technique->GetRootSignature());
+
 	commandList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	commandList->SetGraphicsRootShaderResourceView(2, m_structuredBufferResources[backBufferIndex]->GetGPUVirtualAddress());
 	commandList->SetGraphicsRoot32BitConstants(0, 16, &viewPersp, 0);
@@ -711,13 +628,6 @@ void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera*
 	commandList->RSSetScissorRects(1, w->GetScissorRect());
 	w->SetRenderTarget(commandList);
 
-	// Set a pipeline state unless the first instruction is to do so
-	if (m_renderInstructions[firstInstructionIndex] != -1)
-	{
-		int instanceOffset = m_instanceOffsets[firstInstructionIndex];
-		ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
-		commandList->SetPipelineState(pls);
-	}
 
 	// Determine the index of next list (m_renderInstructions.size() for the last list)
 	size_t nextListFirstIndex = firstInstructionIndex + numInstructions;

@@ -209,7 +209,7 @@ UINT D3D12API::GetViewSize()
 
 bool D3D12API::InitializeDirect3DDevice()
 {
-#ifndef _DEBUG
+#ifndef DEBUG
 	//Enable the D3D12 debug layer.
 	ID3D12Debug* debugController = nullptr;
 
@@ -270,17 +270,26 @@ bool D3D12API::InitializeDirect3DDevice()
 	return true;
 }
 
-Renderer* D3D12API::MakeRenderer(const RendererID rendererID)
+Renderer* D3D12API::MakeRenderer(const RendererType rendererType)
 {
 	D3D12Renderer* renderer = nullptr;
-	switch (rendererID)
+
+	switch (rendererType)
 	{
-	case (RendererID)D3D12_RENDERER_ID::Forward:
+	case RendererType::Forward:
 		renderer = new D3D12ForwardRenderer(this);
 		break;
 	default:
 		break;
 	}
+
+	if (renderer) {
+		if (!renderer->Initialize()) {
+			delete renderer;
+			renderer = nullptr;
+		}
+	}
+
 
 	return renderer;
 }

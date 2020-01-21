@@ -14,6 +14,9 @@ class D3D12Camera;
 
 struct ID3D12DescriptorHeap;
 struct ID3D12RootSignature;
+struct ID3D12GraphicsCommandList3;
+struct ID3D12CommandAllocator;
+struct ID3D12Resource;
 
 class D3D12ForwardRenderer : public D3D12Renderer
 {
@@ -38,7 +41,6 @@ public:
 	virtual void Frame(Window* window, Camera* c) override;
 	virtual void Present(Window* w) override;
 
-	ID3D12RootSignature* GetRootSignature() const;
 	ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
 private:
@@ -89,7 +91,6 @@ private:
 	};
 
 private:
-	bool InitializeRootSignature();
 	bool InitializeMatrixStructuredBuffer();
 	bool InitializeTextureDescriptorHeap();
 	bool InitializeCommandInterfaces();
@@ -114,7 +115,7 @@ private:
 
 	ID3D12CommandAllocator* m_commandAllocators[NUM_SWAP_BUFFERS][NUM_COMMAND_LISTS] = { nullptr };
 	ID3D12GraphicsCommandList3* m_commandLists[NUM_SWAP_BUFFERS][NUM_COMMAND_LISTS] = { nullptr };
-	ID3D12RootSignature* m_rootSignature = nullptr;
+
 	ID3D12Resource* m_structuredBufferResources[NUM_SWAP_BUFFERS] = { nullptr };
 	ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
 

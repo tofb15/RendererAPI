@@ -15,8 +15,6 @@ class Technique;
 class ShaderManager;
 struct ShaderProgram;
 
-typedef unsigned char RendererID;
-
 /*
 	Documentation goes here ^^
 */
@@ -30,8 +28,14 @@ public:
 		OpenGL
 	};
 
-	virtual ~RenderAPI();
+	enum class RendererType
+	{
+		Forward = 0,
+		Deferred,
+		Raytracing
+	};
 
+	virtual ~RenderAPI();
 
 	/*
 		Call to create a instance of a specific renderer class used through out the game.
@@ -40,7 +44,7 @@ public:
 
 		@return a Renderer* to selected by the RendererBackend param
 	*/
-	static	RenderAPI*		MakeRenderer(RenderBackendAPI backend);
+	static	RenderAPI*		MakeAPI(RenderBackendAPI backend);
 	
 	/*
 		Initialize the specific renderer instance.
@@ -111,7 +115,7 @@ public:
 		@return a pointer to a ShaderManager instance if successful, nullptr if not
 	*/
 	virtual ShaderManager*	MakeShaderManager() = 0;
-	virtual Renderer* MakeRenderer(const RendererID rendererID) = 0;
+	virtual Renderer* MakeRenderer(const RendererType rendererType) = 0;
 
 protected:
 	RenderAPI();

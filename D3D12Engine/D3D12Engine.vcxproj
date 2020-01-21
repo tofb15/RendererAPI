@@ -131,7 +131,12 @@
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
-    <ClCompile Include="D3D12\FullScreenPass.cpp" />
+    <ClCompile Include="D3D12\FullScreenPass.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="D3D12\FXAAPass.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -177,7 +182,12 @@
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
     <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBufferLoader.hpp" />
-    <ClInclude Include="D3D12\FullScreenPass.hpp" />
+    <ClInclude Include="D3D12\FullScreenPass.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="D3D12\FXAAPass.hpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>

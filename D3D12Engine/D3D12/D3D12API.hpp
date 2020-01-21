@@ -20,12 +20,6 @@ class D3D12VertexBufferLoader;
 */
 class D3D12API : public RenderAPI {
 public:
-	enum class D3D12_RENDERER_ID : RendererID
-	{
-		Forward = 0
-	};
-
-public:
 	
 	D3D12API();
 	virtual ~D3D12API();
@@ -43,7 +37,7 @@ public:
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
 	virtual ShaderManager * MakeShaderManager() override;
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
-	virtual Renderer* MakeRenderer(const RendererID rendererID) override;
+	virtual Renderer* MakeRenderer(const RendererType rendererType) override;
 
 	ID3D12Device4* GetDevice() const;
 	D3D12TextureLoader* GetTextureLoader() const;

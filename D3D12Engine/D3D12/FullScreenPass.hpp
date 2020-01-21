@@ -20,7 +20,8 @@ private:
 
 	ID3DBlob* vs_blob;
 	ID3DBlob* ps_blob;
-	D3D12API* m_renderer;
+	D3D12API* m_d3d12;
+
 	ID3D12RootSignature* m_rootSignature = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 

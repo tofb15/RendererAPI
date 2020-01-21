@@ -1,5 +1,6 @@
 #pragma once
 #include "Math.hpp"
+#include <vector>
 
 class Camera;
 class Window;
@@ -28,6 +29,8 @@ class Renderer
 {
 public:
 	~Renderer();
+	virtual bool Initialize() = 0;
+
 	/*
 		Submit work that should be rendered
 		This should be called every frame for every item before calling Frame()
@@ -63,7 +66,6 @@ public:
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
 protected:
 	Renderer();
-	virtual bool Initialize() = 0;
 
 private:
 

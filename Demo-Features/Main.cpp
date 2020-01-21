@@ -106,18 +106,23 @@ public:
 	{
 		//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
 
-		m_renderer = RenderAPI::MakeRenderer(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
-		if (m_renderer == nullptr) {
+		m_renderAPI = RenderAPI::MakeAPI(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
+		if (m_renderAPI == nullptr) {
 			std::cout << "Selected rendered backend was not implemented and could therefor not be created." << std::endl;
-			exit(-1);
-		}
-		if (!m_renderer->Initialize())
 			return false;
-		//renderer->InitForwardRendering();				//Init like this?
-		//renderer->InitDeferredRendering();			//Init like this?
+		}
+		if (!m_renderAPI->Initialize()) {
+			return false;
+		}
+
+		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Forward);
+		if (!m_renderer) {
+			std::cout << "Selected renderer was not implemented within the current renderAPI and could therefor not be created." << std::endl;
+			return false;
+		}
 
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
-		Window* window = m_renderer->MakeWindow();
+		Window* window = m_renderAPI->MakeWindow();
 		window->SetTitle("Window 1");
 		if (!window->Create(640, 640))
 			return false;
@@ -126,7 +131,7 @@ public:
 
 		if (!SINGLE_WINDOW)
 		{
-			Window*	window2 = m_renderer->MakeWindow();
+			Window*	window2 = m_renderAPI->MakeWindow();
 			window2->SetTitle("Window 2");
 			if (!window2->Create(640, 640))
 				return false;
@@ -141,17 +146,17 @@ public:
 		Mesh* mesh;
 
 		//==NormalMap Cube===
-		mesh = m_renderer->MakeMesh();
+		mesh = m_renderAPI->MakeMesh();
 		mesh->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV | Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL);
 		m_meshes.push_back(mesh);
 
 		//==Textured Cube===
-		mesh = m_renderer->MakeMesh();
+		mesh = m_renderAPI->MakeMesh();
 		mesh->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
 		m_meshes.push_back(mesh);
 
 		//Create a material
-		Material* mat = m_renderer->MakeMaterial();
+		Material* mat = m_renderAPI->MakeMaterial();
 		mat->LoadFromFile("generator.mtl");
 		m_materials.push_back(mat);
 
@@ -159,14 +164,14 @@ public:
 		RenderState* renderState;
 
 		//===Default RenderState===
-		renderState = m_renderer->MakeRenderState();
+		renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(false);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		renderState->SetUsingDepthBuffer(true);
 		m_renderStates.push_back(renderState);
 
 		//===WireFrame RenderState===
-		renderState = m_renderer->MakeRenderState();
+		renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(true);
 		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
 		renderState->SetUsingDepthBuffer(true);
@@ -175,7 +180,7 @@ public:
 
 	bool InitializeShadersAndTechniques()
 	{
-		m_sm = m_renderer->MakeShaderManager();
+		m_sm = m_renderAPI->MakeShaderManager();
 		ShaderProgram sp = {};
 		Technique* tech;
 
@@ -183,19 +188,19 @@ public:
 		sp.VS = m_sm->CompileShader({ShaderType::VS, "VertexShader", "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n"});
 		sp.FS = m_sm->CompileShader({ ShaderType::FS, "FragmentShader", "#define NORMAL\n#define TEXTCOORD\n#define NMAP\n" });
 		//Create Technique from renderstate
-		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		tech = m_renderAPI->MakeTechnique(m_renderStates[0], &sp, m_sm);
 		m_techniques.push_back(tech);
 
 		//===Texture Shader===
 		sp.VS = m_sm->CompileShader({ ShaderType::VS, "VertexShader", "#define NORMAL\n#define TEXTCOORD\n" });
 		sp.FS = m_sm->CompileShader({ ShaderType::FS, "FragmentShader", "#define NORMAL\n#define TEXTCOORD\n" });
 		//Create Technique from renderstate
-		tech = m_renderer->MakeTechnique(m_renderStates[0], &sp, m_sm);
+		tech = m_renderAPI->MakeTechnique(m_renderStates[0], &sp, m_sm);
 		m_techniques.push_back(tech);
 		
 		//===WireFrame Texture Shader===
 		//Create Technique from renderstate
-		tech = m_renderer->MakeTechnique(m_renderStates[1], &sp, m_sm);
+		tech = m_renderAPI->MakeTechnique(m_renderStates[1], &sp, m_sm);
 		m_techniques.push_back(tech);
 
 		return true;
@@ -204,19 +209,19 @@ public:
 	{
 		//Create a Texture
 		Texture* tex;
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/red.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/NMAP2.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/test1.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
-		tex = m_renderer->MakeTexture();
+		tex = m_renderAPI->MakeTexture();
 		tex->LoadFromFile("../assets/Textures/map.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 	}
@@ -278,13 +283,13 @@ public:
 
 	void InitializeCameras()
 	{
-		Camera* cam = m_renderer->MakeCamera();
+		Camera* cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
 		m_cameras.push_back(cam);
 
-		cam = m_renderer->MakeCamera();
+		cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
@@ -510,7 +515,8 @@ public:
 	}
 
 private:
-	RenderAPI*					m_renderer;
+	RenderAPI*					m_renderAPI;
+	Renderer*					m_renderer;
 	ShaderManager*				m_sm;
 	std::vector<Window*>		m_windows;
 

@@ -23,10 +23,10 @@ FullScreenPass::~FullScreenPass()
 
 }
 
-bool FullScreenPass::Initialize(D3D12API* renderer)
+bool FullScreenPass::Initialize(D3D12API* d3d12)
 {
-	m_renderer = renderer;
-	m_srv_cbv_uav_size = m_renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_d3d12 = d3d12;
+	m_srv_cbv_uav_size = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	if (!InitializeShaders())
 		return false;
@@ -48,11 +48,11 @@ void FullScreenPass::Record(ID3D12GraphicsCommandList3 * list, D3D12Window* wind
 	list->RSSetViewports(1, window->GetViewport());
 	list->RSSetScissorRects(1, window->GetScissorRect());
 
-	ID3D12DescriptorHeap* descHeap = m_renderer->GetDescriptorHeap();
+	ID3D12DescriptorHeap* descHeap = m_d3d12->GetDescriptorHeap();
 	list->SetDescriptorHeaps(1, &descHeap);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE cdh = descHeap->GetGPUDescriptorHandleForHeapStart();
-	cdh.ptr  += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 2) * m_srv_cbv_uav_size;
+	cdh.ptr  += (m_d3d12->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 2) * m_srv_cbv_uav_size;
 	   //.ptr  += (m_renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * 0 + 1) * m_srv_cbv_uav_size;
 
 	list->SetGraphicsRootDescriptorTable(0, cdh);

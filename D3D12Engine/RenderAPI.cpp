@@ -5,7 +5,7 @@ RenderAPI::~RenderAPI()
 {
 }
 
-RenderAPI* RenderAPI::MakeRenderer(RenderBackendAPI backend)
+RenderAPI* RenderAPI::MakeAPI(RenderBackendAPI backend)
 {
 	switch (backend)
 	{
