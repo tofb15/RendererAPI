@@ -1,15 +1,12 @@
 #pragma once
 
 #include "../RenderAPI.hpp"
-//#include <d3d12.h>
+#include "D3D12_FDecl.h"
+
 #include <thread>
 
-struct ID3D12Device4;
-struct ID3D12CommandAllocator;
-struct ID3D12GraphicsCommandList3;
-
-struct ID3D12Resource;
-struct ID3D12Fence1;
+constexpr unsigned int NUM_SWAP_BUFFERS = 3;
+constexpr int NUM_GPU_BUFFERS = 2;
 
 class D3D12VertexBuffer;
 class D3D12TextureLoader;
@@ -39,7 +36,7 @@ public:
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
 	virtual Renderer* MakeRenderer(const RendererType rendererType) override;
 
-	ID3D12Device4* GetDevice() const;
+	ID3D12Device5* GetDevice() const;
 	D3D12TextureLoader* GetTextureLoader() const;
 	D3D12VertexBufferLoader* GetVertexBufferLoader() const;
 
@@ -47,6 +44,14 @@ public:
 	USHORT GetNrTechniquesCreated() const;
 	USHORT GetNrTexturesCreated() const;
 	UINT   GetViewSize();
+
+	// Helper method to create resources that require one for each swap buffer
+	template <typename T>
+	std::vector<T> createFrameResource() {
+		auto resource = std::vector<T>();
+		resource.resize(NUM_GPU_BUFFERS);
+		return resource;
+	}
 
 private:
 	
@@ -63,14 +68,6 @@ private:
 	std::thread m_thread_texture;
 
 	// Default resources
-	ID3D12Device4*				m_device								= nullptr;
-
-	// Descriptor heap for texture descriptors
-	//ID3D12DescriptorHeap*		m_descriptorHeap[NUM_SWAP_BUFFERS] = { nullptr };
-
+	ID3D12Device5*				m_device								= nullptr;
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
-	//FullScreenPass* m_fullScreenPass;
-	//FXAAPass* m_FXAAPass;
-	//D3D12ParticleSystem* m_particleSystem = nullptr;
-
 };

@@ -113,10 +113,12 @@ public:
 			std::cout << "Selected renderAPI was not implemented and could therefor not be created." << std::endl;
 			return false;
 		}
+
 		if (!m_renderAPI->Initialize()) {
 			return false;
 		}
-		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Forward);
+
+		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Raytracing);
 		if (!m_renderer) {
 			std::cout << "Selected renderer was not implemented within the current renderAPI and could therefor not be created." << std::endl;
 			return false;

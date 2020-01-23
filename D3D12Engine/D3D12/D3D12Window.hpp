@@ -1,16 +1,9 @@
 #pragma once
 
 #include "../Window.hpp"
+#include "D3D12API.hpp"
+
 #include <windows.h>
-#include "GlobalSettings.hpp"
-
-//struct ID3D12CommandQueue;
-//struct IDXGISwapChain4;
-//struct ID3D12DescriptorHeap;
-//struct ID3D12Resource1;
-//struct D3D12_VIEWPORT;
-//struct D3D12_RECT;
-
 #include <d3d12.h>
 #include <dxgi1_6.h>
 class D3D12API;

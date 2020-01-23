@@ -1,22 +1,11 @@
 #pragma once
 #include "D3D12Renderer.h"
-#include "..\GlobalSettings.hpp"
 #include <vector>
 #include <thread>
 #include <mutex>
 
-class Window;
-class Camera;
-class ParticleSystem;
-
 class D3D12Window;
 class D3D12Camera;
-
-struct ID3D12DescriptorHeap;
-struct ID3D12RootSignature;
-struct ID3D12GraphicsCommandList3;
-struct ID3D12CommandAllocator;
-struct ID3D12Resource;
 
 class D3D12ForwardRenderer : public D3D12Renderer
 {

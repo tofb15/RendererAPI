@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
 #include "Math.hpp"
 #include "Renderer.hpp"
+#include <vector>
 
 class Camera;
 class Window;

@@ -5,7 +5,6 @@
 class Camera;
 class Window;
 class Technique;
-class ParticleSystem;
 class Mesh;
 class Texture;
 

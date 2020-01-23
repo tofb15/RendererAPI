@@ -40,6 +40,29 @@ struct UINT128 {
 	};
 };
 
+typedef union Float4
+{
+	struct { float x; float y; float z; float w;};
+	struct { float r; float g; float b; float a;};
+
+	Float4() { x = y = z = w = 0; }
+	Float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
+
+	Float4 operator+(Float4 other) const { return Float4(x + other.x, y + other.y, z + other.z, w + other.w); }
+	Float4 operator-(Float4 other) const { return Float4(x - other.x, y - other.y, z - other.z, w - other.w); };
+	Float4 operator*(float other) const { return Float4(x * other, y * other, z * other, w * other); };
+	Float4 operator/(float other) const { float a = 1.0f / other; return Float4(x * a, y * a, z * a, w * a); };
+	void operator/=(float other) { *this = *this / other; };
+
+	float length2() const { return x * x + y * y + z * z + w * w; }
+	float length() const { return std::sqrtf(length2()); }
+	Float4 normalized() const { return (*this / length()); }
+	void normalize() { *this = this->normalized(); }
+	float dot(Float4 other) const { return x * other.x + y * other.y + z * other.z + w * other.w; }
+	//Float4 crossRH(Float4 other) const { return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x }; }
+	//Float4 crossLH(Float4 other) const { return crossRH(other) * -1; }
+} Float4;
+
 typedef union Float3
 {
 	struct { float x; float y; float z; };

@@ -14,18 +14,18 @@
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
 #include "D3D12TextureLoader.hpp"
-//#include "D3D12ParticleSystem.hpp"
 
 #include "Renderers/D3D12ForwardRenderer.h"
+#include "Renderers/D3D12RaytracerRenderer.h"
 
 #include <iostream>
 #include <comdef.h>
-
 #include <iostream>
 
 #pragma comment(lib, "d3d12.lib")
 
 #define MULTI_THREADED
+
 
 /*Release a Interface that will not be used anymore*/
 template<class Interface>
@@ -172,7 +172,7 @@ D3D12VertexBuffer * D3D12API::MakeVertexBuffer()
 
 
 
-ID3D12Device4 * D3D12API::GetDevice() const
+ID3D12Device5 * D3D12API::GetDevice() const
 {
 	return m_device;
 }
@@ -237,7 +237,7 @@ bool D3D12API::InitializeDirect3DDevice()
 		}
 
 		// Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-		if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device4), nullptr)))
+		if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device5), nullptr)))
 		{
 			break;
 		}
@@ -278,6 +278,9 @@ Renderer* D3D12API::MakeRenderer(const RendererType rendererType)
 	{
 	case RendererType::Forward:
 		renderer = new D3D12ForwardRenderer(this);
+		break;
+	case RendererType::Raytracing:
+		renderer = new D3D12RaytracerRenderer(this);
 		break;
 	default:
 		break;

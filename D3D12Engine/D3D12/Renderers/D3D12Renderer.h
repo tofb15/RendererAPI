@@ -1,7 +1,7 @@
 #pragma once
 #include "..\..\Renderer.hpp"
-
-class D3D12API;
+#include "..\D3D12_FDecl.h"
+#include "..\D3D12API.hpp"
 
 class D3D12Renderer : public Renderer
 {

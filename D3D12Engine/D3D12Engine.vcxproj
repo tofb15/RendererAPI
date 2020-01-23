@@ -117,6 +117,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3D12\DXR\Temp\D3D12Utils.cpp" />
     <ClCompile Include="D3D12\D3D12Terrain.cpp" />
     <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
@@ -130,6 +131,8 @@
     <ClCompile Include="D3D12\D3D12VertexBufferLoader.cpp" />
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
+    <ClCompile Include="D3D12\DXR\Temp\DXRBase.cpp" />
+    <ClCompile Include="D3D12\DXR\Temp\DXRUtils.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
     <ClCompile Include="D3D12\FullScreenPass.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -150,6 +153,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="D3D12\Renderers\D3D12ForwardRenderer.cpp" />
+    <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -166,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="D3D12\DXR\Temp\D3D12Utils.h" />
     <ClInclude Include="D3D12\D3D12Terrain.hpp" />
     <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
@@ -177,6 +182,9 @@
     <ClInclude Include="D3D12\D3D12Technique.hpp" />
     <ClInclude Include="D3D12\D3D12Texture.hpp" />
     <ClInclude Include="D3D12\D3D12Window.hpp" />
+    <ClInclude Include="D3D12\D3D12_FDecl.h" />
+    <ClInclude Include="D3D12\DXR\Temp\DXRBase.h" />
+    <ClInclude Include="D3D12\DXR\Temp\DXRUtils.h" />
     <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
     <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
@@ -201,6 +209,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="D3D12\Renderers\D3D12ForwardRenderer.h" />
+    <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="ParticleSystem.hpp" />

@@ -20,7 +20,7 @@ D3D12VertexBufferLoader::~D3D12VertexBufferLoader()
 
 bool D3D12VertexBufferLoader::Initialize()
 {
-	ID3D12Device4* device = m_renderer->GetDevice();
+	ID3D12Device5* device = m_renderer->GetDevice();
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	HRESULT hr;
 	
@@ -47,7 +47,7 @@ bool D3D12VertexBufferLoader::Initialize()
 
 bool D3D12VertexBufferLoader::InitializeCommandInterfaces(const unsigned typeIndex)
 {
-	ID3D12Device4* device = m_renderer->GetDevice();
+	ID3D12Device5* device = m_renderer->GetDevice();
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	HRESULT hr;
 
