@@ -44,6 +44,8 @@ public:
 	USHORT GetNrTechniquesCreated() const;
 	USHORT GetNrTexturesCreated() const;
 	UINT   GetViewSize();
+	UINT   GetGPUBufferIndex();
+	void   IncGPUBufferIndex();
 
 	// Helper method to create resources that require one for each swap buffer
 	template <typename T>
@@ -53,9 +55,10 @@ public:
 		return resource;
 	}
 
-private:
-	
+private:	
 	bool InitializeDirect3DDevice();
+
+private:
 
 	USHORT m_meshesCreated = 0;
 	USHORT m_techniquesCreated = 0;
@@ -70,4 +73,7 @@ private:
 	// Default resources
 	ID3D12Device5*				m_device								= nullptr;
 	D3D12VertexBufferLoader*	m_vertexBufferLoader;
+
+	bool m_gpuSupportRaytracing = false;
+	UINT m_GPU_buffer_index = 0;
 };

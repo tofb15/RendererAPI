@@ -15,6 +15,9 @@ public:
 
 
 private:
+	bool InitializeCommandInterfaces();
+	void ResetCommandListAndAllocator(int index);
+
 	// Inherited via D3D12Renderer
 	virtual void Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) override;
 	virtual void ClearSubmissions() override;
@@ -26,4 +29,7 @@ private:
 	std::vector<SubmissionItem> m_OpaqueItems;
 	std::vector<SubmissionItem> m_NonOpaqueItems;
 	DXRBase* m_dxrBase;
+
+	ID3D12CommandAllocator* m_commandAllocators[NUM_GPU_BUFFERS] = { nullptr };
+	ID3D12GraphicsCommandList4* m_commandLists[NUM_GPU_BUFFERS] = { nullptr };
 };

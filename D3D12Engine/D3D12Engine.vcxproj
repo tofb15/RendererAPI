@@ -131,6 +131,7 @@
     <ClCompile Include="D3D12\D3D12VertexBufferLoader.cpp" />
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
+    <ClCompile Include="D3D12\DXR\Temp\DXILShaderCompiler.cpp" />
     <ClCompile Include="D3D12\DXR\Temp\DXRBase.cpp" />
     <ClCompile Include="D3D12\DXR\Temp\DXRUtils.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="D3D12\D3D12Texture.hpp" />
     <ClInclude Include="D3D12\D3D12Window.hpp" />
     <ClInclude Include="D3D12\D3D12_FDecl.h" />
+    <ClInclude Include="D3D12\DXR\Temp\DXILShaderCompiler.h" />
     <ClInclude Include="D3D12\DXR\Temp\DXRBase.h" />
     <ClInclude Include="D3D12\DXR\Temp\DXRUtils.h" />
     <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />

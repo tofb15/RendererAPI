@@ -207,6 +207,16 @@ UINT D3D12API::GetViewSize()
 	return m_cbv_srv_uav_size;
 }
 
+UINT D3D12API::GetGPUBufferIndex()
+{
+	return m_GPU_buffer_index;
+}
+
+void D3D12API::IncGPUBufferIndex()
+{
+	m_GPU_buffer_index = (++m_GPU_buffer_index) % NUM_GPU_BUFFERS;
+}
+
 bool D3D12API::InitializeDirect3DDevice()
 {
 #ifndef DEBUG
@@ -221,7 +231,6 @@ bool D3D12API::InitializeDirect3DDevice()
 	}
 	debugController->Release();
 #endif
-
 
 	//dxgi1_6 is only needed for the initialization process using the adapter.
 	IDXGIFactory6*	factory = nullptr;
@@ -263,6 +272,13 @@ bool D3D12API::InitializeDirect3DDevice()
 		//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
 	}
 
+	D3D12_FEATURE_DATA_D3D12_OPTIONS5 caps = {};
+	HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &caps, sizeof(caps));
+	
+	if (SUCCEEDED(hr) && caps.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0) {
+		m_gpuSupportRaytracing = true;
+	}
+
 	// Retrieve hardware specific descriptor size
 	m_cbv_srv_uav_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -280,7 +296,9 @@ Renderer* D3D12API::MakeRenderer(const RendererType rendererType)
 		renderer = new D3D12ForwardRenderer(this);
 		break;
 	case RendererType::Raytracing:
-		renderer = new D3D12RaytracerRenderer(this);
+		if (m_gpuSupportRaytracing) {
+			renderer = new D3D12RaytracerRenderer(this);
+		}
 		break;
 	default:
 		break;

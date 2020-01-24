@@ -1,8 +1,7 @@
 #pragma once
-
-#include "..\..\D3D12_FDecl.h"
 #include "..\..\D3D12API.hpp"
 
+#include <d3d12.h>
 #include <string>
 #include <vector>
 
@@ -12,6 +11,26 @@ constexpr unsigned int MAX_RAY_RECURSION_DEPTH = 2;
 
 namespace D3D12Utils{
 
+	const D3D12_HEAP_PROPERTIES sUploadHeapProperties = {
+		D3D12_HEAP_TYPE_UPLOAD,
+		D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL_UNKNOWN,
+		0,
+		0,
+	};
+
+	const D3D12_HEAP_PROPERTIES sDefaultHeapProps = {
+		D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+		D3D12_MEMORY_POOL_UNKNOWN,
+		0,
+		0
+	};
+
+	//=======Helper functions======
+	ID3D12Resource* CreateBuffer(ID3D12Device5* device, UINT64 size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps, D3D12_RESOURCE_DESC* bufDesc = nullptr);
+
+	//=======Helper classes======
 	class RootSignature
 	{
 	public:

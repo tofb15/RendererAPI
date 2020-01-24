@@ -29,7 +29,9 @@ public:
 private:
 	IDxcLibrary* m_library;
 	IDxcCompiler* m_compiler;
-	IDxcLinker* m_linker;
 	IDxcIncludeHandler* m_includeHandler;
+
+
+	IDxcLinker* m_linker;
 
 };

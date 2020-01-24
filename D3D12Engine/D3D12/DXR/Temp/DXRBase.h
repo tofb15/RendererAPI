@@ -2,11 +2,12 @@
 
 #include "D3D12Utils.h"
 #include "..\..\..\Math.hpp"
-#include "..\..\D3D12_FDecl.h"
 #include "..\..\D3D12API.hpp"
+//#include "..\..\D3D12_FDecl.h"
 #include "..\..\Renderers\D3D12Renderer.h"
 
 #include <vector>
+#include <Windows.h>
 #include <unordered_map>
 
 typedef void* _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS;
@@ -28,12 +29,10 @@ public:
 	~DXRBase();
 
 	bool Initialize();
+	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 
-	void UpdateAccelerationStructures(ID3D12GraphicsCommandList4* cmdList);
 	void UpdateSceneData();
-	
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
-
 	void ReloadShaders();
 
 private:
@@ -45,9 +44,13 @@ private:
 		void Release();
 	};
 
+	struct PerInstance {
+		Transform transform;
+	};
+
 	struct BottomLayerData {
 		AccelerationStructureBuffers as;
-		std::vector<SubmissionItem> items;
+		std::vector<PerInstance> items;
 	};
 
 	struct RayPayload {
@@ -59,8 +62,8 @@ private:
 	bool InitializeRootSignatures();
 
 	// Acceleration structures
-	void createTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
-	void createBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
+	void CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
+	void CreateBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
 
 	void updateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
 	void updateShaderTables();

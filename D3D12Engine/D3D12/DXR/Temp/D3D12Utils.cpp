@@ -1,5 +1,5 @@
 #include "D3D12Utils.h"
-#include <d3d12.h>
+#include <comdef.h>
 
 D3D12Utils::RootSignature::RootSignature(const wchar_t* debugName)
 {
@@ -113,4 +113,36 @@ bool D3D12Utils::RootSignature::Build(D3D12API* d3d12, const int& flags)
 ID3D12RootSignature** D3D12Utils::RootSignature::Get()
 {
 	return &m_signature;
+}
+
+ID3D12Resource* D3D12Utils::CreateBuffer(ID3D12Device5* device, UINT64 size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps, D3D12_RESOURCE_DESC* bufDesc)
+{
+	D3D12_RESOURCE_DESC newBufDesc = {};
+	if (!bufDesc) {
+		newBufDesc.Alignment = 0;
+		newBufDesc.DepthOrArraySize = 1;
+		newBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		newBufDesc.Flags = flags;
+		newBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+		newBufDesc.Height = 1;
+		newBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		newBufDesc.MipLevels = 1;
+		newBufDesc.SampleDesc.Count = 1;
+		newBufDesc.SampleDesc.Quality = 0;
+		newBufDesc.Width = size;
+
+		bufDesc = &newBufDesc;
+	}
+
+	ID3D12Resource* pBuffer = nullptr;
+	auto hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, bufDesc, initState, nullptr, IID_PPV_ARGS(&pBuffer));
+	if (FAILED(hr)) {
+		_com_error err(hr);
+		std::cout << err.ErrorMessage() << std::endl;
+
+		hr = device->GetDeviceRemovedReason();
+		_com_error err2(hr);
+		std::cout << err2.ErrorMessage() << std::endl;
+	}
+	return pBuffer;
 }
