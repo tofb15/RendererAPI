@@ -14,13 +14,13 @@ D3D12Utils::RootSignature::~RootSignature()
 	}
 }
 
-void D3D12Utils::RootSignature::AddDescriptorTable(const char* paramName, const int type, unsigned int shaderRegister, unsigned int space, unsigned int numDescriptors)
+void D3D12Utils::RootSignature::AddDescriptorTable(const char* paramName, const D3D12_DESCRIPTOR_RANGE_TYPE type, unsigned int shaderRegister, unsigned int space, unsigned int numDescriptors)
 {
 	D3D12_DESCRIPTOR_RANGE* range = new D3D12_DESCRIPTOR_RANGE;
 	range->BaseShaderRegister = shaderRegister;
 	range->RegisterSpace = space;
 	range->NumDescriptors = numDescriptors;
-	range->RangeType = (D3D12_DESCRIPTOR_RANGE_TYPE)type;
+	range->RangeType = type;
 	range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	D3D12_ROOT_PARAMETER param = {};
@@ -60,6 +60,18 @@ void D3D12Utils::RootSignature::AddUAV(const char* paramName, unsigned int sRegi
 	param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
 	param.Descriptor.ShaderRegister = (sRegister == PARAM_APPEND) ? m_rootParams.size() : sRegister;
 	param.Descriptor.RegisterSpace = rSpace;
+
+	m_rootParams.emplace_back(param);
+	m_rootParamNames.emplace_back(paramName);
+}
+
+void D3D12Utils::RootSignature::Add32BitConstants(const char* paramName, UINT nConstants, unsigned int sRegister, unsigned int rSpace)
+{
+	D3D12_ROOT_PARAMETER param = {};
+	param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	param.Constants.Num32BitValues = nConstants;
+	param.Constants.RegisterSpace = rSpace;
+	param.Constants.ShaderRegister = sRegister;
 
 	m_rootParams.emplace_back(param);
 	m_rootParamNames.emplace_back(paramName);

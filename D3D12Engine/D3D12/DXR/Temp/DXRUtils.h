@@ -54,4 +54,37 @@ namespace DXRUtils {
 		std::vector<D3D12_DXIL_LIBRARY_DESC> m_libraryDescs;
 		std::vector<D3D12_HIT_GROUP_DESC> m_hitGroupDescs;
 	};
+
+	struct ShaderTableData {
+		UINT sizeInBytes;
+		UINT strideInBytes;
+		ID3D12Resource* resource = nullptr;
+		void Release() {
+			if (resource) {
+				resource->Release();
+				resource = nullptr;
+			}
+		}
+	};
+
+	class ShaderTableBuilder {
+	public:
+		ShaderTableBuilder() {};
+		ShaderTableBuilder(UINT nInstances, ID3D12StateObject* pso, UINT maxInstanceSize = 32);
+		~ShaderTableBuilder();
+
+		void AddShader(const LPCWSTR& shaderName);
+		void AddDescriptor(UINT64& descriptor, UINT instance = 0);
+		void AddConstants(UINT numConstants, const float* constants, UINT instance = 0);
+
+		ShaderTableData Build(ID3D12Device5* device);
+
+	private:
+		std::vector<LPCWSTR> m_shaderNames;
+		UINT m_nInstances;
+		UINT m_maxInstanceSize;
+		char** m_data;
+		UINT* m_dataOffset;
+		ID3D12StateObjectProperties* m_psoProp;
+	};
 }

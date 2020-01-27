@@ -366,6 +366,13 @@ D3D12_RECT * D3D12Window::GetScissorRect()
 	return m_ScissorRect;
 }
 
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12Window::GetCurrentRenderTargetGPUDescriptorHandle()
+{
+	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_RenderTargetsHeap->GetGPUDescriptorHandleForHeapStart();
+	handle.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
+	return handle;
+}
+
 ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
 {
 	return m_RenderTargets[m_SwapChain4->GetCurrentBackBufferIndex()];
@@ -500,7 +507,6 @@ bool D3D12Window::InitializeRenderTargets()
 		return false;
 	}
 	m_RenderTargetsHeap->SetName(L"RT DescHeap");
-
 
 	//Create resources for the render targets.
 	m_RenderTargetDescriptorSize = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);

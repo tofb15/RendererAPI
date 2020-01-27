@@ -1,6 +1,6 @@
 #pragma once
 
-#include "D3D12Utils.h"
+#include "DXRUtils.h"
 #include "..\..\..\Math.hpp"
 #include "..\..\D3D12API.hpp"
 //#include "..\..\D3D12_FDecl.h"
@@ -12,6 +12,9 @@
 
 typedef void* _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS;
 typedef unsigned int BLAS_ID;
+constexpr UINT NUM_DESCRIPTORS_PER_GPU_BUFFER = 5000;
+constexpr UINT NUM_DESCRIPTORS_TOTAL = NUM_DESCRIPTORS_PER_GPU_BUFFER * NUM_GPU_BUFFERS;
+
 
 //#include "../DX12API.h"
 //#include "DXRUtils.h"
@@ -29,6 +32,7 @@ public:
 	~DXRBase();
 
 	bool Initialize();
+	void SetOutputDescriptor(const D3D12_CPU_DESCRIPTOR_HANDLE& outputDescriptor);
 	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 
 	void UpdateSceneData();
@@ -64,9 +68,9 @@ private:
 	// Acceleration structures
 	void CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
 	void CreateBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
+	void UpdateShaderTable();
 
 	void updateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
-	void updateShaderTables();
 	void createInitialShaderResources(bool remake = false);
 
 	// Root signature creation
@@ -76,10 +80,14 @@ private:
 	bool CreateHitGroupLocalRootSignature();
 	bool CreateMissLocalRootSignature();
 	bool CreateEmptyLocalRootSignature();
-	void CreateRaytracingPSO();
+	bool CreateRaytracingPSO();
+	bool CreateDescriptorHeap();
+
+	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
 
 private:
 	D3D12API* m_d3d12;
+
 	AccelerationStructureBuffers m_TLAS_buffers[NUM_GPU_BUFFERS];
 	std::unordered_map<BLAS_ID, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
 
@@ -91,6 +99,14 @@ private:
 
 	ID3D12StateObject* m_rtxPipelineState;
 
+	//Descriptor Heap
+	ID3D12DescriptorHeap* m_descriptorHeap;
+	UINT m_descriptorSize;
+
+	//ShaderTables
+	DXRUtils::ShaderTableData m_shaderTable_gen[NUM_GPU_BUFFERS];
+	DXRUtils::ShaderTableData m_shaderTable_miss[NUM_GPU_BUFFERS];
+	DXRUtils::ShaderTableData m_shaderTable_hitgroup[NUM_GPU_BUFFERS];
 
 	//Shader Names
 	const WCHAR* m_shader_rayGenName = L"rayGen";

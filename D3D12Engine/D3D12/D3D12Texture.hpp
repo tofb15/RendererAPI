@@ -43,7 +43,4 @@ private:
 
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/
 	int m_GPU_Loader_index = -1;
-
-	//ID3D12Resource* mResource;
-	//ID3D12DescriptorHeap* mDescriptorHeap;
 };

@@ -40,7 +40,8 @@ namespace D3D12Utils{
 		void AddCBV(const char* paramName, unsigned int sRegister = PARAM_APPEND, unsigned int rSpace = 0);
 		void AddSRV(const char* paramName, unsigned int sRegister = PARAM_APPEND, unsigned int rSpace = 0);
 		void AddUAV(const char* paramName, unsigned int sRegister = PARAM_APPEND, unsigned int rSpace = 0);
-		void AddDescriptorTable(const char* paramName, const int type, unsigned int shaderRegister = PARAM_APPEND, unsigned int space = 0, unsigned int numDescriptors = 1);
+		void Add32BitConstants(const char* paramName, UINT nConstants, unsigned int sRegister = PARAM_APPEND, unsigned int rSpace = 0);
+		void AddDescriptorTable(const char* paramName, const D3D12_DESCRIPTOR_RANGE_TYPE type, unsigned int shaderRegister = PARAM_APPEND, unsigned int space = 0, unsigned int numDescriptors = 1);
 		void AddStaticSampler();
 
 		/*

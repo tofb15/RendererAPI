@@ -76,10 +76,17 @@ public:
 	D3D12_VIEWPORT*		GetViewport();
 	D3D12_RECT*			GetScissorRect();
 	/*
+		@Return A D3D12_GPU_DESCRIPTOR_HANDLE*, pointing to the current rendertargets descriptor handle with the index given by GetCurrentBackBufferIndex().
+		@See GetCurrentBackBufferIndex()
+	*/
+	D3D12_GPU_DESCRIPTOR_HANDLE	GetCurrentRenderTargetGPUDescriptorHandle();
+
+	/*
 		@Return A ID3D12Resource1*, pointing to the current rendertarget with the index given by GetCurrentBackBufferIndex().
 		@See GetCurrentBackBufferIndex()
 	*/
-	ID3D12Resource1*	GetCurrentRenderTargetResource();
+	ID3D12Resource1* GetCurrentRenderTargetResource();
+
 	/*
 		Used to get the current back buffer index for this specific window. This can be used to syncronize other resources(like Constant Buffers) used to render this frame.
 		The Backbuffer index changes each time present() is called on the swap chain.

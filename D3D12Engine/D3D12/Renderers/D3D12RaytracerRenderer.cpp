@@ -1,5 +1,6 @@
 #include "D3D12RaytracerRenderer.h"
 #include "..\D3D12Window.hpp"
+#include "..\D3D12Texture.hpp"
 #include "..\D3D12API.hpp"
 #include "..\DXR\Temp\DXRBase.h"
 
@@ -95,10 +96,12 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	ResetCommandListAndAllocator(bufferIndex);
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
 
-
+	D3D12_GPU_VIRTUAL_ADDRESS rtAddr = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetGPUDescriptorHandle().ptr;
+	
+	D3D12Texture* tex = static_cast<D3D12Texture*>(m_OpaqueItems[0].blueprint->textures[0]);
+	m_dxrBase->SetOutputDescriptor(m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(tex));
 	m_dxrBase->UpdateAccelerationStructures(m_OpaqueItems, cmdlist);
-
-
+	m_dxrBase->Dispatch(cmdlist);
 }
 
 void D3D12RaytracerRenderer::Present(Window* window)
@@ -106,6 +109,12 @@ void D3D12RaytracerRenderer::Present(Window* window)
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
 	cmdlist->Close();
+	ID3D12CommandList* listsToExecute[1] = { cmdlist };
+	static_cast<D3D12Window*>(window)->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+
+	DXGI_PRESENT_PARAMETERS pp = {};
+	static_cast<D3D12Window*>(window)->GetSwapChain()->Present1(0, 0, &pp);
+	static_cast<D3D12Window*>(window)->WaitForGPU();
 
 	//Lastly
 	m_d3d12->IncGPUBufferIndex();

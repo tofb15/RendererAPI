@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3D12Engine", "D3D12Engine\D3D12Engine.vcxproj", "{D6A4E757-0104-4FDE-8551-828A230E8A15}"
 EndProject
@@ -24,6 +24,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{C25F
 		assets\D3D12\VertexShader_Particle.hlsl = assets\D3D12\VertexShader_Particle.hlsl
 		assets\D3D12\VertexShader_Terrain.hlsl = assets\D3D12\VertexShader_Terrain.hlsl
 		assets\D3D12\VertexShader_test.hlsl = assets\D3D12\VertexShader_test.hlsl
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RXT", "RXT", "{170D790F-5663-429E-BB51-F36641918BAA}"
+	ProjectSection(SolutionItems) = preProject
+		assets\D3D12\DXR\test.hlsl = assets\D3D12\DXR\test.hlsl
 	EndProjectSection
 EndProject
 Global
@@ -61,6 +66,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{170D790F-5663-429E-BB51-F36641918BAA} = {C25FBE5B-E488-47AF-9586-B9F1CBB68183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0208DE3B-592D-455E-A95A-5BA4C31962A5}

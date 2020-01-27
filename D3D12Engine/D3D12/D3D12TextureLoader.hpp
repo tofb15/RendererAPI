@@ -21,8 +21,10 @@ public:
 
 	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
+
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSpecificTextureCPUAdress(D3D12Texture* texture);
+
 	ID3D12Resource* GetResource(int index);
 
 	//ID3D12DescriptorHeap* GetDescriptorHeap();
