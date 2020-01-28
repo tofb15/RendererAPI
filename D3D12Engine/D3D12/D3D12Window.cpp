@@ -52,9 +52,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-D3D12Window::D3D12Window(D3D12API* renderer)
+D3D12Window::D3D12Window(D3D12API* d3d12)
 {
-	m_Renderer = renderer;
+	m_d3d12 = d3d12;
 	m_Viewport = new D3D12_VIEWPORT;
 	m_ScissorRect = new D3D12_RECT;
 
@@ -157,7 +157,7 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 	HRESULT hr;
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
-		hr = m_Renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence[i]));
+		hr = m_d3d12->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence[i]));
 		if (FAILED(hr))
 		{
 			return false;
@@ -206,7 +206,6 @@ void D3D12Window::HandleWindowEvents()
 			*/
 			switch (msg.message)
 			{
-
 			case WM_KEYDOWN: {
 
 				short key = static_cast<short>(msg.wParam);
@@ -378,6 +377,11 @@ ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
 	return m_RenderTargets[m_SwapChain4->GetCurrentBackBufferIndex()];
 }
 
+ID3D12Resource1** D3D12Window::GetRenderTargetResources()
+{
+	return m_RenderTargets;
+}
+
 UINT D3D12Window::GetCurrentBackBufferIndex() const
 {
 	return m_SwapChain4->GetCurrentBackBufferIndex();
@@ -400,7 +404,6 @@ bool D3D12Window::InitializeWindow()
 	{
 		//return false;
 	}
-
 
 	RECT rc = { 0, 0, m_dimensions.x, m_dimensions.y };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
@@ -428,7 +431,7 @@ bool D3D12Window::InitializeCommandQueue()
 	HRESULT hr;
 	//Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
-	hr = m_Renderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue));
+	hr = m_d3d12->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue));
 	if (FAILED(hr))
 	{
 		return false;
@@ -450,8 +453,8 @@ bool D3D12Window::InitializeSwapChain()
 
 	//Create swap chain.
 	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
-	scDesc.Width = 0;
-	scDesc.Height = 0;
+	scDesc.Width = m_dimensions.x;
+	scDesc.Height = m_dimensions.y;
 	scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	scDesc.Stereo = FALSE;
 	scDesc.SampleDesc.Count = 1;
@@ -490,7 +493,6 @@ bool D3D12Window::InitializeSwapChain()
 	}
 
 	factory->Release();
-
 	return true;
 }
 
@@ -501,7 +503,7 @@ bool D3D12Window::InitializeRenderTargets()
 	dhd.NumDescriptors = NUM_SWAP_BUFFERS;
 	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-	HRESULT hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_RenderTargetsHeap));
+	HRESULT hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_RenderTargetsHeap));
 	if (FAILED(hr))
 	{
 		return false;
@@ -509,11 +511,11 @@ bool D3D12Window::InitializeRenderTargets()
 	m_RenderTargetsHeap->SetName(L"RT DescHeap");
 
 	//Create resources for the render targets.
-	m_RenderTargetDescriptorSize = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_RenderTargetDescriptorSize = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//mCBV_SRV_UAV_DescriptorSize = mDevice5->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	UINT SRV_SIZE = m_Renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	UINT SRV_SIZE = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	//One RTV for each frame.
 	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
@@ -525,21 +527,8 @@ bool D3D12Window::InitializeRenderTargets()
 		}
 		m_RenderTargets[n]->SetName(L"RT");
 
-		m_Renderer->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
+		m_d3d12->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
 		cdh.ptr += m_RenderTargetDescriptorSize;
-
-		//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		//srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		//srvDesc.Texture2D.MipLevels = 1;
-
-		//D3D12_CPU_DESCRIPTOR_HANDLE cdh2 = m_Renderer->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-		//cdh2.ptr += (m_Renderer->NUM_DESCRIPTORS_IN_HEAP - 3 * NUM_SWAP_BUFFERS + 3 * n + 2) * SRV_SIZE;
-		//
-		//std::cout << "RT SRV: " << cdh2.ptr << std::endl;
-
-		//m_Renderer->GetDevice()->CreateShaderResourceView(m_RenderTargets[n], &srvDesc, cdh2);
 	}
 
 	return true;
@@ -575,7 +564,7 @@ bool D3D12Window::InitializeDepthBuffer()
 	cv.DepthStencil.Depth = 1.0f;
 	cv.DepthStencil.Stencil = 0;
 
-	HRESULT hr = m_Renderer->GetDevice()->CreateCommittedResource(
+	HRESULT hr = m_d3d12->GetDevice()->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&resourceDesc,
@@ -593,7 +582,7 @@ bool D3D12Window::InitializeDepthBuffer()
 	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dhd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-	hr = m_Renderer->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_DepthStencilHeap));
+	hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_DepthStencilHeap));
 	if (FAILED(hr))
 	{
 		return false;
@@ -605,7 +594,7 @@ bool D3D12Window::InitializeDepthBuffer()
 	dsvd.Flags = D3D12_DSV_FLAG_NONE;
 	dsvd.Texture2D.MipSlice = 0;
 
-	m_Renderer->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
+	m_d3d12->GetDevice()->CreateDepthStencilView(m_DepthStencil, &dsvd, m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart());
 
 	return true;
 }
@@ -648,8 +637,8 @@ void D3D12Window::WaitForGPU()
 	}
 #endif
 
-	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
-	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
+	const unsigned int nextFrame = m_d3d12->GetGPUBufferIndex(); //m_SwapChain4->GetCurrentBackBufferIndex();
+	const unsigned int previousFrame = (nextFrame + NUM_GPU_BUFFERS - 1) % NUM_GPU_BUFFERS;
 	
 	// Tell last frame to signal when done
 	const UINT64 fence = m_FenceValue[previousFrame];

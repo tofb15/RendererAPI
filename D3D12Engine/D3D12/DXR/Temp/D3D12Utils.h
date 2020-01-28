@@ -27,8 +27,24 @@ namespace D3D12Utils{
 		0
 	};
 
+	struct D3D12_DESCRIPTOR_HANDLE {
+		D3D12_CPU_DESCRIPTOR_HANDLE cdh[NUM_GPU_BUFFERS];
+		D3D12_GPU_DESCRIPTOR_HANDLE gdh[NUM_GPU_BUFFERS];
+
+		D3D12_DESCRIPTOR_HANDLE& operator= (D3D12_DESCRIPTOR_HANDLE& other) {
+			for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+			{
+				cdh[i] = other.cdh[i];
+				gdh[i] = other.gdh[i];
+			}
+			return *this;
+		}
+	};
+
 	//=======Helper functions======
 	ID3D12Resource* CreateBuffer(ID3D12Device5* device, UINT64 size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState, const D3D12_HEAP_PROPERTIES& heapProps, D3D12_RESOURCE_DESC* bufDesc = nullptr);
+	void SetResourceTransitionBarrier(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource, D3D12_RESOURCE_STATES StateBefore, D3D12_RESOURCE_STATES StateAfter, UINT subResource);
+
 
 	//=======Helper classes======
 	class RootSignature

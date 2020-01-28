@@ -10,7 +10,7 @@ class D3D12API;
 
 class D3D12Window : public Window {
 public:
-	D3D12Window(D3D12API* renderer);
+	D3D12Window(D3D12API* d3d12);
 	virtual ~D3D12Window();
 
 	// Inherited via Window
@@ -69,6 +69,7 @@ public:
 		@Return a pointer to the Command Queue Interface
 	*/
 	ID3D12CommandQueue* GetCommandQueue();
+
 	/*
 		@Return a pointer to the Swap Chain Interface
 	*/
@@ -86,6 +87,10 @@ public:
 		@See GetCurrentBackBufferIndex()
 	*/
 	ID3D12Resource1* GetCurrentRenderTargetResource();
+	/*
+		@Return A ID3D12Resource1**, pointing to an array of rendertarget resources.
+	*/
+	ID3D12Resource1** GetRenderTargetResources();
 
 	/*
 		Used to get the current back buffer index for this specific window. This can be used to syncronize other resources(like Constant Buffers) used to render this frame.
@@ -112,7 +117,7 @@ private:
 	D3D12_VIEWPORT*				m_Viewport;
 	D3D12_RECT*					m_ScissorRect;
 
-	D3D12API* m_Renderer;
+	D3D12API* m_d3d12;
 
 	//Fences for the render targets
 	ID3D12Fence1*				m_Fence[NUM_SWAP_BUFFERS] = { nullptr };

@@ -66,6 +66,47 @@ bool D3D12RaytracerRenderer::InitializeCommandInterfaces()
 	return true;
 }
 
+bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window)
+{
+	//If window output has not changed keep the old resources, else create new
+	if (window->GetDimensions() == m_outputDim) {
+		return true;
+	}
+
+	//TODO: A Wait for GPU is Needed here
+
+	m_outputDim = window->GetDimensions();
+
+	HRESULT hr;
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.Width = m_outputDim.x;
+	textureDesc.Height = m_outputDim.y;
+	textureDesc.DepthOrArraySize = 1;
+	textureDesc.MipLevels = 1;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	D3D12_CLEAR_VALUE clearValue = { textureDesc.Format, { 0.00f, 0.00f, 0.00f, 1.0f } };
+
+	for (int i = 0; i < NUM_GPU_BUFFERS; i++)
+	{
+		if (m_outputTextures[i]) {
+			m_outputTextures[i]->Release();
+		}
+		hr = m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&m_outputTextures[i]));
+		if (FAILED(hr)) {
+			return false;
+		}
+	}
+
+	m_dxrBase->SetOutputResources(m_outputTextures, m_outputDim);
+
+	return true;
+}
+
 void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index)
 {
 	HRESULT hr;
@@ -93,15 +134,26 @@ void D3D12RaytracerRenderer::ClearSubmissions()
 void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
+	InitializeOutputTextures(static_cast<D3D12Window*>(window));
+
 	ResetCommandListAndAllocator(bufferIndex);
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
 
 	D3D12_GPU_VIRTUAL_ADDRESS rtAddr = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetGPUDescriptorHandle().ptr;
 	
 	D3D12Texture* tex = static_cast<D3D12Texture*>(m_OpaqueItems[0].blueprint->textures[0]);
-	m_dxrBase->SetOutputDescriptor(m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(tex));
+	m_dxrBase->UpdateSceneData(static_cast<D3D12Camera*>(camera));
 	m_dxrBase->UpdateAccelerationStructures(m_OpaqueItems, cmdlist);
 	m_dxrBase->Dispatch(cmdlist);
+
+	///Copy final output to window resource
+	ID3D12Resource* windowOutput = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetResource();
+
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST, 0);
+	cmdlist->CopyResource(static_cast<D3D12Window*>(window)->GetCurrentRenderTargetResource(), m_outputTextures[bufferIndex]);
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT, 0);
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 }
 
 void D3D12RaytracerRenderer::Present(Window* window)

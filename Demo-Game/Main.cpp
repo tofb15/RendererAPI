@@ -127,7 +127,7 @@ public:
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 		Window* window = m_renderAPI->MakeWindow();
 		window->SetTitle("Window 1");
-		if (!window->Create(640, 640)){
+		if (!window->Create(1920, 1080)){
 			return false;
 		}
 
@@ -302,10 +302,13 @@ public:
 
 	void InitializeCameras()
 	{
+		Int2 dim = m_windows[0]->GetDimensions();
+		float aspRatio = dim.x / dim.y;
+
 		Camera* cam = m_renderAPI->MakeCamera();
-		cam->SetPosition(Float3(-5, 5, -5));
-		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
+		cam->SetPosition(Float3(-50, 100, -50));
+		cam->SetTarget(Float3(100, 20, 100));
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.01f, 1000.0f);
 		m_cameras.push_back(cam);
 
 		cam = m_renderAPI->MakeCamera();

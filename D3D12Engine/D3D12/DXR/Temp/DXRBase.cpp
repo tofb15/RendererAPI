@@ -1,16 +1,8 @@
 #include "DXRBase.h"
-#include <DirectXMath.h>
 #include "..\..\D3D12Mesh.hpp"
 #include "..\..\D3D12VertexBuffer.hpp"
+#include "..\..\D3D12Window.hpp"
 
-#ifdef _NDEBUG
-int i = 0;
-#endif
-
-struct RayPayload {
-	Float4 color;
-	UINT recursionDepth;
-};
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
 {
@@ -36,66 +28,30 @@ bool DXRBase::Initialize()
 		return false;
 	}
 
-	
-	
-	///////////////////////////////////////////////
-	/////////////////  TESTING  ///////////////////
-	///////////////////////////////////////////////
-
-	HRESULT hr;
-	ID3D12Resource1* output;
-	D3D12_RESOURCE_DESC textureDesc = {};
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.Width = 64;
-	textureDesc.Height = 64;
-	textureDesc.DepthOrArraySize = 1;
-	textureDesc.MipLevels = 1;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-
-	D3D12_CLEAR_VALUE clearValue = { textureDesc.Format, { 0.01f, 0.01f, 0.01f, 1.0f } };
-
-	hr = m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&output));
-	if (FAILED(hr)) {
+	if (!InitializeConstanBuffers()) {
 		return false;
 	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	uavDesc.Format = textureDesc.Format;
-	m_d3d12->GetDevice()->CreateUnorderedAccessView(output, nullptr, &uavDesc, handle);
-	
-	handle.ptr += m_descriptorSize;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;	
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = textureDesc.Format;
-	m_d3d12->GetDevice()->CreateShaderResourceView(output, &srvDesc, handle);
-
 	return true;
 }
 
-void DXRBase::SetOutputDescriptor(const D3D12_CPU_DESCRIPTOR_HANDLE& outputDescriptor)
+void DXRBase::SetOutputResources(ID3D12Resource** output, Int2 dim)
 {
-	/*UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += m_descriptorSize * bufferIndex;
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	m_outputDim = dim;
 
-	m_d3d12->GetDevice()->CopyDescriptorsSimple(1, handle, outputDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);*/
+	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
+		m_d3d12->GetDevice()->CreateUnorderedAccessView(output[i], nullptr, &uavDesc, m_uav_output_texture_handle.cdh[i]);
+	}
 }
 
 void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList)
 {
-	int frameIndex = 0;
+	UINT gpuBuffer = m_d3d12->GetGPUBufferIndex();
 
-	for (auto& e : m_BLAS_buffers[frameIndex])
+	for (auto& e : m_BLAS_buffers[gpuBuffer])
 	{
 		e.second.items.clear();
 	}
@@ -104,8 +60,8 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	for (auto& e : items)
 	{
 		BLAS_ID id = static_cast<D3D12Mesh*>(e.blueprint->mesh)->GetID();
-		auto search = m_BLAS_buffers[frameIndex].find(id);
-		if (search == m_BLAS_buffers[frameIndex].end()) {
+		auto search = m_BLAS_buffers[gpuBuffer].find(id);
+		if (search == m_BLAS_buffers[gpuBuffer].end()) {
 			CreateBLAS(e, 0, cmdList);
 		}
 		else {
@@ -115,11 +71,11 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	}
 
 	//Destroy unused BLASs
-	for (auto it = m_BLAS_buffers[frameIndex].begin(); it != m_BLAS_buffers[frameIndex].end();)
+	for (auto it = m_BLAS_buffers[gpuBuffer].begin(); it != m_BLAS_buffers[gpuBuffer].end();)
 	{
 		if (it->second.items.empty()) {
 			it->second.as.Release();
-			it = m_BLAS_buffers[frameIndex].erase(it);
+			it = m_BLAS_buffers[gpuBuffer].erase(it);
 		}
 		else {
 			++it;
@@ -132,9 +88,35 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	UpdateShaderTable();
 }
 
-void DXRBase::UpdateSceneData()
+void DXRBase::UpdateSceneData(D3D12Camera* camera)
 {
+	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 
+	HRESULT hr;
+	char* gpuData;
+
+	D3D12_RANGE writeRange = {};
+	writeRange.Begin = m_cb_scene_buffer_size * bufferIndex;
+	writeRange.End = writeRange.Begin + sizeof(DXRShaderCommon::SceneCBuffer);
+
+	//Calculate Invers of ViewProjection matrix
+	DirectX::XMMATRIX viewProj_inv = DirectX::XMLoadFloat4x4(&camera->GetViewPerspective());
+	//viewProj_inv = DirectX::XMMatrixTranspose(viewProj_inv);
+	viewProj_inv = (DirectX::XMMatrixInverse(nullptr, viewProj_inv));
+
+	//Update scene constantbuffer
+	hr = m_cb_scene->Map(0, nullptr, (void**)&gpuData);
+	if (FAILED(hr)) {
+		return;
+	}
+
+	gpuData += writeRange.Begin;
+	DXRShaderCommon::SceneCBuffer* sceneData = (DXRShaderCommon::SceneCBuffer*)gpuData;
+
+	sceneData->cameraPosition = camera->GetPosition();
+	DirectX::XMStoreFloat4x4(&sceneData->projectionToWorld, viewProj_inv);
+
+	m_cb_scene->Unmap(0, nullptr);
 }
 
 void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
@@ -153,12 +135,13 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	desc.HitGroupTable.SizeInBytes   = m_shaderTable_hitgroup[bufferIndex].sizeInBytes;
 	desc.HitGroupTable.StrideInBytes = m_shaderTable_hitgroup[bufferIndex].strideInBytes;
 
-	desc.Width = 64;
-	desc.Height = 64;
+	desc.Width = m_outputDim.x;
+	desc.Height = m_outputDim.y;
 	desc.Depth = 1;
 
 	cmdList->SetComputeRootSignature(m_globalRootSignature);
 	cmdList->SetComputeRootShaderResourceView(0, m_TLAS_buffers[bufferIndex].result->GetGPUVirtualAddress());
+	cmdList->SetComputeRootConstantBufferView(1, m_cb_scene->GetGPUVirtualAddress());
 
 	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	cmdList->SetPipelineState1(m_rtxPipelineState);
@@ -186,6 +169,52 @@ bool DXRBase::InitializeRootSignatures()
 	if (!CreateHitGroupLocalRootSignature()) {
 		return false;
 	}
+
+	return true;
+}
+
+bool DXRBase::InitializeConstanBuffers()
+{
+	UINT alignTo = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+	//Scene
+	m_cb_scene_buffer_size = sizeof(DXRShaderCommon::SceneCBuffer);
+	UINT padding = (alignTo - (m_cb_scene_buffer_size % alignTo)) % alignTo;
+	m_cb_scene_buffer_size += padding;
+	m_cb_scene = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), m_cb_scene_buffer_size * NUM_GPU_BUFFERS, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12Utils::sUploadHeapProperties);
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.SizeInBytes = m_cb_scene_buffer_size;
+	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
+		cbvDesc.BufferLocation = m_cb_scene->GetGPUVirtualAddress() + i * cbvDesc.SizeInBytes;
+		m_d3d12->GetDevice()->CreateConstantBufferView(&cbvDesc, m_cbv_scene_handle.cdh[i]);
+	}
+
+	////==========DEBUG START, REMOVE THIS=========
+	//DirectX::XMMATRIX identity_mat = DirectX::XMMatrixIdentity();
+	//DirectX::XMMATRIX transform_mat;
+
+	//char* debugData;
+	//HRESULT hr;
+	//DXRShaderCommon::SceneCBuffer data;
+	//	
+	//hr = m_cb_scene->Map(0, nullptr, (void**)&debugData);
+	//if (FAILED(hr)) {
+	//	return false;
+	//}
+
+	//for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+	//{
+	//	data.cameraPosition = Float3(i, i * 2, i * 3 );
+	//	transform_mat = DirectX::XMMatrixTranslation(i * 10, i * 20, i * 30);
+	//	DirectX::XMStoreFloat4x4(&data.projectionToWorld, transform_mat);
+	//	DirectX::XMStoreFloat4x4(&data.viewToWorld, identity_mat);
+
+	//	memcpy(debugData, &data, sizeof(DXRShaderCommon::SceneCBuffer));
+	//	debugData += m_cb_scene_buffer_size;
+	//}
+
+	//m_cb_scene->Unmap(0, nullptr);
+	////==========DEBUG END, REMOVE THIS=========
 
 	return true;
 }
@@ -308,7 +337,7 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 	inputs.pGeometryDescs = &geomDesc;
 	inputs.NumDescs = 1;
-	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE; //Todo: Make this changable
+	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE; //Todo: Make this changable
 
 	//=======BLAS PREBUILD========
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO asBuildInfo = {};
@@ -350,13 +379,9 @@ void DXRBase::UpdateShaderTable()
 	//TODO: dont rebuild tables if not needed.
 
 	//===Update Generation Table===
-	DXRUtils::ShaderTableBuilder generationTable(1, m_rtxPipelineState);
+	DXRUtils::ShaderTableBuilder generationTable(1, m_rtxPipelineState, 64);
 	generationTable.AddShader(m_shader_rayGenName);
-	float f = 5;
-	UINT64 handle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart().ptr;
-
-	generationTable.AddDescriptor(handle);
-	generationTable.AddConstants(1, &f);
+	generationTable.AddDescriptor(m_uav_output_texture_handle.gdh[bufferIndex].ptr);
 	m_shaderTable_gen[bufferIndex].Release();
 	m_shaderTable_gen[bufferIndex] = generationTable.Build(m_d3d12->GetDevice());
 
@@ -388,12 +413,12 @@ bool DXRBase::CreateRaytracingPSO()
 		return false;
 	}
 
-	UINT payloadSize = sizeof(RayPayload);
+	UINT payloadSize = sizeof(DXRShaderCommon::RayPayload);
 	std::vector<DxcDefine> defines;
 
 	defines.push_back({ L"TEST_DEFINE" });
 
-	psoBuilder.AddLibrary("../assets/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_missName }, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_missName }, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
 
 	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName }, m_localRootSignature_rayGen.Get());
@@ -432,6 +457,30 @@ bool DXRBase::CreateDescriptorHeap()
 		return false;
 	}
 
+	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+	{
+		m_unreserved_handle_start.cdh[i] = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		m_unreserved_handle_start.gdh[i] = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
+		m_unreserved_handle_start.cdh[i].ptr += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
+		m_unreserved_handle_start.gdh[i].ptr += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
+	}
+
+	auto reserveDescriptor = [&](D3D12Utils::D3D12_DESCRIPTOR_HANDLE& handle) {
+		
+		handle = m_unreserved_handle_start;
+		for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+		{
+			m_unreserved_handle_start.cdh[i].ptr += m_descriptorSize;
+			m_unreserved_handle_start.gdh[i].ptr += m_descriptorSize;
+		}
+		m_numReservedDescriptors++;
+	};
+
+	//Reserved Descriptors
+	reserveDescriptor(m_uav_output_texture_handle);
+	reserveDescriptor(m_cbv_scene_handle);
+
 	return true;
 }
 
@@ -448,8 +497,8 @@ bool DXRBase::CreateDXRGlobalRootSignature()
 {
 	m_globalRootSignature = D3D12Utils::RootSignature(L"dxrGlobalRoot");
 	m_globalRootSignature.AddSRV("AccelerationStructure", 0);
+	m_globalRootSignature.AddCBV("SceneCBuffer", 0);
 	//m_globalRootSignature.AddSRV("AccelerationStructure", 0);
-	//m_globalRootSignature.AddCBV("SceneCBuffer", 0);
 	m_globalRootSignature.AddStaticSampler();
 
 	if (!m_globalRootSignature.Build(m_d3d12, D3D12_ROOT_SIGNATURE_FLAG_NONE)) {
@@ -463,7 +512,7 @@ bool DXRBase::CreateRayGenLocalRootSignature()
 {
 	m_localRootSignature_rayGen = D3D12Utils::RootSignature(L"Root_RayGenLocal");
 	m_localRootSignature_rayGen.AddDescriptorTable("uav_test", D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1);
-	m_localRootSignature_rayGen.Add32BitConstants("Constant", 1, 0, 0);
+	//m_localRootSignature_rayGen.Add32BitConstants("Constant", 1, 0, 0);
 	if (!m_localRootSignature_rayGen.Build(m_d3d12, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)) {
 		return false;
 	}

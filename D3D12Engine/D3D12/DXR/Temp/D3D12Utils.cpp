@@ -158,3 +158,17 @@ ID3D12Resource* D3D12Utils::CreateBuffer(ID3D12Device5* device, UINT64 size, D3D
 	}
 	return pBuffer;
 }
+
+void D3D12Utils::SetResourceTransitionBarrier(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource, D3D12_RESOURCE_STATES StateBefore, D3D12_RESOURCE_STATES StateAfter, UINT subResource)
+{
+	D3D12_RESOURCE_BARRIER barrierDesc = {};
+
+	barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrierDesc.Transition.pResource = resource;
+	barrierDesc.Transition.Subresource = subResource;
+	barrierDesc.Transition.StateBefore = StateBefore;
+	barrierDesc.Transition.StateAfter = StateAfter;
+
+	commandList->ResourceBarrier(1, &barrierDesc);
+
+}

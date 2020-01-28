@@ -75,6 +75,7 @@ typedef union Float3
 	Float3 operator*(float other) const { return Float3(x * other, y * other, z * other); };
 	Float3 operator/(float other) const { float a = 1.0f / other; return Float3(x * a, y * a, z * a); };
 	void operator/=(float other) { *this = *this / other; };
+	void operator=(const Float3& other) { x = other.x; y = other.y; z = other.z;};
 
 	float length2() const { return x * x + y * y + z * z; }
 	float length() const { return std::sqrtf(length2()); }
@@ -113,6 +114,7 @@ typedef union Int2
 	Int2 operator-(Int2 other) { return Int2(x - other.x, y - other.y); };
 	Int2 operator*(float other) { return Int2(static_cast<int>(x * other), static_cast<int>(y * other)); };
 	Int2 operator/(float other) { float a = 1.0f / other; return Int2(static_cast<int>(x * a), static_cast<int>(y * a)); };
+	bool operator==(Int2 other) { return (x == other.x && y == other.y); };
 } Int2;
 
 struct Transform {

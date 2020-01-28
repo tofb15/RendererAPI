@@ -4,6 +4,7 @@
 constexpr UINT NUM_ACCELERATION_STRUCTURES = 2;
 
 class DXRBase;
+class D3D12Window;
 class D3D12RaytracerRenderer : public D3D12Renderer
 {
 public:
@@ -16,6 +17,7 @@ public:
 
 private:
 	bool InitializeCommandInterfaces();
+	bool InitializeOutputTextures(D3D12Window* window);
 	void ResetCommandListAndAllocator(int index);
 
 	// Inherited via D3D12Renderer
@@ -32,4 +34,8 @@ private:
 
 	ID3D12CommandAllocator* m_commandAllocators[NUM_GPU_BUFFERS] = { nullptr };
 	ID3D12GraphicsCommandList4* m_commandLists[NUM_GPU_BUFFERS] = { nullptr };
+
+	//RenderTargets
+	ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS];
+	Int2 m_outputDim;
 };

@@ -3,8 +3,11 @@
 #include "DXRUtils.h"
 #include "..\..\..\Math.hpp"
 #include "..\..\D3D12API.hpp"
-//#include "..\..\D3D12_FDecl.h"
+#include "..\..\D3D12Camera.hpp"
+#include "..\..\D3D12Window.hpp"
 #include "..\..\Renderers\D3D12Renderer.h"
+#include <DirectXMath.h>
+#include "../../../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
 
 #include <vector>
 #include <Windows.h>
@@ -32,10 +35,10 @@ public:
 	~DXRBase();
 
 	bool Initialize();
-	void SetOutputDescriptor(const D3D12_CPU_DESCRIPTOR_HANDLE& outputDescriptor);
+	void SetOutputResources(ID3D12Resource** output, Int2 dim);
 	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 
-	void UpdateSceneData();
+	void UpdateSceneData(D3D12Camera* camera);
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
 	void ReloadShaders();
 
@@ -57,13 +60,9 @@ private:
 		std::vector<PerInstance> items;
 	};
 
-	struct RayPayload {
-		Float4 color;
-		UINT recursionDepth;
-	};
-
 private:
 	bool InitializeRootSignatures();
+	bool InitializeConstanBuffers();
 
 	// Acceleration structures
 	void CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
@@ -87,6 +86,7 @@ private:
 
 private:
 	D3D12API* m_d3d12;
+	Int2 m_outputDim;
 
 	AccelerationStructureBuffers m_TLAS_buffers[NUM_GPU_BUFFERS];
 	std::unordered_map<BLAS_ID, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
@@ -99,21 +99,29 @@ private:
 
 	ID3D12StateObject* m_rtxPipelineState;
 
-	//Descriptor Heap
-	ID3D12DescriptorHeap* m_descriptorHeap;
+	//==Descriptor Heap==
 	UINT m_descriptorSize;
+	ID3D12DescriptorHeap* m_descriptorHeap;
+	UINT m_numReservedDescriptors = 0;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_uav_output_texture_handle;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_cbv_scene_handle;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unreserved_handle_start;
 
-	//ShaderTables
+	//==Constantbuffers==
+	ID3D12Resource* m_cb_scene;
+	UINT m_cb_scene_buffer_size;
+
+	//==ShaderTables==
 	DXRUtils::ShaderTableData m_shaderTable_gen[NUM_GPU_BUFFERS];
 	DXRUtils::ShaderTableData m_shaderTable_miss[NUM_GPU_BUFFERS];
 	DXRUtils::ShaderTableData m_shaderTable_hitgroup[NUM_GPU_BUFFERS];
 
-	//Shader Names
+	//==Shader Names==
 	const WCHAR* m_shader_rayGenName = L"rayGen";
 	const WCHAR* m_shader_closestHitName = L"closestHitTriangle";
 	const WCHAR* m_shader_missName = L"miss";
 	const WCHAR* m_shader_shadowMissName = L"shadowMiss";
 
-	//Shader Group Names
+	//==Shader Group Names==
 	const WCHAR* m_group_group1 = L"hitGroupTriangle";
 };

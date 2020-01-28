@@ -9,27 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo-Game", "Demo-Game\Demo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Demo-Features", "Demo-Features\Demo-Features.vcxproj", "{EF6D3B64-7F7E-42DB-BF23-AF68F601942B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shaders", "Shaders", "{C25FBE5B-E488-47AF-9586-B9F1CBB68183}"
-	ProjectSection(SolutionItems) = preProject
-		assets\D3D12\ComputeShader_FXAA.hlsl = assets\D3D12\ComputeShader_FXAA.hlsl
-		assets\D3D12\ComputeShader_Particle.hlsl = assets\D3D12\ComputeShader_Particle.hlsl
-		assets\D3D12\FragmentShader.hlsl = assets\D3D12\FragmentShader.hlsl
-		assets\D3D12\FragmentShader_test.hlsl = assets\D3D12\FragmentShader_test.hlsl
-		assets\D3D12\GeometryShader_Particle.hlsl = assets\D3D12\GeometryShader_Particle.hlsl
-		assets\D3D12\GS_Shader_Terrain.hlsl = assets\D3D12\GS_Shader_Terrain.hlsl
-		assets\D3D12\PixelShader_FS.hlsl = assets\D3D12\PixelShader_FS.hlsl
-		assets\D3D12\PixelShader_Particle.hlsl = assets\D3D12\PixelShader_Particle.hlsl
-		assets\D3D12\VertexShader.hlsl = assets\D3D12\VertexShader.hlsl
-		assets\D3D12\VertexShader_FS.hlsl = assets\D3D12\VertexShader_FS.hlsl
-		assets\D3D12\VertexShader_Particle.hlsl = assets\D3D12\VertexShader_Particle.hlsl
-		assets\D3D12\VertexShader_Terrain.hlsl = assets\D3D12\VertexShader_Terrain.hlsl
-		assets\D3D12\VertexShader_test.hlsl = assets\D3D12\VertexShader_test.hlsl
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RXT", "RXT", "{170D790F-5663-429E-BB51-F36641918BAA}"
-	ProjectSection(SolutionItems) = preProject
-		assets\D3D12\DXR\test.hlsl = assets\D3D12\DXR\test.hlsl
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders", "Shaders\Shaders.vcxproj", "{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,12 +43,17 @@ Global
 		{EF6D3B64-7F7E-42DB-BF23-AF68F601942B}.Release|x64.Build.0 = Release|x64
 		{EF6D3B64-7F7E-42DB-BF23-AF68F601942B}.Release|x86.ActiveCfg = Release|Win32
 		{EF6D3B64-7F7E-42DB-BF23-AF68F601942B}.Release|x86.Build.0 = Release|Win32
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Debug|x64.ActiveCfg = Debug|x64
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Debug|x64.Build.0 = Debug|x64
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Debug|x86.ActiveCfg = Debug|Win32
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Debug|x86.Build.0 = Debug|Win32
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Release|x64.ActiveCfg = Release|x64
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Release|x64.Build.0 = Release|x64
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Release|x86.ActiveCfg = Release|Win32
+		{6EBB09EB-BFBB-4B69-99CE-19055E79C3C9}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{170D790F-5663-429E-BB51-F36641918BAA} = {C25FBE5B-E488-47AF-9586-B9F1CBB68183}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0208DE3B-592D-455E-A95A-5BA4C31962A5}
