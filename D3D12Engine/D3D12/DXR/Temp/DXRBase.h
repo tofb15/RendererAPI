@@ -57,6 +57,7 @@ private:
 
 	struct BottomLayerData {
 		AccelerationStructureBuffers as;
+		D3D12_GPU_VIRTUAL_ADDRESS gpu_add_vb_pos;
 		std::vector<PerInstance> items;
 	};
 
@@ -97,18 +98,21 @@ private:
 	D3D12Utils::RootSignature m_localRootSignature_miss;
 	D3D12Utils::RootSignature m_localRootSignature_hitGroups;
 
-	ID3D12StateObject* m_rtxPipelineState;
+	ID3D12StateObject* m_rtxPipelineState = nullptr;
 
 	//==Descriptor Heap==
 	UINT m_descriptorSize;
-	ID3D12DescriptorHeap* m_descriptorHeap;
+	ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_descriptorHeap_start;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_unreserved_handle_start;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unused_handle_start_this_frame;
+
 	UINT m_numReservedDescriptors = 0;
-	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_uav_output_texture_handle;
-	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_cbv_scene_handle;
-	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unreserved_handle_start;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_uav_output_texture_handle;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_cbv_scene_handle;
 
 	//==Constantbuffers==
-	ID3D12Resource* m_cb_scene;
+	ID3D12Resource* m_cb_scene = nullptr;
 	UINT m_cb_scene_buffer_size;
 
 	//==ShaderTables==

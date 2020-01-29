@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12TextureLoader.hpp"
 #include "External/D3DX12/d3dx12.h"
 #include "D3D12API.hpp"

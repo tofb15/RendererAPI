@@ -27,15 +27,47 @@ namespace D3D12Utils{
 		0
 	};
 
-	struct D3D12_DESCRIPTOR_HANDLE {
-		D3D12_CPU_DESCRIPTOR_HANDLE cdh[NUM_GPU_BUFFERS];
-		D3D12_GPU_DESCRIPTOR_HANDLE gdh[NUM_GPU_BUFFERS];
+	struct D3D12_DESCRIPTOR_HANDLE
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE cdh;
+		D3D12_GPU_DESCRIPTOR_HANDLE gdh;
 
-		D3D12_DESCRIPTOR_HANDLE& operator= (D3D12_DESCRIPTOR_HANDLE& other) {
+		void operator+= (int inc) {
+			cdh.ptr += inc;
+			gdh.ptr += inc;
+		}
+
+		void operator-= (int inc) {
+			cdh.ptr -= inc;
+			gdh.ptr -= inc;
+		}
+	};
+
+	struct D3D12_DESCRIPTOR_HANDLE_BUFFERED {
+		D3D12_DESCRIPTOR_HANDLE dh[NUM_GPU_BUFFERS];
+
+		D3D12_DESCRIPTOR_HANDLE& operator[] (int index) {
+			return dh[index];
+		}
+
+		void operator+= (int inc) {
 			for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
 			{
-				cdh[i] = other.cdh[i];
-				gdh[i] = other.gdh[i];
+				dh[i] += inc;
+			}
+		}
+
+		void operator-= (int inc) {
+			for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+			{
+				dh[i] -= inc;
+			}
+		}
+
+		D3D12_DESCRIPTOR_HANDLE_BUFFERED& operator= (D3D12_DESCRIPTOR_HANDLE_BUFFERED& other) {
+			for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+			{
+				dh[i] = other.dh[i];
 			}
 			return *this;
 		}

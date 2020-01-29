@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Mesh.hpp"
 #include "D3D12API.hpp"
 #include "D3D12VertexBuffer.hpp"

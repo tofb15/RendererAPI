@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "D3D12Utils.h"
 #include <comdef.h>
 
@@ -16,7 +17,7 @@ D3D12Utils::RootSignature::~RootSignature()
 
 void D3D12Utils::RootSignature::AddDescriptorTable(const char* paramName, const D3D12_DESCRIPTOR_RANGE_TYPE type, unsigned int shaderRegister, unsigned int space, unsigned int numDescriptors)
 {
-	D3D12_DESCRIPTOR_RANGE* range = new D3D12_DESCRIPTOR_RANGE;
+	D3D12_DESCRIPTOR_RANGE* range = MY_NEW D3D12_DESCRIPTOR_RANGE;
 	range->BaseShaderRegister = shaderRegister;
 	range->RegisterSpace = space;
 	range->NumDescriptors = numDescriptors;

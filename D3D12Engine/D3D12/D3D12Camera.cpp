@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Camera.hpp"
 
 D3D12Camera::D3D12Camera()

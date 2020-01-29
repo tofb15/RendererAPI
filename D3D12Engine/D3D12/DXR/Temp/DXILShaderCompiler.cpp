@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "DXILShaderCompiler.h"
 #include <atlstr.h>
 #include <string>

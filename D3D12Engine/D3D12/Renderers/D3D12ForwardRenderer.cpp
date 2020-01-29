@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12ForwardRenderer.h"
 #include "..\D3D12Camera.hpp"
 #include "..\D3D12ParticleSystem.hpp"

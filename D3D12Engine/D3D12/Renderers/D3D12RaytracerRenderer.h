@@ -37,6 +37,6 @@ private:
 	ID3D12GraphicsCommandList4* m_commandLists[NUM_GPU_BUFFERS] = { nullptr };
 
 	//RenderTargets
-	ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS];
+	ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS] = { nullptr };
 	Int2 m_outputDim;
 };

@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12API.hpp"
 #include <d3d12.h>
 #include <dxgi1_6.h> //Only used for initialization of the device and swap chain.
@@ -21,10 +23,13 @@
 #include <iostream>
 #include <comdef.h>
 #include <iostream>
+#include <dxgidebug.h>
 
 #pragma comment(lib, "d3d12.lib")
-
+//#pragma comment(lib, "dxguid.lib")
 #define MULTI_THREADED
+
+typedef HRESULT(__stdcall* f_funci)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
 
 
 /*Release a Interface that will not be used anymore*/
@@ -41,7 +46,7 @@ inline void SafeRelease(Interface **ppInterfaceToRelease)
 
 D3D12API::D3D12API()
 {
-
+	int i = 0;
 }
 D3D12API::~D3D12API()
 {
@@ -88,7 +93,7 @@ bool D3D12API::Initialize()
 		return false;
 	}
 
-	m_textureLoader = new D3D12TextureLoader(this);
+	m_textureLoader = MY_NEW D3D12TextureLoader(this);
 	if (!m_textureLoader->Initialize())
 	{
 		printf("Error: Could not initialize texture loader\n");
@@ -98,7 +103,7 @@ bool D3D12API::Initialize()
 	//Start new Texture loading thread
 	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
-	m_vertexBufferLoader = new D3D12VertexBufferLoader(this);
+	m_vertexBufferLoader = MY_NEW D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
 	{
 		printf("Error: Could not initialize vertex buffer loader\n");
@@ -110,51 +115,51 @@ bool D3D12API::Initialize()
 
 Camera * D3D12API::MakeCamera()
 {
-	return new D3D12Camera();
+	return MY_NEW D3D12Camera();
 }
 Window * D3D12API::MakeWindow()
 {
-	return new D3D12Window(this);
+	return MY_NEW D3D12Window(this);
 }
 Texture * D3D12API::MakeTexture()
 {
 	if (++m_texturesCreated == 0)
 		return nullptr;
 
-	return new D3D12Texture(this, m_texturesCreated);
+	return MY_NEW D3D12Texture(this, m_texturesCreated);
 }
 Mesh * D3D12API::MakeMesh()
 {
 	if (++m_meshesCreated == 0)
 		return nullptr;
 
-	return new D3D12Mesh(this, m_meshesCreated);
+	return MY_NEW D3D12Mesh(this, m_meshesCreated);
 }
 Terrain * D3D12API::MakeTerrain()
 {
-	return new D3D12Terrain(this);
+	return MY_NEW D3D12Terrain(this);
 }
 Material * D3D12API::MakeMaterial()
 {
-	return new D3D12Material;
+	return MY_NEW D3D12Material;
 }
 RenderState * D3D12API::MakeRenderState()
 {
-	return new D3D12RenderState;
+	return MY_NEW D3D12RenderState;
 }
 Technique * D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm)
 {
 	if (++m_techniquesCreated == 0)
 		return nullptr;
 
-	D3D12Technique* tech = new D3D12Technique(this, m_techniquesCreated);
+	D3D12Technique* tech = MY_NEW D3D12Technique(this, m_techniquesCreated);
 	if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), sp, static_cast<D3D12ShaderManager*>(sm)))
 	{
 		delete tech;
 		return nullptr;
 	}
 	//Next Frame Frame
-	//int* closestTechnique_temp = new int[m_techniquesCreated];
+	//int* closestTechnique_temp = MY_NEW int[m_techniquesCreated];
 	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
 	//{
 	//	closestTechnique_temp[i] = m_closestTechnique[i];
@@ -164,7 +169,7 @@ Technique * D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderMa
 	//m_closestTechnique = closestTechnique_temp;
 
 	////Last Frame
-	//closestTechnique_temp = new int[m_techniquesCreated];
+	//closestTechnique_temp = MY_NEW int[m_techniquesCreated];
 	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
 	//{
 	//	closestTechnique_temp[i] = m_closestTechnique_lastFrame[i];
@@ -177,12 +182,12 @@ Technique * D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderMa
 }
 ShaderManager * D3D12API::MakeShaderManager()
 {
-	D3D12ShaderManager* sm = new D3D12ShaderManager(this);
+	D3D12ShaderManager* sm = MY_NEW D3D12ShaderManager(this);
 	return sm;
 }
 D3D12VertexBuffer * D3D12API::MakeVertexBuffer()
 {
-	return new D3D12VertexBuffer(this);
+	return MY_NEW D3D12VertexBuffer(this);
 }
 
 
@@ -376,11 +381,11 @@ Renderer* D3D12API::MakeRenderer(const RendererType rendererType)
 	switch (rendererType)
 	{
 	case RendererType::Forward:
-		renderer = new D3D12ForwardRenderer(this);
+		renderer = MY_NEW D3D12ForwardRenderer(this);
 		break;
 	case RendererType::Raytracing:
 		if (m_gpuSupportRaytracing) {
-			renderer = new D3D12RaytracerRenderer(this);
+			renderer = MY_NEW D3D12RaytracerRenderer(this);
 		}
 		break;
 	default:

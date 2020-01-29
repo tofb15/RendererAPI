@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Technique.hpp"
 #include "D3D12Material.hpp"
 #include "D3D12RenderState.hpp"
@@ -57,7 +59,7 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 		hasNMap = true;
 	}
 
-	ied = new D3D12_INPUT_ELEMENT_DESC[n_inputs];
+	ied = MY_NEW D3D12_INPUT_ELEMENT_DESC[n_inputs];
 	int idx = 0;
 	if (hasPos)
 	{

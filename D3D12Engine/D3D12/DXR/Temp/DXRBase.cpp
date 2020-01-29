@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "DXRBase.h"
 #include "..\..\D3D12Mesh.hpp"
 #include "..\..\D3D12VertexBuffer.hpp"
@@ -43,7 +45,7 @@ void DXRBase::SetOutputResources(ID3D12Resource** output, Int2 dim)
 	m_outputDim = dim;
 
 	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
-		m_d3d12->GetDevice()->CreateUnorderedAccessView(output[i], nullptr, &uavDesc, m_uav_output_texture_handle.cdh[i]);
+		m_d3d12->GetDevice()->CreateUnorderedAccessView(output[i], nullptr, &uavDesc, m_uav_output_texture_handle[i].cdh);
 	}
 }
 
@@ -189,7 +191,7 @@ bool DXRBase::InitializeConstanBuffers()
 	cbvDesc.SizeInBytes = m_cb_scene_buffer_size;
 	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
 		cbvDesc.BufferLocation = m_cb_scene->GetGPUVirtualAddress() + i * cbvDesc.SizeInBytes;
-		m_d3d12->GetDevice()->CreateConstantBufferView(&cbvDesc, m_cbv_scene_handle.cdh[i]);
+		m_d3d12->GetDevice()->CreateConstantBufferView(&cbvDesc, m_cbv_scene_handle[i].cdh);
 	}
 
 	////==========DEBUG START, REMOVE THIS=========
@@ -237,6 +239,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc;
 	tlas.instanceDesc->Map(0, nullptr, (void**)&pInstanceDesc);
 	DirectX::XMMATRIX mat;
+	UINT blasIndex = 0;
 	for (auto& blas : m_BLAS_buffers[bufferIndex])
 	{
 		auto& instances = blas.second.items;
@@ -245,7 +248,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 		{
 			pInstanceDesc->InstanceID = instanceID;
 			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
-			pInstanceDesc->InstanceContributionToHitGroupIndex = 0; // TODO: Change This
+			pInstanceDesc->InstanceContributionToHitGroupIndex = blasIndex; // TODO: Change This
 			pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
 
@@ -268,6 +271,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			instanceID++;
 			pInstanceDesc++;
 		}
+		blasIndex++;
 	}
 	tlas.instanceDesc->Unmap(0, nullptr);
 
@@ -347,11 +351,13 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO asBuildInfo = {};
 	m_d3d12->GetDevice()->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &asBuildInfo);
 
-	//=======Allocate GPU memory========
+	//=======Initialize BLAS Data========
 	BottomLayerData blasData = {};
 	blasData.items.emplace_back(PerInstance{ item.transform });
+	blasData.gpu_add_vb_pos = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetVertexBuffers()->at(0)->GetResource()->GetGPUVirtualAddress();
 	AccelerationStructureBuffers& asBuff = blasData.as;
 
+	//=======Allocate GPU memory========
 	//TODO: reuse old unused allocations.
 	asBuff.scratch = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), asBuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12Utils::sDefaultHeapProps);
 	asBuff.scratch->SetName(L"BLAS_SCRATCH");
@@ -385,7 +391,7 @@ void DXRBase::UpdateShaderTable()
 	//===Update Generation Table===
 	DXRUtils::ShaderTableBuilder generationTable(1, m_rtxPipelineState, 64);
 	generationTable.AddShader(m_shader_rayGenName);
-	generationTable.AddDescriptor(m_uav_output_texture_handle.gdh[bufferIndex].ptr);
+	generationTable.AddDescriptor(m_uav_output_texture_handle[bufferIndex].gdh.ptr);
 	m_shaderTable_gen[bufferIndex].Release();
 	m_shaderTable_gen[bufferIndex] = generationTable.Build(m_d3d12->GetDevice());
 
@@ -396,14 +402,23 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
 	//===Update HitGroup Table===
-	DXRUtils::ShaderTableBuilder hitGroupTable(1, m_rtxPipelineState);
-	hitGroupTable.AddShader(m_group_group1);
+	DXRUtils::ShaderTableBuilder hitGroupTable(m_BLAS_buffers[bufferIndex].size(), m_rtxPipelineState);
+
+	UINT blasIndex = 0;
+	for (auto& e : m_BLAS_buffers[bufferIndex])
+	{
+		hitGroupTable.AddShader(m_group_group1);
+		hitGroupTable.AddDescriptor(e.second.gpu_add_vb_pos, blasIndex);
+		blasIndex++;
+	}
+
 	m_shaderTable_hitgroup[bufferIndex].Release();
 	m_shaderTable_hitgroup[bufferIndex] = hitGroupTable.Build(m_d3d12->GetDevice());
 }
 
 void DXRBase::updateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
 {
+
 }
 
 void DXRBase::createInitialShaderResources(bool remake)
@@ -467,21 +482,16 @@ bool DXRBase::CreateDescriptorHeap()
 
 	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
 	{
-		m_unreserved_handle_start.cdh[i] = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		m_unreserved_handle_start.gdh[i] = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-
-		m_unreserved_handle_start.cdh[i].ptr += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
-		m_unreserved_handle_start.gdh[i].ptr += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
+		m_descriptorHeap_start[i].cdh = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		m_descriptorHeap_start[i].gdh = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+		m_descriptorHeap_start[i] += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
 	}
 
-	auto reserveDescriptor = [&](D3D12Utils::D3D12_DESCRIPTOR_HANDLE& handle) {
-		
+	m_unreserved_handle_start = m_descriptorHeap_start;
+
+	auto reserveDescriptor = [&](D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED& handle) {	
 		handle = m_unreserved_handle_start;
-		for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
-		{
-			m_unreserved_handle_start.cdh[i].ptr += m_descriptorSize;
-			m_unreserved_handle_start.gdh[i].ptr += m_descriptorSize;
-		}
+		m_unreserved_handle_start += m_descriptorSize;	
 		m_numReservedDescriptors++;
 	};
 
@@ -531,7 +541,7 @@ bool DXRBase::CreateRayGenLocalRootSignature()
 bool DXRBase::CreateHitGroupLocalRootSignature()
 {
 	m_localRootSignature_hitGroups = D3D12Utils::RootSignature(L"Root_HitGroupLocal");
-	//m_localRootSignature_hitGroups.AddSRV("VertexBuffer", 1, 0);
+	m_localRootSignature_hitGroups.AddSRV("VertexBuffer", 1, 0);
 	//m_localRootSignature_hitGroups.AddSRV("IndexBuffer", 1, 1);
 	//m_localRootSignature_hitGroups.AddCBV("MeshCBuffer", 1, 0);
 	//m_localRootSignature_hitGroups.AddDescriptorTable("Textures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 3); // Textures (t0, t1, t2)

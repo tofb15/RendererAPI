@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 /*
 LodePNG version 20190210
 

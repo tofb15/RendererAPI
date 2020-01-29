@@ -21,7 +21,7 @@ private:
 	int m_NumOfElements;
 	int m_ElementSize;
 
-	D3D12API* m_renderer;
-	ID3D12Resource1* m_resource;
-	D3D12_VERTEX_BUFFER_VIEW* m_view;
+	D3D12API* m_renderer = nullptr;
+	ID3D12Resource1* m_resource = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW* m_view = nullptr;
 };

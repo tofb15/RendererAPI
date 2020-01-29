@@ -27,7 +27,7 @@ struct SubmissionItem {
 class Renderer
 {
 public:
-	~Renderer();
+	virtual ~Renderer();
 	virtual bool Initialize() = 0;
 
 	/*

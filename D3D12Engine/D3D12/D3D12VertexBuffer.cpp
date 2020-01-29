@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12API.hpp"
 #include "D3D12VertexBufferLoader.hpp"
@@ -66,7 +68,7 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 	m_resource->Unmap(0, nullptr);
 
 	//Initialize vertex buffer view, used in the render call.
-	m_view = new D3D12_VERTEX_BUFFER_VIEW;
+	m_view = MY_NEW D3D12_VERTEX_BUFFER_VIEW;
 	m_view->BufferLocation = m_resource->GetGPUVirtualAddress();
 	m_view->StrideInBytes = elementSize;
 	m_view->SizeInBytes = elementSize * nElements;
@@ -75,7 +77,7 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 	GPUBuffer gpuBuffer = m_renderer->GetVertexBufferLoader()->CreateBuffer(nElements, elementSize, data);
 
 	//Initialize vertex buffer view, used in the render call.
-	m_view = new D3D12_VERTEX_BUFFER_VIEW;
+	m_view = MY_NEW D3D12_VERTEX_BUFFER_VIEW;
 	m_view->BufferLocation = gpuBuffer.resource->GetGPUVirtualAddress();
 	m_view->StrideInBytes = elementSize;
 	m_view->SizeInBytes = elementSize * nElements;

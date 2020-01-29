@@ -80,6 +80,7 @@ public:
 			delete m_terrain;
 		}
 		delete m_renderer;
+		delete m_renderAPI;
 		delete m_sm;
 	}
 
@@ -137,7 +138,7 @@ public:
 		return true;
 	}
 
-	void InitializeMeshesMaterialsAndRenderStates()
+	bool InitializeMeshesMaterialsAndRenderStates()
 	{
 		Mesh* mesh1 = m_renderAPI->MakeMesh();
 		Mesh* mesh2 = m_renderAPI->MakeMesh();
@@ -146,13 +147,15 @@ public:
 		Mesh* mesh5 = m_renderAPI->MakeMesh();
 
 		//mesh1->LoadFromFile("walker.obj");
-		mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV);
+		if (!mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV)) {
+			return false;
+		}
 
-		mesh2->LoadFromFile("turret.obj");
-		mesh3->LoadFromFile("enemy_flying.obj");
-		mesh4->LoadFromFile("disc.obj");
-		mesh5->LoadFromFile("antenna.obj");
-
+		if (!mesh2->LoadFromFile("turret.obj")) { return false; }
+		if (!mesh3->LoadFromFile("enemy_flying.obj")) { return false; }
+		if (!mesh4->LoadFromFile("disc.obj")) { return false; }
+		if (!mesh5->LoadFromFile("antenna.obj")) { return false; }
+		
 		m_meshes.push_back(mesh1);
 		m_meshes.push_back(mesh2);
 		m_meshes.push_back(mesh3);
@@ -162,7 +165,7 @@ public:
 
 		//Create a material
 		Material* mat = m_renderAPI->MakeMaterial();
-		mat->LoadFromFile("generator.mtl");
+		if (!mat->LoadFromFile("generator.mtl")) { return false; }
 		m_materials.push_back(mat);
 
 		//Create RenderState

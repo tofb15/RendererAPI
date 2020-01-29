@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Window.hpp"
 #include <string>
 #include <iostream>
@@ -54,9 +56,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 D3D12Window::D3D12Window(D3D12API* d3d12)
 {
+	m_Wnd = NULL;
 	m_d3d12 = d3d12;
-	m_Viewport = new D3D12_VIEWPORT;
-	m_ScissorRect = new D3D12_RECT;
+	m_Viewport = MY_NEW D3D12_VIEWPORT;
+	m_ScissorRect = MY_NEW D3D12_RECT;
 
 	m_Viewport->TopLeftX = 0.0f;
 	m_Viewport->TopLeftY = 0.0f;
@@ -75,6 +78,7 @@ D3D12Window::D3D12Window(D3D12API* d3d12)
 
 D3D12Window::~D3D12Window()
 {
+	m_d3d12->WaitForGPU_ALL();
 	delete m_Viewport;
 	delete m_ScissorRect;
 

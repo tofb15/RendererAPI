@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Terrain.hpp"
 #include "D3D12Texture.hpp"
 #include "D3D12API.hpp"
@@ -34,7 +36,7 @@ bool D3D12Terrain::InitializeHeightMap(Texture * _texture, float maxHeight)
 	int height_half = height * 0.5;
 	unsigned verticesNeeded = (width - 1) * (height - 1) * 6;
 
-	Float3* data = new Float3[verticesNeeded];
+	Float3* data = MY_NEW Float3[verticesNeeded];
 	int dataPoint = 0;
 
 	float posScale = 5;

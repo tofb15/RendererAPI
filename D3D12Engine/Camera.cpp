@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "Camera.hpp"
 
 Camera::~Camera()

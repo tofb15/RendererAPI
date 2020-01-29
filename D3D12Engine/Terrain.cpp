@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "Terrain.hpp"
 #include "Mesh.hpp"
 

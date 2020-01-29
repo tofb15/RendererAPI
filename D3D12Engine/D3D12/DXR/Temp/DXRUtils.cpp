@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "DXRUtils.h"
 #include <comdef.h>
 #include <cassert>
@@ -188,11 +190,11 @@ DXRUtils::ShaderTableBuilder::ShaderTableBuilder(UINT nInstances, ID3D12StateObj
 		exit(0);
 	}
 
-	m_data = new char*[nInstances];
-	m_dataOffset = new UINT[nInstances];
+	m_data = MY_NEW char*[nInstances];
+	m_dataOffset = MY_NEW UINT[nInstances];
 	for (UINT i = 0; i < nInstances; i++)
 	{
-		m_data[i] = new char[maxInstanceSize];
+		m_data[i] = MY_NEW char[maxInstanceSize];
 		memset(m_data[i], 0, maxInstanceSize);
 		m_dataOffset[i] = 0;
 	}
@@ -204,10 +206,10 @@ DXRUtils::ShaderTableBuilder::~ShaderTableBuilder()
 		for (size_t i = 0; i < m_nInstances; i++)
 		{
 			if (m_data[i]) {
-				delete [] m_data[i];
+				delete[] m_data[i];
 			}
-			delete[] m_data;
 		}
+		delete[] m_data;
 	}
 
 	if (m_dataOffset) {

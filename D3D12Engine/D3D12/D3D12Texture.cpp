@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Texture.hpp"
 #include "External/LodePNG/lodepng.h"
 #include <iostream>

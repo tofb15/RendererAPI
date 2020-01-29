@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12RaytracerRenderer.h"
 #include "..\D3D12Window.hpp"
 #include "..\D3D12Texture.hpp"
@@ -8,7 +10,7 @@
 
 D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12)
 {
-	m_dxrBase = new DXRBase(m_d3d12);
+	m_dxrBase = MY_NEW DXRBase(m_d3d12);
 }
 
 D3D12RaytracerRenderer::~D3D12RaytracerRenderer()

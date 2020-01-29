@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "Mesh.hpp"
 
 Mesh::~Mesh()
@@ -16,4 +18,5 @@ const char * Mesh::GetMaterialName() const
 
 Mesh::Mesh()
 {
+	m_VertexBufferFlags = 0;
 }

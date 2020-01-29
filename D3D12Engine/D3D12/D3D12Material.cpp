@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "D3D12Material.hpp"
 #include <sstream>
 #include <fstream>
