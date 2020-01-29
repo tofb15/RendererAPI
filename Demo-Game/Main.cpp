@@ -119,7 +119,7 @@ public:
 			return false;
 		}
 
-		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Raytracing);
+		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Forward);
 		if (!m_renderer) {
 			std::cout << "Selected renderer was not implemented within the current renderAPI and could therefor not be created." << std::endl;
 			return false;
@@ -311,13 +311,13 @@ public:
 		Camera* cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-50, 100, -50));
 		cam->SetTarget(Float3(100, 20, 100));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 1000.0f);
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
 		m_cameras.push_back(cam);
 
 		cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-5, 5, -5));
 		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.01f, 1000.0f);
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.1f, 2000.0f);
 		m_cameras.push_back(cam);
 	}
 
@@ -353,7 +353,7 @@ public:
 			now = Clock::now();
 			double dt = (double)((now - then).count()) * 0.000000001;
 
-			m_time += dt;
+			m_time += dt * 0.05f;
 
 			frameCount++;
 

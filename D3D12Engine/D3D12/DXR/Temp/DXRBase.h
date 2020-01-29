@@ -70,7 +70,7 @@ private:
 	void CreateBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
 	void UpdateShaderTable();
 
-	void updateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
+	void UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
 	void createInitialShaderResources(bool remake = false);
 
 	// Root signature creation
@@ -90,7 +90,7 @@ private:
 	Int2 m_outputDim;
 
 	AccelerationStructureBuffers m_TLAS_buffers[NUM_GPU_BUFFERS];
-	std::unordered_map<BLAS_ID, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
+	std::unordered_map<Blueprint*, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
 
 	D3D12Utils::RootSignature m_globalRootSignature;
 	//TODO: generate local signatures
@@ -106,6 +106,7 @@ private:
 	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_descriptorHeap_start;
 	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_unreserved_handle_start;
 	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unused_handle_start_this_frame;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_srv_mesh_textures_handle_start;
 
 	UINT m_numReservedDescriptors = 0;
 	D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_uav_output_texture_handle;

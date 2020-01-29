@@ -4,6 +4,7 @@
 #include "..\..\D3D12Mesh.hpp"
 #include "..\..\D3D12VertexBuffer.hpp"
 #include "..\..\D3D12Window.hpp"
+#include "..\..\D3D12Texture.hpp"
 
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
@@ -61,8 +62,8 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	//Build/Update BLAS
 	for (auto& e : items)
 	{
-		BLAS_ID id = static_cast<D3D12Mesh*>(e.blueprint->mesh)->GetID();
-		auto search = m_BLAS_buffers[gpuBuffer].find(id);
+		//BLAS_ID id = static_cast<D3D12Mesh*>(e.blueprint->mesh)->GetID();
+		auto search = m_BLAS_buffers[gpuBuffer].find(e.blueprint);
 		if (search == m_BLAS_buffers[gpuBuffer].end()) {
 			CreateBLAS(e, 0, cmdList);
 		}
@@ -86,6 +87,7 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 
 	//Build/Update TLAS
 	CreateTLAS(items.size(), cmdList);
+	UpdateDescriptorHeap(cmdList);
 	//Update Shader Table
 	UpdateShaderTable();
 }
@@ -257,13 +259,13 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			Float3& rot = instance.transform.rotation;
 			Float3& scal = instance.transform.scale;
 
-			//mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-			mat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+			mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+			//mat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 			//mat = DirectX::XMMatrixIdentity();
-			//mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
-			//mat.r[0].m128_f32[0] *= scal.x;
-			//mat.r[1].m128_f32[1] *= scal.y;
-			//mat.r[2].m128_f32[2] *= scal.z;
+			mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
+			mat.r[0].m128_f32[0] *= scal.x;
+			mat.r[1].m128_f32[1] *= scal.y;
+			mat.r[2].m128_f32[2] *= scal.z;
 
 			DirectX::XMStoreFloat3x4((DirectX::XMFLOAT3X4*)pInstanceDesc->Transform, mat);
 
@@ -313,7 +315,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 
 void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate)
 {
-	BLAS_ID blasID = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
+	//BLAS_ID blasID = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 	auto bufferIndex = m_d3d12->GetGPUBufferIndex();
 
 	//=======Retrive the vertexbuffer========
@@ -364,7 +366,7 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 	asBuff.result = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), asBuildInfo.ResultDataMaxSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, D3D12Utils::sDefaultHeapProps);
 	asBuff.result->SetName(L"BLAS_RESULT");
 
-	m_BLAS_buffers[bufferIndex].insert({ blasID, blasData });
+	m_BLAS_buffers[bufferIndex].insert({ item.blueprint, blasData });
 
 	//=======BLAS BUILD========
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC asDesc = {};
@@ -402,13 +404,22 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
 	//===Update HitGroup Table===
-	DXRUtils::ShaderTableBuilder hitGroupTable(m_BLAS_buffers[bufferIndex].size(), m_rtxPipelineState);
+	DXRUtils::ShaderTableBuilder hitGroupTable(m_BLAS_buffers[bufferIndex].size(), m_rtxPipelineState, 64);
 
 	UINT blasIndex = 0;
+	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
 	for (auto& e : m_BLAS_buffers[bufferIndex])
 	{
+		UINT64 vb_pos = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(0)->GetResource()->GetGPUVirtualAddress();
+		UINT64 vb_norm = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(1)->GetResource()->GetGPUVirtualAddress();
+		UINT64 vb_uv = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(2)->GetResource()->GetGPUVirtualAddress();
+
 		hitGroupTable.AddShader(m_group_group1);
-		hitGroupTable.AddDescriptor(e.second.gpu_add_vb_pos, blasIndex);
+		hitGroupTable.AddDescriptor(vb_pos, blasIndex);
+		hitGroupTable.AddDescriptor(vb_norm, blasIndex);
+		hitGroupTable.AddDescriptor(vb_uv, blasIndex);
+		hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+		texture_gdh.ptr += m_descriptorSize;
 		blasIndex++;
 	}
 
@@ -416,9 +427,17 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_hitgroup[bufferIndex] = hitGroupTable.Build(m_d3d12->GetDevice());
 }
 
-void DXRBase::updateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
+void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
 {
-
+	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
+	m_unused_handle_start_this_frame = m_unreserved_handle_start[bufferIndex];
+	m_srv_mesh_textures_handle_start = m_unused_handle_start_this_frame;
+	for (auto& e : m_BLAS_buffers[bufferIndex])
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[0]));
+		m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_unused_handle_start_this_frame += m_descriptorSize;
+	}
 }
 
 void DXRBase::createInitialShaderResources(bool remake)
@@ -541,7 +560,10 @@ bool DXRBase::CreateRayGenLocalRootSignature()
 bool DXRBase::CreateHitGroupLocalRootSignature()
 {
 	m_localRootSignature_hitGroups = D3D12Utils::RootSignature(L"Root_HitGroupLocal");
-	m_localRootSignature_hitGroups.AddSRV("VertexBuffer", 1, 0);
+	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_POS", 1, 0);
+	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_Norm", 1, 1);
+	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_UV", 1, 2);
+	m_localRootSignature_hitGroups.AddDescriptorTable("AlbedoColor", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2);
 	//m_localRootSignature_hitGroups.AddSRV("IndexBuffer", 1, 1);
 	//m_localRootSignature_hitGroups.AddCBV("MeshCBuffer", 1, 0);
 	//m_localRootSignature_hitGroups.AddDescriptorTable("Textures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 3); // Textures (t0, t1, t2)
