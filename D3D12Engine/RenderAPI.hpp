@@ -116,6 +116,7 @@ public:
 	*/
 	virtual ShaderManager*	MakeShaderManager() = 0;
 	virtual Renderer* MakeRenderer(const RendererType rendererType) = 0;
+	virtual void Refresh() {};
 
 protected:
 	RenderAPI();

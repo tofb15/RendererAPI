@@ -26,6 +26,7 @@ private:
 	virtual void Frame(Window* window, Camera* camera) override;
 	virtual void Present(Window* window) override;
 	virtual void ClearFrame() override;
+	virtual void Refresh() override;
 
 private:
 	std::vector<SubmissionItem> m_OpaqueItems;

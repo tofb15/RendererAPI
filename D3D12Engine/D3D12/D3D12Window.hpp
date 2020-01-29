@@ -6,8 +6,8 @@
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-class D3D12API;
 
+class D3D12API;
 class D3D12Window : public Window {
 public:
 	D3D12Window(D3D12API* d3d12);
@@ -65,10 +65,6 @@ public:
 	*/
 	void SetRenderTarget(ID3D12GraphicsCommandList3*	commandList);
 	HWND				GetHWND();
-	/*
-		@Return a pointer to the Command Queue Interface
-	*/
-	ID3D12CommandQueue* GetCommandQueue();
 
 	/*
 		@Return a pointer to the Swap Chain Interface
@@ -99,11 +95,7 @@ public:
 		@Return current backbuffer index.
 	*/
 	UINT GetCurrentBackBufferIndex() const;
-	void WaitForGPU();
-	void WaitForGPU(int index);
-
 private:
-	ID3D12CommandQueue*			m_CommandQueue = nullptr;
 	IDXGISwapChain4*			m_SwapChain4 = nullptr;
 	HWND						m_Wnd;
 
@@ -119,20 +111,14 @@ private:
 
 	D3D12API* m_d3d12;
 
-	//Fences for the render targets
-	ID3D12Fence1*				m_Fence[NUM_SWAP_BUFFERS] = { nullptr };
-	HANDLE						m_EventHandle[NUM_SWAP_BUFFERS] = { nullptr };
-	UINT64						m_FenceValue[NUM_SWAP_BUFFERS] = { 0 };
-
 	RAWINPUTDEVICE				m_rawMouseDevice;
 	Int2						m_mouseMovement;
 
 	int							m_numWaits;
 
 	bool InitializeWindow();		//1.
-	bool InitializeCommandQueue();	//2.
-	bool InitializeSwapChain();		//3.
-	bool InitializeRenderTargets();	//4.
-	bool InitializeDepthBuffer();	//5.
+	bool InitializeSwapChain();		//2.
+	bool InitializeRenderTargets();	//3.
+	bool InitializeDepthBuffer();	//4.
 	bool InitializeRawInput();
 };

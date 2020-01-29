@@ -308,7 +308,7 @@ public:
 		Camera* cam = m_renderAPI->MakeCamera();
 		cam->SetPosition(Float3(-50, 100, -50));
 		cam->SetTarget(Float3(100, 20, 100));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.01f, 1000.0f);
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 1000.0f);
 		m_cameras.push_back(cam);
 
 		cam = m_renderAPI->MakeCamera();
@@ -467,6 +467,9 @@ public:
 			techniqueToUse = (techniqueToUse + 1) % 2;
 			m_blueprints[0]->technique = m_techniques[techniqueToUse];
 			m_blueprints[1]->technique = m_techniques[techniqueToUse];
+		}
+		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_R)) {
+			m_renderer->Refresh();
 		}
 	}
 	void ProcessLocalInput(double dt)

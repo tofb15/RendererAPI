@@ -150,6 +150,9 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 
 void DXRBase::ReloadShaders()
 {
+	m_d3d12->WaitForGPU_ALL();
+	// Recompile hlsl
+	CreateRaytracingPSO();
 }
 
 bool DXRBase::InitializeRootSignatures()
@@ -251,12 +254,13 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			Float3& rot = instance.transform.rotation;
 			Float3& scal = instance.transform.scale;
 
-			mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+			//mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+			mat = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 			//mat = DirectX::XMMatrixIdentity();
-			mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
-			mat.r[0].m128_f32[0] *= scal.x;
-			mat.r[1].m128_f32[1] *= scal.y;
-			mat.r[2].m128_f32[2] *= scal.z;
+			//mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
+			//mat.r[0].m128_f32[0] *= scal.x;
+			//mat.r[1].m128_f32[1] *= scal.y;
+			//mat.r[2].m128_f32[2] *= scal.z;
 
 			DirectX::XMStoreFloat3x4((DirectX::XMFLOAT3X4*)pInstanceDesc->Transform, mat);
 
@@ -408,6 +412,10 @@ void DXRBase::createInitialShaderResources(bool remake)
 
 bool DXRBase::CreateRaytracingPSO()
 {
+	if (m_rtxPipelineState) {
+		m_rtxPipelineState->Release();
+	}
+
 	DXRUtils::PSOBuilder psoBuilder;
 	if (!psoBuilder.Initialize()) {
 		return false;

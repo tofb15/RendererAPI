@@ -36,7 +36,14 @@ public:
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
 	virtual Renderer* MakeRenderer(const RendererType rendererType) override;
 
+	/*
+		@Return a pointer to the ID3D12Device5 Interface
+	*/
 	ID3D12Device5* GetDevice() const;
+	/*
+		@Return a pointer to the Direct Command Queue Interface
+	*/
+	ID3D12CommandQueue* GetDirectCommandQueue();
 	D3D12TextureLoader* GetTextureLoader() const;
 	D3D12VertexBufferLoader* GetVertexBufferLoader() const;
 
@@ -55,9 +62,14 @@ public:
 		return resource;
 	}
 
-private:	
-	bool InitializeDirect3DDevice();
+	unsigned __int64 SignalFence();
+	void WaitForGPU_ALL();
+	void WaitForGPU_BUFFERS(int index);
 
+private:	
+	bool InitializeDirect3DDevice(); //1.
+	bool InitializeCommandQueue();	 //2.
+	bool InitializeFence();          //3.
 private:
 
 	USHORT m_meshesCreated = 0;
@@ -71,8 +83,15 @@ private:
 	std::thread m_thread_texture;
 
 	// Default resources
-	ID3D12Device5*				m_device								= nullptr;
-	D3D12VertexBufferLoader*	m_vertexBufferLoader;
+	ID3D12Device5*           m_device = nullptr;
+	ID3D12CommandQueue*      m_CommandQueue_direct = nullptr;
+	D3D12VertexBufferLoader* m_vertexBufferLoader;
+
+	//Fences for the render targets
+	ID3D12Fence1* m_Fence = nullptr ;
+	HANDLE m_EventHandle;
+	unsigned __int64 m_FenceValues_GPU_BUFFERS[NUM_GPU_BUFFERS] = { 0 };
+	unsigned __int64 m_currentFenceValue = 0;
 
 	bool m_gpuSupportRaytracing = false;
 	UINT m_GPU_buffer_index = 0;

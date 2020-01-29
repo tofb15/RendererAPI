@@ -45,6 +45,10 @@ D3D12API::D3D12API()
 }
 D3D12API::~D3D12API()
 {
+	WaitForGPU_ALL();
+	m_Fence->Release();
+	m_CommandQueue_direct->Release();
+
 	m_textureLoader->Kill();	//Notify the other thread to stop.
 	m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
@@ -59,7 +63,6 @@ D3D12API::~D3D12API()
 		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
 	}
 	
-
 	m_device->Release();
 
 	int i;
@@ -70,6 +73,18 @@ bool D3D12API::Initialize()
 	if (!InitializeDirect3DDevice())
 	{
 		printf("Error: Could not initialize device\n");
+		return false;
+	}
+
+	if (!InitializeCommandQueue())
+	{
+		printf("Error: Could not initialize command queue\n");
+		return false;
+	}
+
+	if (!InitializeFence())
+	{
+		printf("Error: Could not initialize command queue\n");
 		return false;
 	}
 
@@ -177,6 +192,11 @@ ID3D12Device5 * D3D12API::GetDevice() const
 	return m_device;
 }
 
+ID3D12CommandQueue* D3D12API::GetDirectCommandQueue()
+{
+	return m_CommandQueue_direct;
+}
+
 D3D12TextureLoader * D3D12API::GetTextureLoader() const
 {
 	return m_textureLoader;
@@ -214,7 +234,37 @@ UINT D3D12API::GetGPUBufferIndex()
 
 void D3D12API::IncGPUBufferIndex()
 {
+	m_FenceValues_GPU_BUFFERS[m_GPU_buffer_index] = SignalFence();
 	m_GPU_buffer_index = (++m_GPU_buffer_index) % NUM_GPU_BUFFERS;
+	WaitForGPU_BUFFERS(m_GPU_buffer_index);
+}
+
+unsigned __int64 D3D12API::SignalFence()
+{
+	const unsigned __int64 fenceVal = ++m_currentFenceValue;
+	m_CommandQueue_direct->Signal(m_Fence, fenceVal);
+	return fenceVal;
+}
+
+void D3D12API::WaitForGPU_ALL()
+{
+	//Wait until command queue is done.
+	if (m_Fence->GetCompletedValue() < m_currentFenceValue)
+	{
+		m_Fence->SetEventOnCompletion(m_currentFenceValue, m_EventHandle);
+		WaitForSingleObject(m_EventHandle, INFINITE);
+	}
+}
+
+void D3D12API::WaitForGPU_BUFFERS(int index)
+{
+	//Wait until command queue is done.
+	if (m_Fence->GetCompletedValue() < m_FenceValues_GPU_BUFFERS[index])
+	{
+		//m_numWaits++;
+		m_Fence->SetEventOnCompletion(m_FenceValues_GPU_BUFFERS[index], m_EventHandle);
+		WaitForSingleObject(m_EventHandle, INFINITE);
+	}
 }
 
 bool D3D12API::InitializeDirect3DDevice()
@@ -283,6 +333,39 @@ bool D3D12API::InitializeDirect3DDevice()
 	m_cbv_srv_uav_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	SafeRelease(&factory);
+	return true;
+}
+
+bool D3D12API::InitializeCommandQueue()
+{
+	HRESULT hr;
+	//Describe and create the command queue.
+	D3D12_COMMAND_QUEUE_DESC cqd = {};
+	hr = m_device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue_direct));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool D3D12API::InitializeFence()
+{
+	HRESULT hr;
+	hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+	if (FAILED(hr))
+	{
+		return false;
+	}
+	//Create an event handle to use for GPU synchronization.
+	m_EventHandle = CreateEvent(0, false, false, 0);
+	m_currentFenceValue = 0;
+	for (int i = 0; i < NUM_GPU_BUFFERS; i++)
+	{
+		m_FenceValues_GPU_BUFFERS[i] = 0;
+	}
+
 	return true;
 }
 

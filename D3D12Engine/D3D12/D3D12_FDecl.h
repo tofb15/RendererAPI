@@ -7,6 +7,7 @@ struct ID3D12DescriptorHeap;
 struct ID3D12CommandAllocator;
 struct ID3D12GraphicsCommandList4;
 struct ID3D12StateObject;
+struct ID3D12CommandQueue;
 
 struct D3D12_HEAP_PROPERTIES;
 struct D3D12_RESOURCE_DESC;
@@ -19,5 +20,4 @@ struct D3D12_STATIC_SAMPLER_DESC;
 
 //Pipelinestate
 struct D3D12_STATE_SUBOBJECT;
-
-typedef void* _D3D12_ROOT_SIGNATURE_FLAGS;
+typedef void* HANDLE;

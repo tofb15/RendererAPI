@@ -63,6 +63,8 @@ public:
 	*/
 	virtual void			Present(Window* window) = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
+	virtual void Refresh() {};
+
 protected:
 	Renderer();
 

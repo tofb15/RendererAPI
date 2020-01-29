@@ -80,20 +80,14 @@ D3D12Window::~D3D12Window()
 
 	// Wait until each queue has finished executing before releasing resources
 	int currentBackBuffer = m_SwapChain4->GetCurrentBackBufferIndex();
-	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
-	{
-		WaitForGPU((currentBackBuffer + i) % NUM_SWAP_BUFFERS);
-	}
-
+	
 	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
 	{
 		m_RenderTargets[i]->Release();
-		m_Fence[i]->Release();
 	}
 	m_RenderTargetsHeap->Release();
 	m_DepthStencil->Release();
 	m_DepthStencilHeap->Release();
-	m_CommandQueue->Release();
 	m_SwapChain4->Release();
 }
 
@@ -139,9 +133,6 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 	if (!InitializeWindow())
 		return false;
 
-	if (!InitializeCommandQueue())
-		return false;
-
 	if (!InitializeSwapChain())
 		return false;
 
@@ -153,20 +144,6 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 	
 	if (!InitializeRawInput())
 		return false;
-
-	HRESULT hr;
-	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
-	{
-		hr = m_d3d12->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence[i]));
-		if (FAILED(hr))
-		{
-			return false;
-		}
-
-		m_FenceValue[i] = 1;
-		//Create an event handle to use for GPU synchronization.
-		m_EventHandle[i] = CreateEvent(0, false, false, 0);
-	}
 
 	return true;
 }
@@ -345,11 +322,6 @@ HWND D3D12Window::GetHWND()
 	return m_Wnd;
 }
 
-ID3D12CommandQueue * D3D12Window::GetCommandQueue()
-{
-	return m_CommandQueue;
-}
-
 IDXGISwapChain4 * D3D12Window::GetSwapChain()
 {
 	return m_SwapChain4;
@@ -426,19 +398,6 @@ bool D3D12Window::InitializeWindow()
 	return true;
 }
 
-bool D3D12Window::InitializeCommandQueue()
-{
-	HRESULT hr;
-	//Describe and create the command queue.
-	D3D12_COMMAND_QUEUE_DESC cqd = {};
-	hr = m_d3d12->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue));
-	if (FAILED(hr))
-	{
-		return false;
-	}
-
-	return true;
-}
 
 bool D3D12Window::InitializeSwapChain()
 {
@@ -469,7 +428,7 @@ bool D3D12Window::InitializeSwapChain()
 	IDXGISwapChain1* swapChain1 = nullptr;
 
 	hr = factory->CreateSwapChainForHwnd(
-		m_CommandQueue,
+		m_d3d12->GetDirectCommandQueue(),
 		m_Wnd,
 		&scDesc,
 		nullptr,
@@ -612,56 +571,4 @@ bool D3D12Window::InitializeRawInput()
 	}
 	
 	return true;
-}
-
-void D3D12Window::WaitForGPU()
-{
-	static int frames = 0;
-	frames++;
-
-#ifdef SINGLE_FENCE
-	const int nextFrame = m_SwapChain4->GetCurrentBackBufferIndex();
-	const int previousFrame = (nextFrame - 1) % NUM_SWAP_BUFFERS;
-
-	//Tell last frame to signal when done
-	const UINT64 fence = m_FenceValue[0];
-	m_CommandQueue->Signal(m_Fence[0], fence);
-	m_FenceValue[0]++;
-
-	//Wait until command queue is done.
-	if (m_Fence[0]->GetCompletedValue() < m_FenceValue[0] - 1)
-	{
-		numWaits++;
-		m_Fence[0]->SetEventOnCompletion(m_FenceValue[0] - 1, m_EventHandle[0]);
-		WaitForSingleObject(m_EventHandle[0], INFINITE);
-	}
-#endif
-
-	const unsigned int nextFrame = m_d3d12->GetGPUBufferIndex(); //m_SwapChain4->GetCurrentBackBufferIndex();
-	const unsigned int previousFrame = (nextFrame + NUM_GPU_BUFFERS - 1) % NUM_GPU_BUFFERS;
-	
-	// Tell last frame to signal when done
-	const UINT64 fence = m_FenceValue[previousFrame];
-	m_CommandQueue->Signal(m_Fence[previousFrame], fence);
-	m_FenceValue[previousFrame]++;
-
-	WaitForGPU(nextFrame);
-
-	if (frames > 100) {
-		std::string s = std::to_string(m_numWaits);
-		s += "\n";
-		OutputDebugString(s.c_str());
-		frames = 0;
-	}
-}
-
-void D3D12Window::WaitForGPU(int index)
-{
-	//Wait until command queue is done.
-	if (m_Fence[index]->GetCompletedValue() < m_FenceValue[index] - 1)
-	{
-		m_numWaits++;
-		m_Fence[index]->SetEventOnCompletion(m_FenceValue[index] - 1, m_EventHandle[index]);
-		WaitForSingleObject(m_EventHandle[index], INFINITE);
-	}
 }

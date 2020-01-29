@@ -23,19 +23,24 @@ namespace DXRShaderCommon
 {
 #endif
 
-struct RayPayload
-{
-	float4 color;
-	uint recursionDepth;
-};
+    struct RayPayload
+    {
+        float4 color;
+        uint recursionDepth;
+    };
 
-struct SceneCBuffer
-{
-    float4x4 projectionToWorld; //Used for raygeneration
-    float4x4 viewToWorld;
-    float3 cameraPosition;
-};
-
+    struct SceneCBuffer
+    {
+        float4x4 projectionToWorld; //Used for raygeneration
+        float4x4 viewToWorld;
+        float3 cameraPosition;
+     /*
+    float4x4 padding;
+    float3x3 padding;
+    float4 padding;
+    */
+    };
+    
 #ifndef HLSL
 // C++ only
 } // End namespace

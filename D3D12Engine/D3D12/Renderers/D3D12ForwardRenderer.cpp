@@ -267,6 +267,7 @@ void D3D12ForwardRenderer::Present(Window* w)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
+
 	DXGI_PRESENT_PARAMETERS pp = {};
 	//ID3D12CommandList* listsToExecute[1];
 	ID3D12CommandList* listsToExecute[NUM_COMMAND_LISTS];
@@ -300,7 +301,7 @@ void D3D12ForwardRenderer::Present(Window* w)
 		listsToExecute[i] = m_commandLists[backBufferIndex][i];
 	}
 
-	window->GetCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+	m_d3d12->GetDirectCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
 	//Wait for REnder before FXAA.
 
@@ -322,7 +323,7 @@ void D3D12ForwardRenderer::Present(Window* w)
 
 	//Present the frame.
 	window->GetSwapChain()->Present1(0, 0, &pp);
-	window->WaitForGPU();
+	m_d3d12->IncGPUBufferIndex();
 }
 
 ID3D12DescriptorHeap* D3D12ForwardRenderer::GetDescriptorHeap() const
