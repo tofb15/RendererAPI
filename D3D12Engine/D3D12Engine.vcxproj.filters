@@ -129,6 +129,9 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Light\LightSource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Texture.hpp">
@@ -255,6 +258,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Light\LightSource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

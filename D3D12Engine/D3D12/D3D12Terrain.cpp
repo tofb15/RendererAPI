@@ -74,8 +74,8 @@ bool D3D12Terrain::InitializeHeightMap(Texture * _texture, float maxHeight)
 	}
 
 	//Create vertexbuffer for normals
-	if (!m_mesh->AddVertexBuffer(verticesNeeded, sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_POSITION))
-		return false;
+	//if (!m_mesh->AddVertexBuffer(verticesNeeded, sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_POSITION, "Terrain"))
+	//	return false;
 
 	delete[] data;
 

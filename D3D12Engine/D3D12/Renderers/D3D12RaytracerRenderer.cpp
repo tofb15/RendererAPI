@@ -144,7 +144,7 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	//D3D12_GPU_VIRTUAL_ADDRESS rtAddr = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetGPUDescriptorHandle().ptr;	
 	//D3D12Texture* tex = static_cast<D3D12Texture*>(m_OpaqueItems[0].blueprint->textures[0]);
 
-	m_dxrBase->UpdateSceneData(static_cast<D3D12Camera*>(camera));
+	m_dxrBase->UpdateSceneData(static_cast<D3D12Camera*>(camera), m_lights);
 	m_dxrBase->UpdateAccelerationStructures(m_OpaqueItems, cmdlist);
 	m_dxrBase->Dispatch(cmdlist);
 
@@ -180,4 +180,9 @@ void D3D12RaytracerRenderer::ClearFrame()
 void D3D12RaytracerRenderer::Refresh()
 {
 	m_dxrBase->ReloadShaders();
+}
+
+void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lights)
+{
+	m_lights = lights;
 }

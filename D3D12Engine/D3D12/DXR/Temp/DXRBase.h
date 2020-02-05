@@ -8,6 +8,7 @@
 #include "..\..\Renderers\D3D12Renderer.h"
 #include <DirectXMath.h>
 #include "../../../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
+#include "..\..\..\Light\LightSource.h"
 
 #include <vector>
 #include <Windows.h>
@@ -38,7 +39,7 @@ public:
 	void SetOutputResources(ID3D12Resource** output, Int2 dim);
 	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 
-	void UpdateSceneData(D3D12Camera* camera);
+	void UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights);
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
 	void ReloadShaders();
 
@@ -57,8 +58,21 @@ private:
 
 	struct BottomLayerData {
 		AccelerationStructureBuffers as;
-		D3D12_GPU_VIRTUAL_ADDRESS gpu_add_vb_pos;
+		uint nGeometries;
+		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[5];
 		std::vector<PerInstance> items;
+
+		BottomLayerData& operator =(const BottomLayerData& other) {
+			as = other.as;
+			nGeometries = other.nGeometries;
+			for (size_t i = 0; i < nGeometries; i++)
+			{
+				geometryBuffers[i] = other.geometryBuffers[i];
+			}
+			items = other.items;
+
+			return *this;
+		}
 	};
 
 private:
@@ -121,12 +135,16 @@ private:
 	DXRUtils::ShaderTableData m_shaderTable_miss[NUM_GPU_BUFFERS];
 	DXRUtils::ShaderTableData m_shaderTable_hitgroup[NUM_GPU_BUFFERS];
 
+	uint m_hitGroupShaderRecordsNeededThisFrame;
+
 	//==Shader Names==
 	const WCHAR* m_shader_rayGenName = L"rayGen";
 	const WCHAR* m_shader_closestHitName = L"closestHitTriangle";
+	const WCHAR* m_shader_anyHitName = L"anyHitTriangle";
 	const WCHAR* m_shader_missName = L"miss";
 	const WCHAR* m_shader_shadowMissName = L"shadowMiss";
 
 	//==Shader Group Names==
 	const WCHAR* m_group_group1 = L"hitGroupTriangle";
+	const WCHAR* m_group_group_alphaTest = L"hitGroupTriangle_alphaTest";
 };

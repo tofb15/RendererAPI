@@ -307,7 +307,7 @@ void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdhds = m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
 
-	float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	commandList->ClearRenderTargetView(cdh, clearColor, 0, nullptr);
 	commandList->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
 }

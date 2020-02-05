@@ -8,11 +8,15 @@
 #include "../D3D12Engine/Texture.hpp"
 #include "../D3D12Engine/ShaderManager.hpp"
 #include "../D3D12Engine/Terrain.hpp"
-#include "../D3D12Engine/ParticleSystem.hpp"
+#include "../D3D12Engine/Light/LightSource.h"
 
 #include <iostream>
 #include <crtdbg.h>
 #include <chrono>
+
+#define AT_OFFICE
+#define PERFORMACE_TEST
+//#define DEBUG_SCENE
 
 /*
 	GameObject/Entity that can interact with the world and be rendered.
@@ -71,14 +75,11 @@ public:
 		for (auto e : m_meshes) {
 			delete e;
 		}
-		for (auto e : m_particles) {
-			delete e;
-		}
 
-		if (m_terrain)
-		{
-			delete m_terrain;
-		}
+		//if (m_terrain)
+		//{
+		//	delete m_terrain;
+		//}
 		delete m_renderer;
 		delete m_renderAPI;
 		delete m_sm;
@@ -91,7 +92,9 @@ public:
 			return false;
 		}
 
-		InitializeMeshesMaterialsAndRenderStates();
+		if (!InitializeMeshesMaterialsAndRenderStates()) {
+			return false;
+		}
 
 		if (!InitializeShadersAndTechniques())
 		{
@@ -102,6 +105,8 @@ public:
 		InitializeBlueprints();
 		InitializeObjects();
 		//InitializeHeightMap();
+
+		m_lights.emplace_back();
 
 		return true;
 	}
@@ -119,7 +124,7 @@ public:
 			return false;
 		}
 
-		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Forward);
+		m_renderer = m_renderAPI->MakeRenderer(RenderAPI::RendererType::Raytracing);
 		if (!m_renderer) {
 			std::cout << "Selected renderer was not implemented within the current renderAPI and could therefor not be created." << std::endl;
 			return false;
@@ -145,23 +150,48 @@ public:
 		Mesh* mesh3 = m_renderAPI->MakeMesh();
 		Mesh* mesh4 = m_renderAPI->MakeMesh();
 		Mesh* mesh5 = m_renderAPI->MakeMesh();
+		Mesh* mesh6 = m_renderAPI->MakeMesh();
 
 		//mesh1->LoadFromFile("walker.obj");
-		if (!mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV)) {
-			return false;
-		}
+		//if (!mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV)) {
+		//	return false;
+		//}
 
-		if (!mesh2->LoadFromFile("turret.obj")) { return false; }
-		if (!mesh3->LoadFromFile("enemy_flying.obj")) { return false; }
-		if (!mesh4->LoadFromFile("disc.obj")) { return false; }
-		if (!mesh5->LoadFromFile("antenna.obj")) { return false; }
-		
+#ifdef DEBUG_SCENE
+#ifdef AT_OFFICE
+		if (!mesh1->LoadFromFile("../../../Exported_Assets/testTree.obj")) { return false; }
+		if (!mesh2->LoadFromFile("../../../Exported_Assets/Scene/stone.obj")) { return false; }
+		m_meshes.push_back(mesh1);
+		m_meshes.push_back(mesh2);
+#else
+		if (!mesh1->LoadFromFile("enemy_flying.obj")) { return false; }
+		if (!mesh2->LoadFromFile("disc.obj")) { return false; }
+		m_meshes.push_back(mesh1);
+		m_meshes.push_back(mesh2);
+#endif // DE
+#else
+#ifdef AT_OFFICE
+		if (!mesh1->LoadFromFile("../../../Exported_Assets/Scene/map.obj")) { return false; }
+		if (!mesh2->LoadFromFile("../../../Exported_Assets/testTree.obj")) { return false; }
+		if (!mesh3->LoadFromFile("../../../Exported_Assets/Scene/stone.obj")) { return false; }
+		if (!mesh4->LoadFromFile("../../../Exported_Assets/Scene/cover.obj")) { return false; }
+		if (!mesh5->LoadFromFile("../../../Exported_Assets/Scene/floor.obj")) { return false; }
+		if (!mesh6->LoadFromFile("../../../Exported_Assets/Scene/Temp/TentTest.obj")) { return false; }
 		m_meshes.push_back(mesh1);
 		m_meshes.push_back(mesh2);
 		m_meshes.push_back(mesh3);
 		m_meshes.push_back(mesh4);
 		m_meshes.push_back(mesh5);
-
+		m_meshes.push_back(mesh6);
+#else
+		if (!mesh1->LoadFromFile("../../../Exported_Assets/Scene/enemy_flying.obj")) { return false; }
+		if (!mesh2->LoadFromFile("../../../Exported_Assets/disc.obj")) { return false; }
+		if (!mesh3->LoadFromFile("../../../Exported_Assets/Scene/antenna.obj")) { return false; }
+		m_meshes.push_back(mesh1);
+		m_meshes.push_back(mesh2);
+		m_meshes.push_back(mesh3);
+#endif // AT_OFFICE
+#endif // DEBUG_SCENE
 
 		//Create a material
 		Material* mat = m_renderAPI->MakeMaterial();
@@ -171,18 +201,21 @@ public:
 		//Create RenderState
 		RenderState* renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(false);
+		renderState->SetOpaque(true);
 		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
 		m_renderStates.push_back(renderState);
 
 		renderState = m_renderAPI->MakeRenderState();
 		renderState->SetWireframe(false);
-		renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
+		renderState->SetOpaque(false);
+		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
 		renderState->SetUsingDepthBuffer(true);
 		m_renderStates.push_back(renderState);
 	}
 
 	bool InitializeShadersAndTechniques()
 	{
+		//TODO: Add support to select Raytracing shaders here
 		m_sm = m_renderAPI->MakeShaderManager();
 		ShaderDescription sd = {};
 
@@ -190,7 +223,6 @@ public:
 		sd.name = "VertexShader";
 		sd.type = ShaderType::VS;
 		Shader vs = m_sm->CompileShader(sd);
-
 
 		sd.name = "FragmentShader";
 		sd.type = ShaderType::FS;
@@ -212,15 +244,79 @@ public:
 	}
 	void InitializeTextures()
 	{
-		//Create a Texture
 		Texture* tex;
+
+#ifdef AT_OFFICE
+		//===Tree===
 		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/test3.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../../Exported_Assets/Tree_C.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
 
 		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/test4.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		tex->LoadFromFile("../../Exported_Assets/Tree_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures.push_back(tex);
+
+		//===Concrete Block===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/ConcreteCover_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/ConcreteCover_NX.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+#ifndef DEBUG_SCENE
+		//===Empty Normalmap===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/emplyNormal.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		//===Sandbag===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/Sandbag_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/Sandbag_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		//===Wood Floor===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/Floor_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/Floor_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		//===Tent Poles===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/T_Poles_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/T_Poles_NX.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		//===Tent Net===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/T_Net_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("../../Exported_Assets/T_Net_NA.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+#endif // DEBUG_SCENE
+#else
+		//TODO: Make Work
+		//===Tent Net===
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("[Insert Name Here].png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+
+		tex = m_renderAPI->MakeTexture();
+		tex->LoadFromFile("[Insert Name Here].png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures.push_back(tex);
+#endif // AT_OFFICE
 	}
 
 	void InitializeBlueprints()
@@ -228,79 +324,251 @@ public:
 		//Create the final blueprint. This could later be used to create objects.
 		Blueprint* blueprint;
 
-		for (size_t nTechs = 0; nTechs < 2; nTechs++)
-		{
-			for (size_t nMeshes = 0; nMeshes < 5; nMeshes++)
-			{
-				for (size_t nTextures = 0; nTextures < 2; nTextures++)
-				{
-					blueprint = new Blueprint;
-					blueprint->technique = m_techniques[nTechs];
-					blueprint->mesh = m_meshes[nMeshes];
-					blueprint->textures.push_back(m_textures[nTextures]);
-					m_blueprints.push_back(blueprint);
-				}
-			}
-		}
+#ifdef AT_OFFICE
+#ifdef DEBUG_SCENE
+		//===Tree===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[0];
+		blueprint->mesh = m_meshes[0];
+		blueprint->textures.push_back(m_textures[0]);
+		blueprint->textures.push_back(m_textures[1]);
+		m_blueprints.push_back(blueprint);
+
+		//===Stone===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[0];
+		blueprint->mesh = m_meshes[1];
+		blueprint->textures.push_back(m_textures[2]);
+		blueprint->textures.push_back(m_textures[3]);
+		m_blueprints.push_back(blueprint);
+#else
+		//===Map===
+		blueprint = new Blueprint;
+		blueprint->mesh = m_meshes[0];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->textures.push_back(m_textures[2]);
+		blueprint->textures.push_back(m_textures[4]);
+		m_blueprints.push_back(blueprint);
+
+		//===Tree===
+		blueprint = new Blueprint;
+		blueprint->mesh = m_meshes[1];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->textures.push_back(m_textures[0]);
+		blueprint->textures.push_back(m_textures[1]);
+		m_blueprints.push_back(blueprint);
+
+		//===Stone===
+		blueprint = new Blueprint;
+		blueprint->mesh = m_meshes[2];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->textures.push_back(m_textures[2]);
+		blueprint->textures.push_back(m_textures[3]);
+		m_blueprints.push_back(blueprint);
+
+		//===Sandbag===
+		blueprint = new Blueprint;
+		blueprint->mesh = m_meshes[3];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->textures.push_back(m_textures[5]);
+		blueprint->textures.push_back(m_textures[6]);
+		m_blueprints.push_back(blueprint);
+
+		//===Floor===
+		blueprint = new Blueprint;
+		blueprint->mesh = m_meshes[4];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->textures.push_back(m_textures[7]);
+		blueprint->textures.push_back(m_textures[8]);
+		m_blueprints.push_back(blueprint);
+
+		//===Tent===
+		blueprint = new Blueprint;
+		blueprint->allGeometryIsOpaque = false;
+		blueprint->mesh = m_meshes[5];
+		blueprint->techniques.push_back(m_techniques[0]);
+		blueprint->techniques.push_back(m_techniques[1]);
+		blueprint->textures.push_back(m_textures[9]);
+		blueprint->textures.push_back(m_textures[10]);
+		blueprint->textures.push_back(m_textures[11]);
+		blueprint->textures.push_back(m_textures[12]);
+		m_blueprints.push_back(blueprint);
+#endif // DEBUG_SCENE
+
+#else
+		//===Flying===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[0];
+		blueprint->mesh = m_meshes[0];
+		blueprint->textures.push_back(m_textures[0]);
+		blueprint->textures.push_back(m_textures[1]);
+		m_blueprints.push_back(blueprint);
+
+		//===Disc===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[0];
+		blueprint->mesh = m_meshes[1];
+		blueprint->textures.push_back(m_textures[2]);
+		blueprint->textures.push_back(m_textures[3]);
+		m_blueprints.push_back(blueprint);
+
+#ifndef DEBUG_SCENE
+		//===Antena===
+		blueprint = new Blueprint;
+		blueprint->technique = m_techniques[0];
+		blueprint->mesh = m_meshes[2];
+		blueprint->textures.push_back(m_textures[4]);
+		blueprint->textures.push_back(m_textures[5]);
+		m_blueprints.push_back(blueprint);
+#endif // DEBUG_SCENE
+#endif // AT_OFFICE
+
+
+		//for (size_t nTechs = 0; nTechs < m_techniques.size(); nTechs++)
+		//{
+		//	for (size_t nMeshes = 0; nMeshes < m_meshes.size(); nMeshes++)
+		//	{
+		//		blueprint = new Blueprint;
+		//		blueprint->technique = m_techniques[nTechs];
+		//		blueprint->mesh = m_meshes[nMeshes];
+		//		blueprint->textures.push_back(m_textures[0]);
+		//		blueprint->textures.push_back(m_textures[1]);
+		//		m_blueprints.push_back(blueprint);
+		//		for (size_t nTextures = 0; nTextures < m_textures.size(); nTextures++)
+		//		{
+		//		}
+		//	}
+		//}
 	}
 
 	void InitializeObjects()
 	{
-		size_t nBlueprints = m_blueprints.size();
-		for (size_t i = 0; i < 10240U; i++)
+		Object* object;
+
+#ifdef AT_OFFICE
+#ifdef DEBUG_SCENE
+		//Tree
+		object = new Object;
+		object->blueprint = m_blueprints[0];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = {0,0,0};
+		m_objects.push_back(object);
+
+		//Stone
+		object = new Object;
+		object->blueprint = m_blueprints[1];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+#else
+
+#ifdef PERFORMACE_TEST
+		for (size_t i = 0; i < 10; i++)
 		{
-			Object* object = new Object;
-			object->blueprint = m_blueprints[i % nBlueprints];
+			object = new Object;
+			object->blueprint = m_blueprints[5];
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
-			object->transform.pos = { static_cast<float>(i % 100) * 10, 0.0f, static_cast<float>(i / 100) * 10 };
+			object->transform.pos = { 0, i * 0.1f, 0 };
 			m_objects.push_back(object);
 		}
+#else
+		//Map
+		object = new Object;
+		object->blueprint = m_blueprints[0];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+
+		//Stone
+		object = new Object;
+		object->blueprint = m_blueprints[2];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+
+		//Sandbag
+		object = new Object;
+		object->blueprint = m_blueprints[3];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+
+		//Floor
+		object = new Object;
+		object->blueprint = m_blueprints[4];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+
+		//Tent
+		object = new Object;
+		object->blueprint = m_blueprints[5];
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+#endif //PERFORMACE_TEST
+
+		static constexpr UINT nObjects_X = 1U;
+		static constexpr UINT nObjects = nObjects_X * nObjects_X;
+		for (size_t i = 0; i < nObjects; i++)
+		{
+			object = new Object;
+			object->blueprint = m_blueprints[1];
+			object->transform.scale = { 1.0f, 1.0f, 1.0f };
+			object->transform.pos = {
+				(static_cast<float>(i % nObjects_X) - nObjects_X / 2) * 10,
+				0.0f,
+				(static_cast<float>(i / nObjects_X) - nObjects_X / 2) * 10
+			};
+			m_objects.push_back(object);
+		}
+#endif // DEBUG_SCENE
+#endif // AT_OFFICE
+
 	}
 
 	void InitializeHeightMap() {
+		//ShaderDescription sd_terrain = {};
+		//sd_terrain.defines = "";
+		//sd_terrain.name = "VertexShader_Terrain";
+		//sd_terrain.type = ShaderType::VS;
+		//Shader vs_terrain = m_sm->CompileShader(sd_terrain);
+		//if (vs_terrain.type == ShaderType::UNKNOWN)
+		//	return;
 
-#pragma region HeightMap
-		ShaderDescription sd_terrain = {};
-		sd_terrain.defines = "";
-		sd_terrain.name = "VertexShader_Terrain";
-		sd_terrain.type = ShaderType::VS;
-		Shader vs_terrain = m_sm->CompileShader(sd_terrain);
-		if (vs_terrain.type == ShaderType::UNKNOWN)
-			return;
+		//sd_terrain.defines = "";
+		//sd_terrain.name = "GS_Shader_Terrain";
+		//sd_terrain.type = ShaderType::GS;
+		//Shader gs_terrain = m_sm->CompileShader(sd_terrain);
+		//if (gs_terrain.type == ShaderType::UNKNOWN)
+		//	return;
 
-		sd_terrain.defines = "";
-		sd_terrain.name = "GS_Shader_Terrain";
-		sd_terrain.type = ShaderType::GS;
-		Shader gs_terrain = m_sm->CompileShader(sd_terrain);
-		if (gs_terrain.type == ShaderType::UNKNOWN)
-			return;
+		//sd_terrain.defines = "#define NORMAL\n";
+		//sd_terrain.name = "FragmentShader";
+		//sd_terrain.type = ShaderType::FS;
+		//Shader ps_terrain = m_sm->CompileShader(sd_terrain);
+		//if (ps_terrain.type == ShaderType::UNKNOWN)
+		//	return;
 
-		sd_terrain.defines = "#define NORMAL\n";
-		sd_terrain.name = "FragmentShader";
-		sd_terrain.type = ShaderType::FS;
-		Shader ps_terrain = m_sm->CompileShader(sd_terrain);
-		if (ps_terrain.type == ShaderType::UNKNOWN)
-			return;
+		//ShaderProgram sp_terrain;
+		//sp_terrain.VS = vs_terrain;
+		//sp_terrain.GS = gs_terrain;
+		//sp_terrain.FS = ps_terrain;
 
-		ShaderProgram sp_terrain;
-		sp_terrain.VS = vs_terrain;
-		sp_terrain.GS = gs_terrain;
-		sp_terrain.FS = ps_terrain;
+		//Technique* tech_terrain = m_renderAPI->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
+		//m_techniques.push_back(tech_terrain);
 
-		Technique* tech_terrain = m_renderAPI->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
-		m_techniques.push_back(tech_terrain);
+		//Texture* tex = m_renderAPI->MakeTexture();
+		//tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
+		//m_textures.push_back(tex);
 
-		Texture* tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
-		m_textures.push_back(tex);
+		//m_terrain = m_renderAPI->MakeTerrain();
+		//m_terrain->InitializeHeightMap(tex, 100);
 
-		m_terrain = m_renderAPI->MakeTerrain();
-		m_terrain->InitializeHeightMap(tex, 100);
+		//m_terrainBlueprint.mesh = m_terrain->GetMesh();
+		//m_meshes.push_back(m_terrainBlueprint.mesh);
 
-		m_terrainBlueprint.mesh = m_terrain->GetMesh();
-		m_meshes.push_back(m_terrainBlueprint.mesh);
-
-		m_terrainBlueprint.technique = tech_terrain;
+		//m_terrainBlueprint.technique = tech_terrain;
 	}
 
 	void InitializeCameras()
@@ -320,7 +588,6 @@ public:
 		cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.1f, 2000.0f);
 		m_cameras.push_back(cam);
 	}
-
 	void Run()
 	{
 		//Delta Time
@@ -420,10 +687,11 @@ public:
 	}
 	void UpdateObjects(double dt)
 	{
-		for (ParticleSystem* p : m_particles)
-		{
-			p->Update((float)dt);
-		}
+		Float3 lightCenter(0, 50, 0);
+		float lightRad = 50;
+		float lightSpeedMulti = 15;
+		m_lights.back().setPosition(lightCenter + Float3(cos(m_time * lightSpeedMulti) * lightRad, 0, sin(m_time * lightSpeedMulti) * lightRad));
+		m_objects.back()->transform.pos = m_lights.back().getPosition();
 
 		static double t = 0.0f;
 		t += dt;
@@ -435,7 +703,7 @@ public:
 		for (int i = 0; i < m_objects.size(); i++)
 		{
 			//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-			m_objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
+			//m_objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
 		}
 	}
 	void UpdateInput()
@@ -467,9 +735,9 @@ public:
 			m_demoMovement[0] = m_demoMovement[1] = true;
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
-			techniqueToUse = (techniqueToUse + 1) % 2;
-			m_blueprints[0]->technique = m_techniques[techniqueToUse];
-			m_blueprints[1]->technique = m_techniques[techniqueToUse];
+			//techniqueToUse = (techniqueToUse + 1) % 2;
+			//m_blueprints[0]->technique = m_techniques[techniqueToUse];
+			//m_blueprints[1]->technique = m_techniques[techniqueToUse];
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_R)) {
 			m_renderer->Refresh();
@@ -486,21 +754,23 @@ public:
 
 		for (size_t i = 0; i < m_windows.size(); i++)
 		{
+			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
+			float ms = m_ms * (shift ? 1 : 0.02);
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (m_ms * dt));
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(m_ms * dt));
+				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(m_ms * dt));
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
 			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (m_ms * dt));
+				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (ms * dt));
 			}
 		}
 
@@ -521,6 +791,7 @@ public:
 		for (int i = 0; i < nWindows; i++)
 		{
 			m_renderer->ClearSubmissions();
+			m_renderer->SetLightSources(m_lights);
 			window = m_windows[i];
 			cam = m_cameras[i];
 
@@ -555,14 +826,15 @@ private:
 	std::vector<RenderState*>	m_renderStates;
 	std::vector<Camera*>		m_cameras;
 	std::vector<Object*>		m_objects;
-	std::vector<ParticleSystem*>m_particles;
 
-	Terrain* m_terrain;
+	//Terrain* m_terrain;
 	Blueprint m_terrainBlueprint;
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
 	bool m_demoMovement[2];
+
+	std::vector<LightSource> m_lights;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

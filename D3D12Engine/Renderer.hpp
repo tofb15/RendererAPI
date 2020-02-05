@@ -1,5 +1,6 @@
 #pragma once
 #include "Math.hpp"
+#include "Light/LightSource.h"
 #include <vector>
 
 class Camera;
@@ -15,8 +16,11 @@ class Texture;
 class Blueprint {
 public:
 	Mesh* mesh;
-	Technique* technique;
+	std::vector<Technique*> techniques;
 	std::vector<Texture*>	textures;
+
+	//RTX defines. TODO: find a place to store these that is not here.
+	bool allGeometryIsOpaque = true;
 };
 
 struct SubmissionItem {
@@ -64,6 +68,7 @@ public:
 	virtual void			Present(Window* window) = 0; //How will this work with multi-threading? One thread to rule them all?
 	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
 	virtual void Refresh() {};
+	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
 
 protected:
 	Renderer();

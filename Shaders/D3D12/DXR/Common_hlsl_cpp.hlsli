@@ -28,12 +28,20 @@ namespace DXRShaderCommon
         float4 color;
         uint recursionDepth;
     };
+    
+    struct PointLight
+    {
+        float3 position;
+        float padding;
+    };
 
     struct SceneCBuffer
     {
         float4x4 projectionToWorld; //Used for raygeneration
         float4x4 viewToWorld;
         float3 cameraPosition;
+        float padding;
+        PointLight pLight;
      /*
     float4x4 padding;
     float3x3 padding;

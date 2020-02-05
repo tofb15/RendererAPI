@@ -17,7 +17,7 @@ public:
 		KEY_CODE_backspace = 8,
 		KEY_CODE_TAB = 9,
 		KEY_CODE_enter = 13,
-		KEY_CODE_SKIFT = 16,
+		KEY_CODE_SHIFT = 16,
 		KEY_CODE_CTRL = 17,
 		KEY_CODE_CAPS = 20,
 		Key_CODE_ESC = 27,

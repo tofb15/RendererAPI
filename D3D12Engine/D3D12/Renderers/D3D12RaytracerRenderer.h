@@ -27,10 +27,13 @@ private:
 	virtual void Present(Window* window) override;
 	virtual void ClearFrame() override;
 	virtual void Refresh() override;
+	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
 
 private:
 	std::vector<SubmissionItem> m_OpaqueItems;
 	std::vector<SubmissionItem> m_NonOpaqueItems;
+	std::vector<LightSource> m_lights;
+
 	DXRBase* m_dxrBase;
 
 	ID3D12CommandAllocator* m_commandAllocators[NUM_GPU_BUFFERS] = { nullptr };
@@ -39,4 +42,5 @@ private:
 	//RenderTargets
 	ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS] = { nullptr };
 	Int2 m_outputDim;
+
 };

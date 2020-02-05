@@ -164,6 +164,7 @@
     <ClCompile Include="D3D12\Renderers\D3D12ForwardRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
+    <ClCompile Include="Light\LightSource.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -227,6 +228,7 @@
     <ClInclude Include="D3D12\Renderers\D3D12ForwardRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
+    <ClInclude Include="Light\LightSource.h" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="ParticleSystem.hpp" />
     <ClInclude Include="stdafx.h" />

@@ -5,6 +5,7 @@
 #include "..\..\D3D12VertexBuffer.hpp"
 #include "..\..\D3D12Window.hpp"
 #include "..\..\D3D12Texture.hpp"
+#include "..\..\D3D12Technique.hpp"
 
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
@@ -73,6 +74,7 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 		}
 	}
 
+	m_hitGroupShaderRecordsNeededThisFrame = 0;
 	//Destroy unused BLASs
 	for (auto it = m_BLAS_buffers[gpuBuffer].begin(); it != m_BLAS_buffers[gpuBuffer].end();)
 	{
@@ -81,6 +83,7 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 			it = m_BLAS_buffers[gpuBuffer].erase(it);
 		}
 		else {
+			m_hitGroupShaderRecordsNeededThisFrame += it->second.nGeometries;
 			++it;
 		}
 	}
@@ -92,7 +95,7 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	UpdateShaderTable();
 }
 
-void DXRBase::UpdateSceneData(D3D12Camera* camera)
+void DXRBase::UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights)
 {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 
@@ -119,6 +122,13 @@ void DXRBase::UpdateSceneData(D3D12Camera* camera)
 
 	sceneData->cameraPosition = camera->GetPosition();
 	DirectX::XMStoreFloat4x4(&sceneData->projectionToWorld, viewProj_inv);
+	
+	if (!lights.empty()) {
+		sceneData->pLight.position = lights.back().getPosition();
+	}
+	else {
+		sceneData->pLight.position = Float3(-10, 50, -10);
+	}
 
 	m_cb_scene->Unmap(0, nullptr);
 }
@@ -241,17 +251,19 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc;
 	tlas.instanceDesc->Map(0, nullptr, (void**)&pInstanceDesc);
 	DirectX::XMMATRIX mat;
-	UINT blasIndex = 0;
+	UINT blasStartIndex = 0;
 	for (auto& blas : m_BLAS_buffers[bufferIndex])
 	{
 		auto& instances = blas.second.items;
 		int instanceID = 0;
 		for (auto& instance : instances)
 		{
+			//blas.first->techniques[ins];
+			
 			pInstanceDesc->InstanceID = instanceID;
 			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
-			pInstanceDesc->InstanceContributionToHitGroupIndex = blasIndex; // TODO: Change This
-			pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex; // TODO: Change This
+			pInstanceDesc->Flags = (blas.first->allGeometryIsOpaque) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
 			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
 
 			// Construct and copy matrix data
@@ -273,7 +285,8 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			instanceID++;
 			pInstanceDesc++;
 		}
-		blasIndex++;
+
+		blasStartIndex += blas.second.nGeometries;
 	}
 	tlas.instanceDesc->Unmap(0, nullptr);
 
@@ -315,38 +328,50 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 
 void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate)
 {
-	//BLAS_ID blasID = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 	auto bufferIndex = m_d3d12->GetGPUBufferIndex();
 
 	//=======Retrive the vertexbuffer========
-	std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetVertexBuffers();
-	D3D12_VERTEX_BUFFER_VIEW* bufferView = buffers[0]->GetView();
-
-
+	//D3D12_VERTEX_BUFFER_VIEW* bufferView = vb_pos->GetView();
+	
 	//=======Describe the geometry========
-	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc = {};
+	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc[5] = {};
 
-	geomDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+	std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetSubObjects();
+	unsigned int nObjects = min(objects.size(), 5);
 
-	//vertexbuffer
-	geomDesc.Triangles.VertexBuffer.StartAddress = bufferView->BufferLocation;
-	geomDesc.Triangles.VertexBuffer.StrideInBytes = bufferView->StrideInBytes;
-	geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; //Todo: Make this changable
-	geomDesc.Triangles.VertexCount = buffers[0]->GetNumberOfElements();
-	//Indexbuffer
-	geomDesc.Triangles.IndexBuffer = NULL;
-	geomDesc.Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
-	geomDesc.Triangles.IndexCount = 0;
+	int i = 0;
+	for (auto& e : objects)
+	{
+		D3D12VertexBuffer* vb_pos = e.second[Mesh::VERTEX_BUFFER_FLAG_POSITION];
+		D3D12_VERTEX_BUFFER_VIEW* bufferView = vb_pos->GetView();
 
-	geomDesc.Triangles.Transform3x4 = 0;
-	geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; //Todo: Make this changable
+		if (i == nObjects) {
+			break;
+		}
+		geomDesc[i].Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+
+		//vertexbuffer
+		geomDesc[i].Triangles.VertexBuffer.StartAddress = bufferView->BufferLocation;
+		geomDesc[i].Triangles.VertexBuffer.StrideInBytes = bufferView->StrideInBytes;
+		geomDesc[i].Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT; //Todo: Make this changable
+		geomDesc[i].Triangles.VertexCount = vb_pos->GetNumberOfElements();
+		//Indexbuffer
+		geomDesc[i].Triangles.IndexBuffer = NULL;
+		geomDesc[i].Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
+		geomDesc[i].Triangles.IndexCount = 0;
+
+		geomDesc[i].Triangles.Transform3x4 = 0;
+		//geomDesc[i].Flags = (true) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		geomDesc[i].Flags = (!item.blueprint->allGeometryIsOpaque && i > 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		i++;
+	}
 
 	//=======Describe the BLAS========
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
 	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	inputs.pGeometryDescs = &geomDesc;
-	inputs.NumDescs = 1;
+	inputs.pGeometryDescs = geomDesc;
+	inputs.NumDescs = nObjects;
 	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE; //Todo: Make this changable
 
 	//=======BLAS PREBUILD========
@@ -355,8 +380,12 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 
 	//=======Initialize BLAS Data========
 	BottomLayerData blasData = {};
+	blasData.nGeometries = nObjects;
 	blasData.items.emplace_back(PerInstance{ item.transform });
-	blasData.gpu_add_vb_pos = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetVertexBuffers()->at(0)->GetResource()->GetGPUVirtualAddress();
+	for (size_t i = 0; i < nObjects; i++)
+	{
+		blasData.geometryBuffers[i] = geomDesc[i].Triangles.VertexBuffer.StartAddress;
+	}
 	AccelerationStructureBuffers& asBuff = blasData.as;
 
 	//=======Allocate GPU memory========
@@ -404,23 +433,40 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
 	//===Update HitGroup Table===
-	DXRUtils::ShaderTableBuilder hitGroupTable(m_BLAS_buffers[bufferIndex].size(), m_rtxPipelineState, 64);
+	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame, m_rtxPipelineState, 64);
 
 	UINT blasIndex = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
 	for (auto& e : m_BLAS_buffers[bufferIndex])
 	{
-		UINT64 vb_pos = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(0)->GetResource()->GetGPUVirtualAddress();
-		UINT64 vb_norm = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(1)->GetResource()->GetGPUVirtualAddress();
-		UINT64 vb_uv = static_cast<D3D12Mesh*>(e.first->mesh)->GetVertexBuffers()->at(2)->GetResource()->GetGPUVirtualAddress();
+		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(e.first->mesh);
+		std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = mesh->GetSubObjects();
+		uint i = 0;
+		for (auto& e : objects)
+		{
+			UINT64 vb_pos =    e.second[Mesh::VERTEX_BUFFER_FLAG_POSITION        ]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_norm =   e.second[Mesh::VERTEX_BUFFER_FLAG_NORMAL          ]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_uv =     e.second[Mesh::VERTEX_BUFFER_FLAG_UV              ]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_tan_Bi = e.second[Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL]->GetResource()->GetGPUVirtualAddress();
 
-		hitGroupTable.AddShader(m_group_group1);
-		hitGroupTable.AddDescriptor(vb_pos, blasIndex);
-		hitGroupTable.AddDescriptor(vb_norm, blasIndex);
-		hitGroupTable.AddDescriptor(vb_uv, blasIndex);
-		hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-		texture_gdh.ptr += m_descriptorSize;
-		blasIndex++;
+			//===Add Shader(group) Identifier===
+			//TODO: identify which geometry need none opaque
+			hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
+
+			//===Add vertexbuffer descriptors===
+			hitGroupTable.AddDescriptor(vb_pos, blasIndex);
+			hitGroupTable.AddDescriptor(vb_norm, blasIndex);
+			hitGroupTable.AddDescriptor(vb_uv, blasIndex);
+			hitGroupTable.AddDescriptor(vb_tan_Bi, blasIndex);
+
+			//===Add texture descriptors===
+			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+			texture_gdh.ptr += m_descriptorSize;
+			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+			texture_gdh.ptr += m_descriptorSize;
+			blasIndex++;
+			i++;
+		}
 	}
 
 	m_shaderTable_hitgroup[bufferIndex].Release();
@@ -432,11 +478,20 @@ void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	m_unused_handle_start_this_frame = m_unreserved_handle_start[bufferIndex];
 	m_srv_mesh_textures_handle_start = m_unused_handle_start_this_frame;
+	D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu; 
 	for (auto& e : m_BLAS_buffers[bufferIndex])
 	{
-		D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[0]));
-		m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_unused_handle_start_this_frame += m_descriptorSize;
+		UINT nTextures = e.first->textures.size();
+		for (size_t i = 0; i < e.second.nGeometries; i++)
+		{
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[i * 2]));
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_unused_handle_start_this_frame += m_descriptorSize;
+
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[i * 2 + 1]));
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_unused_handle_start_this_frame += m_descriptorSize;
+		}
 	}
 }
 
@@ -460,12 +515,14 @@ bool DXRBase::CreateRaytracingPSO()
 
 	defines.push_back({ L"TEST_DEFINE" });
 
-	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_missName }, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_anyHitName, m_shader_missName }, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
+	psoBuilder.AddHitGroup(m_group_group_alphaTest, m_shader_closestHitName, m_shader_anyHitName);
 
-	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName }, m_localRootSignature_rayGen.Get());
-	psoBuilder.AddSignatureToShaders({ m_group_group1 }, m_localRootSignature_hitGroups.Get());
-	psoBuilder.AddSignatureToShaders({ m_shader_missName }, m_localRootSignature_miss.Get());
+	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName },     m_localRootSignature_rayGen.Get());
+	psoBuilder.AddSignatureToShaders({ m_group_group1 },          m_localRootSignature_hitGroups.Get());
+	psoBuilder.AddSignatureToShaders({ m_group_group_alphaTest }, m_localRootSignature_hitGroups.Get());
+	psoBuilder.AddSignatureToShaders({ m_shader_missName },       m_localRootSignature_miss.Get());
 
 	psoBuilder.SetMaxPayloadSize(payloadSize);
 	psoBuilder.SetMaxAttributeSize(sizeof(float) * 4);
@@ -563,7 +620,9 @@ bool DXRBase::CreateHitGroupLocalRootSignature()
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_POS", 1, 0);
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_Norm", 1, 1);
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_UV", 1, 2);
-	m_localRootSignature_hitGroups.AddDescriptorTable("AlbedoColor", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2);
+	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_TAN_BI", 1, 3);
+	m_localRootSignature_hitGroups.AddDescriptorTable("AlbedoColor", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+	m_localRootSignature_hitGroups.AddDescriptorTable("Normalmap", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);
 	//m_localRootSignature_hitGroups.AddSRV("IndexBuffer", 1, 1);
 	//m_localRootSignature_hitGroups.AddCBV("MeshCBuffer", 1, 0);
 	//m_localRootSignature_hitGroups.AddDescriptorTable("Textures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 3); // Textures (t0, t1, t2)

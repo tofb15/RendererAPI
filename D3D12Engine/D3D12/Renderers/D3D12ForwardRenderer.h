@@ -124,4 +124,8 @@ private:
 
 	bool m_isRunning = true;
 
+
+	// Inherited via D3D12Renderer
+	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
+
 };

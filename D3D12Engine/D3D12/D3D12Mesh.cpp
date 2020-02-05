@@ -15,9 +15,17 @@ D3D12Mesh::D3D12Mesh(D3D12API* renderer, unsigned short id) : m_id(id)
 
 D3D12Mesh::~D3D12Mesh()
 {
-	for (D3D12VertexBuffer* buffer : m_vertexBuffers)
+	//for (auto& buffer : m_vertexBuffers)
+	//{
+	//	delete buffer.second;
+	//}
+
+	for (auto& obj : m_subObjects)
 	{
-		delete buffer;
+		for (auto& buffer : obj.second)
+		{
+			delete buffer.second;
+		}
 	}
 }
 
@@ -34,12 +42,18 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 		return false;
 
 	std::string line, type;
-	std::vector<Float3> positions;
-	std::vector<Float3> normals;
-	std::vector<Float2> uvs;
-	std::vector<Float3> facePositions;
-	std::vector<Float3> faceNormals;
-	std::vector<Float2> faceUVs;
+	
+	std::vector<Float3> all_positions;
+	std::vector<Float3> all_normals;
+	std::vector<Float2> all_uvs;
+
+	std::string currentMaterialName;
+
+	std::unordered_map<std::string, std::vector<Float3>> material_facePositions;
+	std::unordered_map<std::string, std::vector<Float3>> material_faceNormals;
+	std::unordered_map<std::string, std::vector<Float2>> material_faceUVs;
+
+	std::string currentSubobject;
 
 	/*
 	Copy vertex data from file to temporary vector
@@ -57,21 +71,23 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 		if (type == "mtllib")
 		{
 			iss >> line;
-
 			m_DefaultMaterialName = line.c_str();
+		}
+		else if (type == "usemtl") {
+			iss >> currentMaterialName;
 		}
 		else if (type == "v")
 		{
 			Float3 v;
 			iss >> v.x >> v.y >> v.z;
-			positions.push_back(v);
+			all_positions.push_back(v);
 		}
 		else if (type == "vn")
 		{
 			hasNor = true;
 			Float3 vn;
 			iss >> vn.x >> vn.y >> vn.z;
-			normals.push_back(vn);
+			all_normals.push_back(vn);
 		}
 		else if (type == "vt")
 		{
@@ -79,7 +95,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 
 			Float2 vt;
 			iss >> vt.x >> vt.y;
-			uvs.push_back(vt);
+			all_uvs.push_back(vt);
 		}
 		else if (type == "f")
 		{
@@ -114,62 +130,73 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 				nrOfVertsOnFace++;
 			}
 
-			if (positions.size() > 0)
+			if (nrOfVertsOnFace >= 4) {
+				MessageBoxA(NULL, "To many verticies on one face", "Error", 0);
+			}
+
+			if (all_positions.size() > 0)
 			{
-				facePositions.push_back(positions[pIdx[0]]);
-				facePositions.push_back(positions[pIdx[1]]);
-				facePositions.push_back(positions[pIdx[2]]);
+				material_facePositions[currentMaterialName].push_back(all_positions[pIdx[0]]);
+				material_facePositions[currentMaterialName].push_back(all_positions[pIdx[1]]);
+				material_facePositions[currentMaterialName].push_back(all_positions[pIdx[2]]);
 
 				if (nrOfVertsOnFace == 4)
 				{
-					facePositions.push_back(positions[pIdx[2]]);
-					facePositions.push_back(positions[pIdx[3]]);
-					facePositions.push_back(positions[pIdx[0]]);
+					material_facePositions[currentMaterialName].push_back(all_positions[pIdx[2]]);
+					material_facePositions[currentMaterialName].push_back(all_positions[pIdx[3]]);
+					material_facePositions[currentMaterialName].push_back(all_positions[pIdx[0]]);
 				}
 			}
-			if (normals.size() > 0)
+			if (all_normals.size() > 0)
 			{
-				faceNormals.push_back(normals[nIdx[0]]);
-				faceNormals.push_back(normals[nIdx[1]]);
-				faceNormals.push_back(normals[nIdx[2]]);
+				material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[0]]);
+				material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[1]]);
+				material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[2]]);
 
 				if (nrOfVertsOnFace == 4)
 				{
-					faceNormals.push_back(normals[nIdx[2]]);
-					faceNormals.push_back(normals[nIdx[3]]);
-					faceNormals.push_back(normals[nIdx[0]]);
+					material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[2]]);
+					material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[3]]);
+					material_faceNormals[currentMaterialName].push_back(all_normals[nIdx[0]]);
 				}
 			}
-			if (uvs.size() > 0)
+			if (all_uvs.size() > 0)
 			{
-				faceUVs.push_back(uvs[uvIdx[0]]);
-				faceUVs.push_back(uvs[uvIdx[1]]);
-				faceUVs.push_back(uvs[uvIdx[2]]);
+				material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[0]]);
+				material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[1]]);
+				material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[2]]);
 
 				if (nrOfVertsOnFace == 4)
 				{
-					faceUVs.push_back(uvs[uvIdx[2]]);
-					faceUVs.push_back(uvs[uvIdx[3]]);
-					faceUVs.push_back(uvs[uvIdx[0]]);
+					material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[2]]);
+					material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[3]]);
+					material_faceUVs[currentMaterialName].push_back(all_uvs[uvIdx[0]]);
 				}
 			}
 		}
 	}
 
-	if (facePositions.size() > 0)
+
+	for (auto& e : material_facePositions)
 	{
-		if (!AddVertexBuffer(static_cast<int>(facePositions.size()), sizeof(Float3), facePositions.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION))
+		if (!AddVertexBuffer(static_cast<int>(e.second.size()), sizeof(Float3), e.second.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION, e.first))
 			return false;
-	}
-	if (faceNormals.size() > 0)
-	{
-		if (!AddVertexBuffer(static_cast<int>(faceNormals.size()), sizeof(Float3), faceNormals.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL))
+
+		if (material_faceNormals.count(e.first))
+		{
+			if (!AddVertexBuffer(static_cast<int>(material_faceNormals[e.first].size()), sizeof(Float3), material_faceNormals[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL, e.first))
+				return false;
+		}
+
+		if (material_faceUVs.count(e.first))
+		{
+			if (!AddVertexBuffer(static_cast<int>(material_faceUVs[e.first].size()), sizeof(Float2), material_faceUVs[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV, e.first))
+				return false;
+		}
+
+		if (!CalculateTangentAndBinormal(material_facePositions[e.first].data(), material_faceUVs[e.first].data(), material_facePositions[e.first].size(), e.first)) {
 			return false;
-	}
-	if (faceUVs.size() > 0)
-	{
-		if (!AddVertexBuffer(static_cast<int>(faceUVs.size()), sizeof(Float2), faceUVs.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV))
-			return false;
+		}
 	}
 
 	return true;
@@ -207,7 +234,7 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 		};
 
 		//Create vertexbuffer for positions
-		if (!AddVertexBuffer(sizeof(data) / sizeof(Float3), sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_POSITION))
+		if (!AddVertexBuffer(sizeof(data) / sizeof(Float3), sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_POSITION, "cube"))
 			return false;
 	}
 	
@@ -240,7 +267,7 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 		};
 
 		//Create vertexbuffer for normals
-		if (!AddVertexBuffer(sizeof(data) / sizeof(Float3), sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_NORMAL))
+		if (!AddVertexBuffer(sizeof(data) / sizeof(Float3), sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_NORMAL, "cube"))
 			return false;
 	}
 
@@ -273,7 +300,7 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 		};
 
 		//Create vertexbuffer for UVs
-		if (!AddVertexBuffer(sizeof(data) / sizeof(Float2), sizeof(Float2), data, Mesh::VERTEX_BUFFER_FLAG_UV))
+		if (!AddVertexBuffer(sizeof(data) / sizeof(Float2), sizeof(Float2), data, Mesh::VERTEX_BUFFER_FLAG_UV, "cube"))
 			return false;
 	}
 
@@ -331,7 +358,9 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 			{ 0.0f,  1.0f }, { 0.0f,  0.0f }, { 1.0f,  0.0f },
 		};
 
-		CalculateTangentAndBinormal(posData, UVdata, 36);
+		if (!CalculateTangentAndBinormal(posData, UVdata, 36, "cube")) {
+			return false;
+		}
 	}
 
 	return true;
@@ -342,12 +371,13 @@ bool D3D12Mesh::InitializeSphere(const uint16_t verticalSections, const uint16_t
 	return true;
 }
 
-bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType)
+bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType, std::string subObject)
 {
-	if (m_VertexBufferFlags & bufferType)
+	std::unordered_map<VertexBufferFlag, D3D12VertexBuffer*>& m_subObject = m_subObjects[subObject];
+	if (m_subObject.count(bufferType))
 		return false;
 	
-	m_VertexBufferFlags |= bufferType;
+	//m_VertexBufferFlags |= bufferType;
 
 	//Create Vertexbuffer
 	D3D12VertexBuffer* vertexBuffer = m_renderer->MakeVertexBuffer();
@@ -355,17 +385,32 @@ bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh
 		delete vertexBuffer;
 		return false;
 	}
-	m_vertexBuffers.push_back(vertexBuffer);
+	m_subObject.insert({ bufferType, vertexBuffer });
 
 	return true;
 }
 
-bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements)
+D3D12VertexBuffer* D3D12Mesh::GetVertexBuffer(Mesh::VertexBufferFlag bufferType)
 {
-	int condition = VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION | VertexBufferFlag::VERTEX_BUFFER_FLAG_UV;
-	if ((m_VertexBufferFlags & condition) != condition || m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL) {
-		return false;
+	for (auto& e : m_subObjects)
+	{
+		return e.second[bufferType];
 	}
+
+	return nullptr;
+}
+
+std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& D3D12Mesh::GetSubObjects()
+{
+	return m_subObjects;
+}
+
+bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements, std::string subObject )
+{
+	//int condition = VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION | VertexBufferFlag::VERTEX_BUFFER_FLAG_UV;
+	//if ((m_VertexBufferFlags & condition) != condition || m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL) {
+	//	return false;
+	//}
 
 	//Needed Variables
 	//D3D12VertexBuffer* positions = m_vertexBuffers[0];
@@ -410,15 +455,44 @@ bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int 
 
 	}
 
-	if (!AddVertexBuffer(tangentsAndBinormal.size()/2 , sizeof(Float3)*2, (void*)&tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL))
+	if (!AddVertexBuffer(tangentsAndBinormal.size()/2 , sizeof(Float3)*2, (void*)&tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL, subObject))
 		return false;
 
 	return true;
 }
 
-std::vector<D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers()
+std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers()
 {
-	return &m_vertexBuffers;
+	return nullptr;
+}
+
+std::vector<D3D12VertexBuffer*> D3D12Mesh::GetVertexBuffers_vec()
+{
+	std::vector<D3D12VertexBuffer*> vec;
+
+	for (auto& e : m_subObjects)
+	{
+		if (e.second.count(VERTEX_BUFFER_FLAG_POSITION)) {
+			vec.push_back(e.second[VERTEX_BUFFER_FLAG_POSITION]);
+		}
+
+		if (e.second.count(VERTEX_BUFFER_FLAG_NORMAL)) {
+			vec.push_back(e.second[VERTEX_BUFFER_FLAG_NORMAL]);
+		}
+
+		if (e.second.count(VERTEX_BUFFER_FLAG_UV)) {
+			vec.push_back(e.second[VERTEX_BUFFER_FLAG_UV]);
+		}
+
+		if (e.second.count(VERTEX_BUFFER_FLAG_TANGENT_BINORMAL)) {
+			vec.push_back(e.second[VERTEX_BUFFER_FLAG_TANGENT_BINORMAL]);
+		}
+
+		break;
+	}
+
+
+	return vec;
 }
 
 unsigned short D3D12Mesh::GetID() const

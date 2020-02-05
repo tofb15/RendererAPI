@@ -113,7 +113,7 @@ void D3D12ForwardRenderer::Submit(SubmissionItem item, Camera* c, unsigned char 
 	if (!camera->GetFrustum().CheckAgainstFrustum(sphere))
 		return;
 
-	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->technique)->GetID();
+	unsigned short techIndex = static_cast<D3D12Technique*>(item.blueprint->techniques[0])->GetID();
 	unsigned short meshIndex = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetID();
 
 	SortingItem s;
@@ -614,7 +614,7 @@ void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera*
 	//commandList->SetDescriptorHeaps(1, &m_descriptorHeap[backBufferIndex]);
 	// Set a pipeline state unless the first instruction is to do so
 	int instanceOffset = m_instanceOffsets[firstInstructionIndex];
-	D3D12Technique* technique = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique);
+	D3D12Technique* technique = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->techniques[0]);
 	if (m_renderInstructions[firstInstructionIndex] != -1)
 	{
 		// Set everything which is necessary to record draw commands
@@ -644,7 +644,7 @@ void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera*
 		if (instruction == -1)
 		{
 			// Retrieve and enable a new technique from the first object using it
-			ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->technique)->GetPipelineState();
+			ID3D12PipelineState* pls = static_cast<D3D12Technique*>(m_items[instanceOffset].item.blueprint->techniques[0])->GetPipelineState();
 			commandList->SetPipelineState(pls);
 		}
 		else
@@ -661,7 +661,7 @@ void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera*
 			commandList->SetGraphicsRootDescriptorTable(1, handle);
 
 			//Set Vertex Buffers
-			std::vector<D3D12VertexBuffer*>& buffers = *static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers();
+			std::vector<D3D12VertexBuffer*> buffers = static_cast<D3D12Mesh*>(m_items[instanceOffset].item.blueprint->mesh)->GetVertexBuffers_vec();
 			unsigned numBuffers = static_cast<unsigned>(buffers.size());
 			for (unsigned j = 0; j < numBuffers; j++)
 			{
@@ -718,4 +718,8 @@ void D3D12ForwardRenderer::SetThreadWork(int threadIndex, D3D12Window* w, D3D12C
 	m_threadWork[threadIndex].backBufferIndex = backBufferIndex;
 	m_threadWork[threadIndex].firstInstructionIndex = firstInstructionIndex;
 	m_threadWork[threadIndex].numInstructions = numInstructions;
+}
+
+void D3D12ForwardRenderer::SetLightSources(const std::vector<LightSource>& lights)
+{
 }

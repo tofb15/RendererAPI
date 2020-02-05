@@ -16,7 +16,7 @@ struct ID3D12RootSignature;
 class D3D12Technique : public Technique{
 public:
 	D3D12Technique(D3D12API* d3d12, unsigned short id);
-	virtual bool Initialize(D3D12RenderState*, ShaderProgram* sp, D3D12ShaderManager* sm);
+	virtual bool Initialize(D3D12RenderState* rs, ShaderProgram* sp, D3D12ShaderManager* sm);
 	bool InitializeRootSignature();
 
 	virtual ~D3D12Technique();
@@ -27,10 +27,12 @@ public:
 
 	ID3D12PipelineState* GetPipelineState();
 	ID3D12RootSignature* GetRootSignature() const;
+	D3D12RenderState* GetRenderState() const;
 
 private:
 	unsigned short m_id;
 	D3D12API* m_d3d12;
+	D3D12RenderState* m_rs;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 

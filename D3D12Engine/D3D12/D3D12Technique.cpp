@@ -21,6 +21,8 @@ bool D3D12Technique::Initialize(D3D12RenderState * rs, ShaderProgram * sp, D3D12
 		return false;
 	}
 
+	m_rs = rs;
+
 	HRESULT hr;
 	D3D12_INPUT_ELEMENT_DESC* ied;
 
@@ -270,4 +272,9 @@ ID3D12PipelineState * D3D12Technique::GetPipelineState()
 ID3D12RootSignature* D3D12Technique::GetRootSignature() const
 {
 	return m_rootSignature;
+}
+
+D3D12RenderState* D3D12Technique::GetRenderState() const
+{
+	return m_rs;
 }

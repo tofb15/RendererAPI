@@ -14,11 +14,17 @@ public:
 
 	virtual ~RenderState();
 
-	// Sets the wireframe variable to true or false.
 	/*
+		Sets the wireframe variable to true or false.
 		@param wf, set this to true if objects should be rendered as wireframe, else to false.
 	*/
 	void SetWireframe(const bool wf);
+	/*
+		This value is by default true.
+		@param wf, set this to true if objects should be rendered as wireframe, else to false.
+	*/
+	void SetOpaque(const bool opaque);
+
 	/*
 		Tell the renderstate how it should cull faces relative to the camera.
 		@param fc, FaceCulling enum.
@@ -36,6 +42,11 @@ public:
 	*/
 	bool GetWireframe() const;
 
+	/*
+		@Return true if the render state is used for opaque geometry.
+	*/
+	bool IsOpaque() const;
+
 	FaceCulling GetFaceCulling() const;
 	/*
 		@Return true if the render state is using depthbuffer.
@@ -47,6 +58,7 @@ protected:
 
 private:
 	bool m_wireframe;
+	bool m_opaque;
 	FaceCulling m_faceCulling;
 	bool m_useDepthBuffer;
 };
