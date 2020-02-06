@@ -189,12 +189,14 @@ public:
 
 	bool InitializeBlueprints()
 	{
-		if(!m_rm->GetBlueprint("map"))      { return false; }
-		if(!m_rm->GetBlueprint("tree"))     { return false; }
-		if(!m_rm->GetBlueprint("concrete")) { return false; }
-		if(!m_rm->GetBlueprint("sandbag"))  { return false; }
-		if(!m_rm->GetBlueprint("floor"))    { return false; }
-		if(!m_rm->GetBlueprint("tent"))     { return false; }
+		if(m_rm->GetBlueprint("map")      == nullptr) { return false; }
+		if(m_rm->GetBlueprint("tree")     == nullptr) { return false; }
+		if(m_rm->GetBlueprint("concrete") == nullptr) { return false; }
+		if(m_rm->GetBlueprint("sandbag")  == nullptr) { return false; }
+		if(m_rm->GetBlueprint("floor")    == nullptr) { return false; }
+		if(m_rm->GetBlueprint("tent")     == nullptr) { return false; }
+		
+		return true;
 	}
 
 	void InitializeObjects()

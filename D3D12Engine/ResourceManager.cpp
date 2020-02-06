@@ -47,7 +47,7 @@ ResourceManager::~ResourceManager()
 Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 {
 	Blueprint* bp = MY_NEW Blueprint;
-	std::string fName = BLUEPRINT_PATH + name + ".bp";
+	std::string fName = std::string(BLUEPRINT_PATH) + name + ".bp";
 
 	std::ifstream in(fName);
 	if (!in.is_open()) {
@@ -82,7 +82,7 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 Mesh* ResourceManager::GetMesh(std::string name)
 {
 	Mesh* mesh = nullptr;
-	std::string fName = MESH_PATH + name;
+	std::string fName = std::string(MESH_PATH) + name;
 
 	auto search = m_meshes.find(fName);
 	if (search == m_meshes.end()) {
@@ -100,7 +100,7 @@ Mesh* ResourceManager::GetMesh(std::string name)
 Texture* ResourceManager::GetTexture(std::string name)
 {
 	Texture* texture = nullptr;
-	std::string fName = TEXTURE_PATH + name;
+	std::string fName = std::string(TEXTURE_PATH) + name;
 
 	auto search = m_meshes.find(fName);
 	if (search == m_meshes.end()) {

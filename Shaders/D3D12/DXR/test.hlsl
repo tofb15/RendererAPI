@@ -132,7 +132,22 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     
     //Shadow
     RayDesc shadowRay;
-    shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.01f;
+	float t = dot(-WorldRayDirection(), normalInWorldSpace);
+	if (t > 0) {
+		shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
+	}
+	else {
+		shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
+	}
+
+	//t += 1;
+	//t /= 2;
+
+	//t = (t > 0);
+	//payload.color = float4(t, t, t, 1.0f);
+	//return;
+
+	//shadowRay.Origin = HitWorldPosition();// -WorldRayDirection() * 0.0001f;
     shadowRay.Direction = lightDir;
     shadowRay.TMin = 0.00001;
     shadowRay.TMax = lightDist;
