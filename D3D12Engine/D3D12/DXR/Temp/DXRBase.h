@@ -41,7 +41,7 @@ public:
 
 	void UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights);
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
-	void ReloadShaders();
+	void ReloadShaders(std::vector<std::wstring>* defines);
 
 private:
 	struct AccelerationStructureBuffers {
@@ -95,7 +95,7 @@ private:
 	bool CreateHitGroupLocalRootSignature();
 	bool CreateMissLocalRootSignature();
 	bool CreateEmptyLocalRootSignature();
-	bool CreateRaytracingPSO();
+	bool CreateRaytracingPSO(std::vector<std::wstring>* defines);
 	bool CreateDescriptorHeap();
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();

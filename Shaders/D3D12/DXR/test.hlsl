@@ -66,16 +66,7 @@ void rayGen() {
 	RayPayload payload;
     payload.recursionDepth = 0;
     TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-    //float3 camPos = CB_SceneData.cameraPosition;
-	////outputTexture[launchIndex] = float4(launchIndex.x / 64.0f, launchIndex.y / 64.0f, 0.0f, 1.0f);
-    
-    outputTexture[launchIndex] = payload.color; //float4(camPos.x, camPos.y, camPos.z, 0);
-    //outputTexture[launchIndex] = float4(ray.Direction.x, ray.Direction.y, ray.Direction.z, 1.0f);
-    //ray.Origin /= 1000;
-    //outputTexture[launchIndex] = float4(ray.Origin.x, ray.Origin.y, ray.Origin.z, 1.0f);
-    //float2 screenPos = (float2)launchIndex / DispatchRaysDimensions().xy;
-    //outputTexture[launchIndex] = float4(screenPos, 0, 1.0f);
-
+    outputTexture[launchIndex] = payload.color;
 }
 
 [shader("closesthit")]
@@ -108,7 +99,8 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     //===Calculate Normal===
     float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
     float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
-    
+
+#ifndef NO_NORMAL_MAP
     //===Add Normal Map===
     float3 tangent = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent));
     float3 binormal = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal));
@@ -125,11 +117,11 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 	);
     
     normalInWorldSpace = mul(normalize(bumpMapColor.xyz * 2.f - 1.f), tbn);
+#endif //NO_NORMAL_MAP
     
-    //bumpMapColor = bumpMapColor * 2.0f - 1.0f; // Change interval from (0, 1) to (-1, 1)
-    //normalInWorldSpace = bumpMapColor.x * tangent + bumpMapColor.y * binormal + bumpMapColor.z * normalInWorldSpace.xyz;
-    //normalInWorldSpace = normalize(normalInWorldSpace);
-    
+    float lightMul = 1;
+
+#ifndef NO_SHADOWS
     //Shadow
     RayDesc shadowRay;
 	float t = dot(-WorldRayDirection(), normalInWorldSpace);
@@ -140,14 +132,6 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 		shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
 	}
 
-	//t += 1;
-	//t /= 2;
-
-	//t = (t > 0);
-	//payload.color = float4(t, t, t, 1.0f);
-	//return;
-
-	//shadowRay.Origin = HitWorldPosition();// -WorldRayDirection() * 0.0001f;
     shadowRay.Direction = lightDir;
     shadowRay.TMin = 0.00001;
     shadowRay.TMax = lightDist;
@@ -155,8 +139,6 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     RayPayload_shadow shadowPayload;
     shadowPayload.inShadow = 1;  
     TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
-
-    float lightMul = 1;
     
     if (shadowPayload.inShadow)
     {
@@ -164,27 +146,10 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
         //payload.color = float4(0.1f, 0.1f, 0.1f, 0.1f);
         //return;
     }
+#endif
   
     float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
-    
-    //float t = pow((1000 - RayTCurrent()) / 1000.f, 4);
-    //if (uv.x < 0)
-    //{
-    //    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);      
-    //}
-    //else
-    //{
-    //    payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    //}
-    //payload.color = float4(vertices_uv[i3], 0.0f, 1.0f);
-    //payload.color = float4(uv, 0.0f, 1.0f);
     payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1.0f);
-    
-    //payload.color = float4(albedo.x, albedo.y, albedo.z, 1.0f);
-    //payload.color = float4(WorldRayDirection().x, WorldRayDirection().y, WorldRayDirection().z, 1.0f);
-    //payload.color = float4(WorldRayOrigin().x, WorldRayOrigin().y, WorldRayOrigin().z, 1.0f);
-    //payload.color = float4(CB_SceneData.cameraPosition.x, CB_SceneData.cameraPosition.y, CB_SceneData.cameraPosition.z, 1.0f);
-    //payload.color /= 1000;
 }
 
 [shader("anyhit")]
@@ -209,7 +174,7 @@ void anyHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
 [shader("miss")]
 void miss(inout RayPayload payload) {
-	payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	payload.color = float4(0.2f, 0.0f, 0.3f, 1.0f);
 }
 
 [shader("miss")]

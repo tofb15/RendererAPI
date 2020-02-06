@@ -24,7 +24,7 @@ bool DXRBase::Initialize()
 		return false;
 	}
 
-	if (!CreateRaytracingPSO()) {
+	if (!CreateRaytracingPSO(nullptr)) {
 		return false;
 	}
 
@@ -162,11 +162,11 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	cmdList->DispatchRays(&desc);
 }
 
-void DXRBase::ReloadShaders()
+void DXRBase::ReloadShaders(std::vector<std::wstring>* defines)
 {
 	m_d3d12->WaitForGPU_ALL();
 	// Recompile hlsl
-	CreateRaytracingPSO();
+	CreateRaytracingPSO(defines);
 }
 
 bool DXRBase::InitializeRootSignatures()
@@ -528,7 +528,7 @@ void DXRBase::createInitialShaderResources(bool remake)
 {
 }
 
-bool DXRBase::CreateRaytracingPSO()
+bool DXRBase::CreateRaytracingPSO(std::vector<std::wstring>* _defines)
 {
 	if (m_rtxPipelineState) {
 		m_rtxPipelineState->Release();
@@ -542,7 +542,12 @@ bool DXRBase::CreateRaytracingPSO()
 	UINT payloadSize = sizeof(DXRShaderCommon::RayPayload);
 	std::vector<DxcDefine> defines;
 
-	defines.push_back({ L"TEST_DEFINE" });
+	if (_defines) {
+		for (auto& e : *_defines)
+		{
+			defines.push_back({ e.c_str() });
+		}
+	}
 
 	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);

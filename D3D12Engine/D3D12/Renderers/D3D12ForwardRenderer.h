@@ -28,7 +28,7 @@ public:
 	virtual void Submit(SubmissionItem item, Camera* c = nullptr, unsigned char layer = 0) override;
 
 	virtual void Frame(Window* window, Camera* c) override;
-	virtual void Present(Window* w) override;
+	virtual void Present(Window* w, GUI* gui = nullptr) override;
 
 	ID3D12DescriptorHeap* GetDescriptorHeap() const;
 

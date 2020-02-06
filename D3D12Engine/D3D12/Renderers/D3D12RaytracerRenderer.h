@@ -24,9 +24,9 @@ private:
 	virtual void Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) override;
 	virtual void ClearSubmissions() override;
 	virtual void Frame(Window* window, Camera* camera) override;
-	virtual void Present(Window* window) override;
+	virtual void Present(Window* window, GUI* gui = nullptr) override;
 	virtual void ClearFrame() override;
-	virtual void Refresh() override;
+	virtual void Refresh(std::vector<std::wstring>* defines) override;
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
 
 private:

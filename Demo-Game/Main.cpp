@@ -10,6 +10,7 @@
 #include "../D3D12Engine/Terrain.hpp"
 #include "../D3D12Engine/Light/LightSource.h"
 #include "../D3D12Engine/ResourceManager.h"
+#include "../D3D12Engine/External/IMGUI/imgui.h"
 
 #include <iostream>
 #include <crtdbg.h>
@@ -38,7 +39,7 @@ typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
 
 
-class Game
+class Game : public GUI
 {
 public:
 	Game()
@@ -46,7 +47,7 @@ public:
 
 	}
 	virtual ~Game()
-	{		
+	{
 		for (auto e : m_materials) {
 			delete e;
 		}
@@ -104,7 +105,7 @@ public:
 	{
 		//Initialize renderer and window. Maybe we should give more options here to set things like forward/deferred rendering, fullscreen etc.
 		m_renderAPI = RenderAPI::MakeAPI(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
-			
+
 		if (m_renderAPI == nullptr) {
 			std::cout << "Selected renderAPI was not implemented and could therefor not be created." << std::endl;
 			return false;
@@ -123,7 +124,7 @@ public:
 		//Init Window. if the window is created this way, how should the rendertarget dimensions be specified? 
 		Window* window = m_renderAPI->MakeWindow();
 		window->SetTitle("Window 1");
-		if (!window->Create(1920, 1080)){
+		if (!window->Create(1920, 1080)) {
 			return false;
 		}
 
@@ -189,13 +190,13 @@ public:
 
 	bool InitializeBlueprints()
 	{
-		if(m_rm->GetBlueprint("map")      == nullptr) { return false; }
-		if(m_rm->GetBlueprint("tree")     == nullptr) { return false; }
-		if(m_rm->GetBlueprint("concrete") == nullptr) { return false; }
-		if(m_rm->GetBlueprint("sandbag")  == nullptr) { return false; }
-		if(m_rm->GetBlueprint("floor")    == nullptr) { return false; }
-		if(m_rm->GetBlueprint("tent")     == nullptr) { return false; }
-		
+		if (m_rm->GetBlueprint("map") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("tree") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("concrete") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("sandbag") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("floor") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("tent") == nullptr) { return false; }
+
 		return true;
 	}
 
@@ -209,7 +210,7 @@ public:
 		object = new Object;
 		object->blueprint = m_rm->GetBlueprint("tree");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
-		object->transform.pos = {0,0,0};
+		object->transform.pos = { 0,0,0 };
 		m_objects.push_back(object);
 
 		//Stone
@@ -445,7 +446,7 @@ public:
 	void UpdateInput()
 	{
 		// This input handler is shared between windows
-		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+		WindowInput& input_Global = Window::GetGlobalWindowInputHandler();
 
 		//The global input needs to be reset each frame, before any HandleWindowEvents() is called.
 		input_Global.Reset();
@@ -458,7 +459,7 @@ public:
 	}
 	void ProcessGlobalInput()
 	{
-		WindowInput &input_Global = Window::GetGlobalWindowInputHandler();
+		WindowInput& input_Global = Window::GetGlobalWindowInputHandler();
 		int techniqueToUse = 0;
 
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
@@ -541,15 +542,59 @@ public:
 
 			//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 			m_renderer->Frame(window, cam);
-			m_renderer->Present(window);
+			m_renderer->Present(window, this);
+		}
+	}
+
+	void RenderGUI() override {
+		//UI SETUP HERE
+		static bool b = true;
+		if (b)
+			ImGui::ShowDemoWindow(&b);
+
+		// ===========Menu==============
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("Project"))
+			{
+				if (ImGui::MenuItem("New Project", "")) {
+
+				}
+				if (ImGui::MenuItem("Open Project", "")) {}
+				if (ImGui::MenuItem("Save", "", false)) {}
+				if (ImGui::MenuItem("Save As", "", false)) {}
+
+				//ShowExampleMenuFile();
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Scene"))
+			{
+				if (ImGui::MenuItem("New Scene", "")) {
+
+				}
+
+				//ShowExampleMenuFile();
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Edit"))
+			{
+				if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+				ImGui::Separator();
+				if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+				if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
 		}
 	}
 
 private:
-	RenderAPI*					m_renderAPI;
-	Renderer*					m_renderer;
+	RenderAPI* m_renderAPI;
+	Renderer* m_renderer;
 
-	ShaderManager*				m_sm;
+	ShaderManager* m_sm;
 	std::vector<Window*>		m_windows;
 
 	//Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?

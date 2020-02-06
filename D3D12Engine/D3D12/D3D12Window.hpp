@@ -95,9 +95,16 @@ public:
 		@Return current backbuffer index.
 	*/
 	UINT GetCurrentBackBufferIndex() const;
+
+	virtual void BeginUIRendering() override;
+	virtual void EndUIRendering() override;
+
+	ID3D12DescriptorHeap* GetGUIDescriptorHeap();
+
 private:
 	IDXGISwapChain4*			m_SwapChain4 = nullptr;
 	HWND						m_Wnd;
+	ID3D12DescriptorHeap* m_GUIDescriptHeap = nullptr;
 
 	ID3D12DescriptorHeap*		m_RenderTargetsHeap = nullptr;
 	ID3D12Resource1*			m_RenderTargets[NUM_SWAP_BUFFERS] = {};
@@ -121,4 +128,5 @@ private:
 	bool InitializeRenderTargets();	//3.
 	bool InitializeDepthBuffer();	//4.
 	bool InitializeRawInput();
+
 };

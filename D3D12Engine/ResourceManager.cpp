@@ -115,6 +115,10 @@ Texture* ResourceManager::GetTexture(std::string name)
 	return texture;
 }
 
+bool ResourceManager::IsBlueprintLoaded(std::string name){
+	return m_blueprints.find(name) != m_blueprints.end();
+}
+
 Blueprint* ResourceManager::GetBlueprint(std::string name)
 {
 	Blueprint* bp = nullptr;
@@ -128,6 +132,10 @@ Blueprint* ResourceManager::GetBlueprint(std::string name)
 	}
 
 	return bp;
+}
+
+std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
+	return m_blueprints;
 }
 
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api)

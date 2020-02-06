@@ -6,6 +6,10 @@
 #include "..\D3D12API.hpp"
 #include "..\DXR\Temp\DXRBase.h"
 
+#include "../../External/IMGUI/imgui.h"
+#include "../../External/IMGUI/imgui_impl_win32.h"
+#include "../../External/IMGUI/imgui_impl_dx12.h"
+
 #include <d3d12.h>
 
 D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12)
@@ -137,8 +141,11 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	InitializeOutputTextures(static_cast<D3D12Window*>(window));
-
+	
 	ResetCommandListAndAllocator(bufferIndex);
+	if (m_OpaqueItems.size() == 0) {
+		return;
+	}
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
 
 	//D3D12_GPU_VIRTUAL_ADDRESS rtAddr = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetGPUDescriptorHandle().ptr;	
@@ -158,10 +165,34 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 }
 
-void D3D12RaytracerRenderer::Present(Window* window)
+void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 {
+	D3D12Window* w = static_cast<D3D12Window*>(window);
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
+	
+	/////////////////
+	//Render GUI
+	if (gui) {
+		ID3D12Resource* windowOutput = w->GetCurrentRenderTargetResource();
+		D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
+		w->SetRenderTarget(cmdlist);
+		ID3D12DescriptorHeap* guiDescHeap = w->GetGUIDescriptorHeap();
+		cmdlist->SetDescriptorHeaps(1, &guiDescHeap);
+
+		// Start the Dear ImGui frame
+		ImGui_ImplDX12_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		gui->RenderGUI();
+
+		ImGui::Render();
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdlist);
+		D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT, 0);
+	}
+	/////////////////
+
 	cmdlist->Close();
 	ID3D12CommandList* listsToExecute[1] = { cmdlist };
 	m_d3d12->GetDirectCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
@@ -177,9 +208,9 @@ void D3D12RaytracerRenderer::ClearFrame()
 
 }
 
-void D3D12RaytracerRenderer::Refresh()
+void D3D12RaytracerRenderer::Refresh(std::vector<std::wstring>* defines)
 {
-	m_dxrBase->ReloadShaders();
+	m_dxrBase->ReloadShaders(defines);
 }
 
 void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lights)

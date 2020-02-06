@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main_bp.cpp">
+    <ClCompile Include="main_bp_editor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

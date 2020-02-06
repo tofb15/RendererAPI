@@ -29,15 +29,15 @@ public:
 	/*
 		This is where the window is actually created. Call once.
 	*/
-	virtual bool Create(int dimensionX, int dimensionY) = 0; 
-	 /*
-		Show the window
-	 */
+	virtual bool Create(int dimensionX, int dimensionY) = 0;
+	/*
+	   Show the window
+	*/
 	virtual void Show() = 0;
 	/*
 		Hide the window
 	*/
-	virtual void Hide() = 0; 
+	virtual void Hide() = 0;
 	/*
 		Call to handle all window events on the specific window, this Should be called every frame.
 		This function will also handle the mouse and keyboard input if the current window is active.
@@ -58,7 +58,7 @@ public:
 	*/
 	virtual bool IsInFocus();
 	/*
-		Get Access to the windows input handler. This is unique to this specific window. 
+		Get Access to the windows input handler. This is unique to this specific window.
 		Input data in this class is reseted each time HandleWindowEvents() is called and filled with the new input if the window is in focus.
 		To Get Access to a Global inputhandler @See Window::GetGlobalWindowInputHandler();
 
@@ -81,6 +81,27 @@ public:
 		@return an adress to the specific windows input handler
 	*/
 	static WindowInput& GetGlobalWindowInputHandler();
+
+	/*
+		Call this after rendering the scene but before present
+
+		1) Render Scene
+		2) Call BeginUIRendering()
+		3) Use the IMGUI API to set up the UI
+		4) Call EndUIRendering()
+		5) Present()
+	*/
+	virtual void BeginUIRendering() = 0;
+	/*
+		Call this after BeginUIRendering() but before present
+
+		1) Render Scene
+		2) Call BeginUIRendering()
+		3) Use the IMGUI API to set up the UI
+		4) Call EndUIRendering()
+		5) Present()
+	*/
+	virtual void EndUIRendering() = 0;
 protected:
 	Window();
 

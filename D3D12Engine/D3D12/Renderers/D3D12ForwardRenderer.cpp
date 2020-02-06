@@ -265,7 +265,7 @@ void D3D12ForwardRenderer::Frame(Window* w, Camera* c)
 #endif
 
 }
-void D3D12ForwardRenderer::Present(Window* w)
+void D3D12ForwardRenderer::Present(Window* w, GUI* gui)
 {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();

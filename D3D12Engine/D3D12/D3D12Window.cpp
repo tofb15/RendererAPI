@@ -8,6 +8,10 @@
 
 #include "D3D12API.hpp"
 
+#include "../External/IMGUI/imgui.h"
+#include "../External/IMGUI/imgui_impl_win32.h"
+#include "../External/IMGUI/imgui_impl_dx12.h"
+
 #pragma comment (lib, "DXGI.lib")
 //#pragma comment (lib, "d3d12.lib")
 
@@ -149,6 +153,34 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 	if (!InitializeRawInput())
 		return false;
 
+	///////////////
+	//IMGUI
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = 1;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	if (m_d3d12->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_GUIDescriptHeap)) != S_OK)
+		return false;
+
+	// Setup Platform/Renderer bindings
+	ImGui_ImplWin32_Init(m_Wnd);
+	ImGui_ImplDX12_Init(m_d3d12->GetDevice(), NUM_SWAP_BUFFERS,
+		DXGI_FORMAT_R8G8B8A8_UNORM, m_GUIDescriptHeap,
+		m_GUIDescriptHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_GUIDescriptHeap->GetGPUDescriptorHandleForHeapStart());
+
 	return true;
 }
 
@@ -161,6 +193,8 @@ void D3D12Window::Show()
 void D3D12Window::Hide()
 {
 }
+
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void D3D12Window::HandleWindowEvents()
 {
@@ -181,6 +215,8 @@ void D3D12Window::HandleWindowEvents()
 			DispatchMessage(&msg);
 
 #pragma region localEventCatching
+			if (ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam))
+				return;
 
 			/*
 				Update the local input handler for each window
@@ -575,4 +611,19 @@ bool D3D12Window::InitializeRawInput()
 	}
 	
 	return true;
+}
+
+void D3D12Window::BeginUIRendering()
+{
+
+}
+
+void D3D12Window::EndUIRendering()
+{
+
+}
+
+ID3D12DescriptorHeap* D3D12Window::GetGUIDescriptorHeap()
+{
+	return m_GUIDescriptHeap;
 }

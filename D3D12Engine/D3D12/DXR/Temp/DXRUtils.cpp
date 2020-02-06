@@ -248,7 +248,6 @@ void DXRUtils::ShaderTableBuilder::AddConstants(UINT numConstants, const float* 
 DXRUtils::ShaderTableData DXRUtils::ShaderTableBuilder::Build(ID3D12Device5* device)
 {
 	assert(m_shaderNames.size() == m_nInstances && "DXRUtils::ShaderTableBuilder::Build All shaders have not been givven a name");
-
 	DXRUtils::ShaderTableData tableData;
 	//===Find the largest instance===
 	UINT largestInstanceSize = 0;

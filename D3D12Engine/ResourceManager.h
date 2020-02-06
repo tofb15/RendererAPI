@@ -49,6 +49,8 @@ public:
 	Mesh* GetMesh(std::string name);
 	Texture* GetTexture(std::string name);
 	Blueprint* GetBlueprint(std::string name);
+	bool IsBlueprintLoaded(std::string name);
+	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
 public:
 

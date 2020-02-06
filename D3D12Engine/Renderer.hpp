@@ -3,7 +3,7 @@
 #include "Light/LightSource.h"
 #include <vector>
 #include "ResourceManager.h"
-
+#include <string>
 class Camera;
 class Window;
 class Technique;
@@ -13,6 +13,11 @@ class Texture;
 struct SubmissionItem {
 	Blueprint* blueprint;
 	Transform transform;
+};
+
+class GUI {
+public:
+	virtual void RenderGUI() = 0;
 };
 
 class Renderer
@@ -52,11 +57,11 @@ public:
 		@param window the window to present the scene to
 		@See Frame()
 	*/
-	virtual void Present(Window* window) = 0;
+	virtual void Present(Window* window, GUI* gui = nullptr) = 0;
 	virtual void ClearFrame() = 0;
-	virtual void Refresh() {};
+	virtual void Refresh(std::vector<std::wstring>* defines = nullptr) {};
 	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
-
+	
 protected:
 	Renderer();
 
