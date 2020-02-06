@@ -2,26 +2,13 @@
 #include "Math.hpp"
 #include "Light/LightSource.h"
 #include <vector>
+#include "ResourceManager.h"
 
 class Camera;
 class Window;
 class Technique;
 class Mesh;
 class Texture;
-
-/*
-	Contain data used to describe a object and how it should be rendered.
-	This class should ONLY be used as a blueprint/prefab to create other object copying data from this class.
-*/
-class Blueprint {
-public:
-	Mesh* mesh;
-	std::vector<Technique*> techniques;
-	std::vector<Texture*>	textures;
-
-	//RTX defines. TODO: find a place to store these that is not here.
-	bool allGeometryIsOpaque = true;
-};
 
 struct SubmissionItem {
 	Blueprint* blueprint;
@@ -65,8 +52,8 @@ public:
 		@param window the window to present the scene to
 		@See Frame()
 	*/
-	virtual void			Present(Window* window) = 0; //How will this work with multi-threading? One thread to rule them all?
-	virtual void			ClearFrame() = 0; //How will this work with multi-threading?
+	virtual void Present(Window* window) = 0;
+	virtual void ClearFrame() = 0;
 	virtual void Refresh() {};
 	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
 

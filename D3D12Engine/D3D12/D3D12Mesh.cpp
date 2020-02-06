@@ -36,7 +36,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 
 	// Open .obj file
 	// TODO: generalize for other file formats
-	std::string fullPath = std::string("../assets/Models/") + fileName;
+	std::string fullPath = fileName;
 	std::ifstream inFile(fullPath);
 	if (!inFile.is_open())
 		return false;

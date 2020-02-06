@@ -23,10 +23,17 @@ namespace DXRShaderCommon
 {
 #endif
 
+    static const int N_RAY_TYPES = 2;
+     
     struct RayPayload
     {
         float4 color;
         uint recursionDepth;
+    };
+    
+    struct RayPayload_shadow
+    {
+        uint inShadow;
     };
     
     struct PointLight

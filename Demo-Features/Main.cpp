@@ -89,7 +89,7 @@ public:
 			return false;
 		}
 
-		InitializeMeshesMaterialsAndRenderStates();
+		InitializeMaterialsAndRenderStates();
 
 		if (!InitializeShadersAndTechniques())
 		{
@@ -141,7 +141,7 @@ public:
 
 		return true;
 	}
-	void InitializeMeshesMaterialsAndRenderStates()
+	void InitializeMaterialsAndRenderStates()
 	{
 		Mesh* mesh;
 
@@ -233,21 +233,21 @@ public:
 
 		//===NormalMap Cube===
 		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
+		blueprint->techniques.push_back(m_techniques[0]);
 		blueprint->mesh = m_meshes[0];
 		blueprint->textures.push_back(m_textures[0]);
 		blueprint->textures.push_back(m_textures[1]);
 		m_blueprints.push_back(blueprint);
 		//===Textured Cube===
 		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[1];
+		blueprint->techniques.push_back(m_techniques[1]);
 		blueprint->mesh = m_meshes[1];
 		blueprint->textures.push_back(m_textures[2]);
 		m_blueprints.push_back(blueprint);
 
 		//===Textured WireFrame Cube===
 		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[2];
+		blueprint->techniques.push_back(m_techniques[2]);
 		blueprint->mesh = m_meshes[1];
 		blueprint->textures.push_back(m_textures[3]);
 		m_blueprints.push_back(blueprint);
@@ -437,9 +437,9 @@ public:
 			m_demoMovement[0] = m_demoMovement[1] = true;
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
-			techniqueToUse = (techniqueToUse + 1) % 2;
-			m_blueprints[0]->technique = m_techniques[techniqueToUse];
-			m_blueprints[1]->technique = m_techniques[techniqueToUse];
+			//techniqueToUse = (techniqueToUse + 1) % 2;
+			//m_blueprints[0]->techniques = m_techniques[techniqueToUse];
+			//m_blueprints[1]->technique = m_techniques[techniqueToUse];
 		}
 	}
 

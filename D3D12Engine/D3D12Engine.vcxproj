@@ -167,6 +167,7 @@
     <ClCompile Include="Light\LightSource.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -231,6 +232,7 @@
     <ClInclude Include="Light\LightSource.h" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="ParticleSystem.hpp" />
+    <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Terrain.hpp" />
     <ClInclude Include="WindowInput.hpp" />

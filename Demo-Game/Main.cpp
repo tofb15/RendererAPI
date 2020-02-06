@@ -9,14 +9,13 @@
 #include "../D3D12Engine/ShaderManager.hpp"
 #include "../D3D12Engine/Terrain.hpp"
 #include "../D3D12Engine/Light/LightSource.h"
+#include "../D3D12Engine/ResourceManager.h"
 
 #include <iostream>
 #include <crtdbg.h>
 #include <chrono>
 
 #define AT_OFFICE
-#define PERFORMACE_TEST
-//#define DEBUG_SCENE
 
 /*
 	GameObject/Entity that can interact with the world and be rendered.
@@ -47,10 +46,7 @@ public:
 
 	}
 	virtual ~Game()
-	{
-		for (auto e : m_blueprints) {
-			delete e;
-		}
+	{		
 		for (auto e : m_materials) {
 			delete e;
 		}
@@ -63,52 +59,46 @@ public:
 		for (auto e : m_objects) {
 			delete e;
 		}
-		for (auto e : m_textures) {
-			delete e;
-		}
 		for (auto e : m_windows) {
 			delete e;
 		}
 		for (auto e : m_techniques) {
 			delete e;
 		}
-		for (auto e : m_meshes) {
-			delete e;
-		}
 
-		//if (m_terrain)
-		//{
-		//	delete m_terrain;
-		//}
 		delete m_renderer;
 		delete m_renderAPI;
+		delete m_rm;
 		delete m_sm;
 	}
 
-	bool Initialize()
+	int Initialize()
 	{
 		if (!InitializeRendererAndWindow())
 		{
-			return false;
+			return -1;
 		}
 
-		if (!InitializeMeshesMaterialsAndRenderStates()) {
-			return false;
+		m_rm = ResourceManager::GetInstance(m_renderAPI);
+
+		if (!InitializeMaterialsAndRenderStates()) {
+			return -2;
 		}
 
 		if (!InitializeShadersAndTechniques())
 		{
-			return false;
+			return -3;
 		}
 		InitializeCameras();
-		InitializeTextures();
-		InitializeBlueprints();
+		if (!InitializeBlueprints()) {
+			return -4;
+		}
 		InitializeObjects();
 		//InitializeHeightMap();
 
 		m_lights.emplace_back();
 
-		return true;
+		return 0;
 	}
 	bool InitializeRendererAndWindow()
 	{
@@ -143,56 +133,8 @@ public:
 		return true;
 	}
 
-	bool InitializeMeshesMaterialsAndRenderStates()
+	bool InitializeMaterialsAndRenderStates()
 	{
-		Mesh* mesh1 = m_renderAPI->MakeMesh();
-		Mesh* mesh2 = m_renderAPI->MakeMesh();
-		Mesh* mesh3 = m_renderAPI->MakeMesh();
-		Mesh* mesh4 = m_renderAPI->MakeMesh();
-		Mesh* mesh5 = m_renderAPI->MakeMesh();
-		Mesh* mesh6 = m_renderAPI->MakeMesh();
-
-		//mesh1->LoadFromFile("walker.obj");
-		//if (!mesh1->InitializeCube(Mesh::VERTEX_BUFFER_FLAG_POSITION | Mesh::VERTEX_BUFFER_FLAG_NORMAL | Mesh::VERTEX_BUFFER_FLAG_UV)) {
-		//	return false;
-		//}
-
-#ifdef DEBUG_SCENE
-#ifdef AT_OFFICE
-		if (!mesh1->LoadFromFile("../../../Exported_Assets/testTree.obj")) { return false; }
-		if (!mesh2->LoadFromFile("../../../Exported_Assets/Scene/stone.obj")) { return false; }
-		m_meshes.push_back(mesh1);
-		m_meshes.push_back(mesh2);
-#else
-		if (!mesh1->LoadFromFile("enemy_flying.obj")) { return false; }
-		if (!mesh2->LoadFromFile("disc.obj")) { return false; }
-		m_meshes.push_back(mesh1);
-		m_meshes.push_back(mesh2);
-#endif // DE
-#else
-#ifdef AT_OFFICE
-		if (!mesh1->LoadFromFile("../../../Exported_Assets/Scene/map.obj")) { return false; }
-		if (!mesh2->LoadFromFile("../../../Exported_Assets/testTree.obj")) { return false; }
-		if (!mesh3->LoadFromFile("../../../Exported_Assets/Scene/stone.obj")) { return false; }
-		if (!mesh4->LoadFromFile("../../../Exported_Assets/Scene/cover.obj")) { return false; }
-		if (!mesh5->LoadFromFile("../../../Exported_Assets/Scene/floor.obj")) { return false; }
-		if (!mesh6->LoadFromFile("../../../Exported_Assets/Scene/Temp/TentTest.obj")) { return false; }
-		m_meshes.push_back(mesh1);
-		m_meshes.push_back(mesh2);
-		m_meshes.push_back(mesh3);
-		m_meshes.push_back(mesh4);
-		m_meshes.push_back(mesh5);
-		m_meshes.push_back(mesh6);
-#else
-		if (!mesh1->LoadFromFile("../../../Exported_Assets/Scene/enemy_flying.obj")) { return false; }
-		if (!mesh2->LoadFromFile("../../../Exported_Assets/disc.obj")) { return false; }
-		if (!mesh3->LoadFromFile("../../../Exported_Assets/Scene/antenna.obj")) { return false; }
-		m_meshes.push_back(mesh1);
-		m_meshes.push_back(mesh2);
-		m_meshes.push_back(mesh3);
-#endif // AT_OFFICE
-#endif // DEBUG_SCENE
-
 		//Create a material
 		Material* mat = m_renderAPI->MakeMaterial();
 		if (!mat->LoadFromFile("generator.mtl")) { return false; }
@@ -211,6 +153,8 @@ public:
 		renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
 		renderState->SetUsingDepthBuffer(true);
 		m_renderStates.push_back(renderState);
+
+		return true;
 	}
 
 	bool InitializeShadersAndTechniques()
@@ -242,203 +186,15 @@ public:
 
 		return true;
 	}
-	void InitializeTextures()
+
+	bool InitializeBlueprints()
 	{
-		Texture* tex;
-
-#ifdef AT_OFFICE
-		//===Tree===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Tree_C.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Tree_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		//===Concrete Block===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/ConcreteCover_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/ConcreteCover_NX.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-#ifndef DEBUG_SCENE
-		//===Empty Normalmap===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/emplyNormal.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		//===Sandbag===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Sandbag_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Sandbag_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		//===Wood Floor===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Floor_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/Floor_N.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		//===Tent Poles===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/T_Poles_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/T_Poles_NX.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		//===Tent Net===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/T_Net_CS.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("../../Exported_Assets/T_Net_NA.png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-#endif // DEBUG_SCENE
-#else
-		//TODO: Make Work
-		//===Tent Net===
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("[Insert Name Here].png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-
-		tex = m_renderAPI->MakeTexture();
-		tex->LoadFromFile("[Insert Name Here].png", Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures.push_back(tex);
-#endif // AT_OFFICE
-	}
-
-	void InitializeBlueprints()
-	{
-		//Create the final blueprint. This could later be used to create objects.
-		Blueprint* blueprint;
-
-#ifdef AT_OFFICE
-#ifdef DEBUG_SCENE
-		//===Tree===
-		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
-		blueprint->mesh = m_meshes[0];
-		blueprint->textures.push_back(m_textures[0]);
-		blueprint->textures.push_back(m_textures[1]);
-		m_blueprints.push_back(blueprint);
-
-		//===Stone===
-		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
-		blueprint->mesh = m_meshes[1];
-		blueprint->textures.push_back(m_textures[2]);
-		blueprint->textures.push_back(m_textures[3]);
-		m_blueprints.push_back(blueprint);
-#else
-		//===Map===
-		blueprint = new Blueprint;
-		blueprint->mesh = m_meshes[0];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->textures.push_back(m_textures[2]);
-		blueprint->textures.push_back(m_textures[4]);
-		m_blueprints.push_back(blueprint);
-
-		//===Tree===
-		blueprint = new Blueprint;
-		blueprint->mesh = m_meshes[1];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->textures.push_back(m_textures[0]);
-		blueprint->textures.push_back(m_textures[1]);
-		m_blueprints.push_back(blueprint);
-
-		//===Stone===
-		blueprint = new Blueprint;
-		blueprint->mesh = m_meshes[2];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->textures.push_back(m_textures[2]);
-		blueprint->textures.push_back(m_textures[3]);
-		m_blueprints.push_back(blueprint);
-
-		//===Sandbag===
-		blueprint = new Blueprint;
-		blueprint->mesh = m_meshes[3];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->textures.push_back(m_textures[5]);
-		blueprint->textures.push_back(m_textures[6]);
-		m_blueprints.push_back(blueprint);
-
-		//===Floor===
-		blueprint = new Blueprint;
-		blueprint->mesh = m_meshes[4];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->textures.push_back(m_textures[7]);
-		blueprint->textures.push_back(m_textures[8]);
-		m_blueprints.push_back(blueprint);
-
-		//===Tent===
-		blueprint = new Blueprint;
-		blueprint->allGeometryIsOpaque = false;
-		blueprint->mesh = m_meshes[5];
-		blueprint->techniques.push_back(m_techniques[0]);
-		blueprint->techniques.push_back(m_techniques[1]);
-		blueprint->textures.push_back(m_textures[9]);
-		blueprint->textures.push_back(m_textures[10]);
-		blueprint->textures.push_back(m_textures[11]);
-		blueprint->textures.push_back(m_textures[12]);
-		m_blueprints.push_back(blueprint);
-#endif // DEBUG_SCENE
-
-#else
-		//===Flying===
-		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
-		blueprint->mesh = m_meshes[0];
-		blueprint->textures.push_back(m_textures[0]);
-		blueprint->textures.push_back(m_textures[1]);
-		m_blueprints.push_back(blueprint);
-
-		//===Disc===
-		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
-		blueprint->mesh = m_meshes[1];
-		blueprint->textures.push_back(m_textures[2]);
-		blueprint->textures.push_back(m_textures[3]);
-		m_blueprints.push_back(blueprint);
-
-#ifndef DEBUG_SCENE
-		//===Antena===
-		blueprint = new Blueprint;
-		blueprint->technique = m_techniques[0];
-		blueprint->mesh = m_meshes[2];
-		blueprint->textures.push_back(m_textures[4]);
-		blueprint->textures.push_back(m_textures[5]);
-		m_blueprints.push_back(blueprint);
-#endif // DEBUG_SCENE
-#endif // AT_OFFICE
-
-
-		//for (size_t nTechs = 0; nTechs < m_techniques.size(); nTechs++)
-		//{
-		//	for (size_t nMeshes = 0; nMeshes < m_meshes.size(); nMeshes++)
-		//	{
-		//		blueprint = new Blueprint;
-		//		blueprint->technique = m_techniques[nTechs];
-		//		blueprint->mesh = m_meshes[nMeshes];
-		//		blueprint->textures.push_back(m_textures[0]);
-		//		blueprint->textures.push_back(m_textures[1]);
-		//		m_blueprints.push_back(blueprint);
-		//		for (size_t nTextures = 0; nTextures < m_textures.size(); nTextures++)
-		//		{
-		//		}
-		//	}
-		//}
+		if(!m_rm->GetBlueprint("map"))      { return false; }
+		if(!m_rm->GetBlueprint("tree"))     { return false; }
+		if(!m_rm->GetBlueprint("concrete")) { return false; }
+		if(!m_rm->GetBlueprint("sandbag"))  { return false; }
+		if(!m_rm->GetBlueprint("floor"))    { return false; }
+		if(!m_rm->GetBlueprint("tent"))     { return false; }
 	}
 
 	void InitializeObjects()
@@ -449,14 +205,14 @@ public:
 #ifdef DEBUG_SCENE
 		//Tree
 		object = new Object;
-		object->blueprint = m_blueprints[0];
+		object->blueprint = m_rm->GetBlueprint("tree");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = {0,0,0};
 		m_objects.push_back(object);
 
 		//Stone
 		object = new Object;
-		object->blueprint = m_blueprints[1];
+		object->blueprint = m_rm->GetBlueprint("concrete");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
@@ -466,7 +222,7 @@ public:
 		for (size_t i = 0; i < 10; i++)
 		{
 			object = new Object;
-			object->blueprint = m_blueprints[5];
+			object->blueprint = m_rm->GetBlueprint("tent");
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = { 0, i * 0.1f, 0 };
 			m_objects.push_back(object);
@@ -474,35 +230,35 @@ public:
 #else
 		//Map
 		object = new Object;
-		object->blueprint = m_blueprints[0];
+		object->blueprint = m_rm->GetBlueprint("map");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
 
 		//Stone
 		object = new Object;
-		object->blueprint = m_blueprints[2];
+		object->blueprint = m_rm->GetBlueprint("concrete");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
 
 		//Sandbag
 		object = new Object;
-		object->blueprint = m_blueprints[3];
+		object->blueprint = m_rm->GetBlueprint("sandbag");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
 
 		//Floor
 		object = new Object;
-		object->blueprint = m_blueprints[4];
+		object->blueprint = m_rm->GetBlueprint("floor");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
 
 		//Tent
 		object = new Object;
-		object->blueprint = m_blueprints[5];
+		object->blueprint = m_rm->GetBlueprint("tent");
 		object->transform.scale = { 1.0f, 1.0f, 1.0f };
 		object->transform.pos = { 0, 0, 0 };
 		m_objects.push_back(object);
@@ -513,7 +269,7 @@ public:
 		for (size_t i = 0; i < nObjects; i++)
 		{
 			object = new Object;
-			object->blueprint = m_blueprints[1];
+			object->blueprint = m_rm->GetBlueprint("tree");
 			object->transform.scale = { 1.0f, 1.0f, 1.0f };
 			object->transform.pos = {
 				(static_cast<float>(i % nObjects_X) - nObjects_X / 2) * 10,
@@ -658,28 +414,6 @@ public:
 			if (m_demoMovement[1])
 				m_cameras[1]->SetPosition(Float3(sinf(m_time) * 4.0f, 3.0f, cosf(m_time) * 4.0f));
 
-			//timeSincePixChange += 0.05f;
-			static unsigned char color = 0;
-			static short colorDir = 1;
-
-			if (frameCount % 100 == -1) {
-				unsigned width = m_textures[0]->GetWidth();
-				unsigned height = m_textures[0]->GetHeight();
-				for (unsigned int x = 0; x < width; x++)
-				{
-					for (unsigned int y = 0; y < height / 2; y++)
-					{
-						unsigned char data[4] = { static_cast<unsigned char>(0), color, static_cast<unsigned char>(255 - color), static_cast<unsigned char>(255) };
-						m_textures[0]->UpdatePixel(Int2(x, y), data, 4);
-					}
-				}
-				color += 20 * colorDir;
-				if (color == 0 || color == 240)
-					colorDir *= -1;
-
-				m_textures[0]->ApplyChanges();
-			}
-
 			UpdateObjects(dt);
 			RenderWindows();
 
@@ -691,7 +425,7 @@ public:
 		float lightRad = 50;
 		float lightSpeedMulti = 15;
 		m_lights.back().setPosition(lightCenter + Float3(cos(m_time * lightSpeedMulti) * lightRad, 0, sin(m_time * lightSpeedMulti) * lightRad));
-		m_objects.back()->transform.pos = m_lights.back().getPosition();
+		//m_objects.back()->transform.pos = m_lights.back().getPosition();
 
 		static double t = 0.0f;
 		t += dt;
@@ -818,10 +552,10 @@ private:
 
 	//Globals. Since these vectors are used by all games using this API, should these maybe we its own class called something like "SceneManager"?
 
-	std::vector<Blueprint*>		m_blueprints;
-	std::vector<Mesh*>			m_meshes;
+	//std::vector<Blueprint*>	m_blueprints;
+	//std::vector<Mesh*>		m_meshes;
+	//std::vector<Texture*>		m_textures;
 	std::vector<Material*>		m_materials;
-	std::vector<Texture*>		m_textures;
 	std::vector<Technique*>		m_techniques;
 	std::vector<RenderState*>	m_renderStates;
 	std::vector<Camera*>		m_cameras;
@@ -835,6 +569,7 @@ private:
 	bool m_demoMovement[2];
 
 	std::vector<LightSource> m_lights;
+	ResourceManager* m_rm;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/
@@ -842,7 +577,9 @@ int main() {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	Game game;
-	game.Initialize();
+	if (game.Initialize() < 0) {
+		return 0;
+	}
 	game.Run();
 
 	return 0;

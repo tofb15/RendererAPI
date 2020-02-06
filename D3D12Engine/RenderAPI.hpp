@@ -13,6 +13,7 @@ class Material;
 class RenderState;
 class Technique;
 class ShaderManager;
+class ResourceManager;
 struct ShaderProgram;
 
 /*

@@ -65,7 +65,7 @@ void rayGen() {
 
 	RayPayload payload;
     payload.recursionDepth = 0;
-	TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 1, 0, ray, payload);
+    TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
     //float3 camPos = CB_SceneData.cameraPosition;
 	////outputTexture[launchIndex] = float4(launchIndex.x / 64.0f, launchIndex.y / 64.0f, 0.0f, 1.0f);
     
@@ -81,8 +81,8 @@ void rayGen() {
 [shader("closesthit")]
 void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
     
-    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    return;
+    //payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    //return;
     
     payload.recursionDepth++;
     if (payload.recursionDepth > 2)
@@ -92,7 +92,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
      
     float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
     float3 lightDir = -normalize(HitWorldPosition() - CB_SceneData.pLight.position);
-    //float3 lightDir = normalize(float3(1.0f, 1.0f, 0.0f));
+    float3 lightDist = length(HitWorldPosition() - CB_SceneData.pLight.position);
 
     uint primitiveID = PrimitiveIndex();	
     uint verticesPerPrimitive = 3;
@@ -130,19 +130,38 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     //normalInWorldSpace = bumpMapColor.x * tangent + bumpMapColor.y * binormal + bumpMapColor.z * normalInWorldSpace.xyz;
     //normalInWorldSpace = normalize(normalInWorldSpace);
     
+    //Shadow
+    RayDesc shadowRay;
+    shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.01f;
+    shadowRay.Direction = lightDir;
+    shadowRay.TMin = 0.00001;
+    shadowRay.TMax = lightDist;
     
-    float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0);
+    RayPayload_shadow shadowPayload;
+    shadowPayload.inShadow = 1;  
+    TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
+
+    float lightMul = 1;
+    
+    if (shadowPayload.inShadow)
+    {
+        lightMul = 0.1;
+        //payload.color = float4(0.1f, 0.1f, 0.1f, 0.1f);
+        //return;
+    }
+  
+    float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
     
     //float t = pow((1000 - RayTCurrent()) / 1000.f, 4);
-    if (uv.x < 0)
-    {
-        payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);      
-    }
-    else
-    {
-        payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
-    }
-    payload.color = float4(vertices_uv[i3], 0.0f, 1.0f);
+    //if (uv.x < 0)
+    //{
+    //    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);      
+    //}
+    //else
+    //{
+    //    payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+    //}
+    //payload.color = float4(vertices_uv[i3], 0.0f, 1.0f);
     //payload.color = float4(uv, 0.0f, 1.0f);
     payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1.0f);
     
@@ -176,4 +195,10 @@ void anyHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 [shader("miss")]
 void miss(inout RayPayload payload) {
 	payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+[shader("miss")]
+void shadow_GeometryMiss(inout RayPayload_shadow payload)
+{
+    payload.inShadow = 0;
 }

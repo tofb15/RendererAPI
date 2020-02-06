@@ -58,6 +58,7 @@ private:
 
 	struct BottomLayerData {
 		AccelerationStructureBuffers as;
+		//number of geometries(meshes) inside the BLAS
 		uint nGeometries;
 		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[5];
 		std::vector<PerInstance> items;
@@ -111,6 +112,7 @@ private:
 	D3D12Utils::RootSignature m_localRootSignature_rayGen;
 	D3D12Utils::RootSignature m_localRootSignature_miss;
 	D3D12Utils::RootSignature m_localRootSignature_hitGroups;
+	D3D12Utils::RootSignature m_localRootSignature_empty;
 
 	ID3D12StateObject* m_rtxPipelineState = nullptr;
 
@@ -142,9 +144,12 @@ private:
 	const WCHAR* m_shader_closestHitName = L"closestHitTriangle";
 	const WCHAR* m_shader_anyHitName = L"anyHitTriangle";
 	const WCHAR* m_shader_missName = L"miss";
-	const WCHAR* m_shader_shadowMissName = L"shadowMiss";
+
+	const WCHAR* m_shader_shadowMissName = L"shadow_GeometryMiss";
 
 	//==Shader Group Names==
-	const WCHAR* m_group_group1 = L"hitGroupTriangle";
-	const WCHAR* m_group_group_alphaTest = L"hitGroupTriangle_alphaTest";
+	const WCHAR* m_group_group1 = L"hitGroup";
+	const WCHAR* m_group_group_alphaTest = L"hitGroup_alphaTest";
+	const WCHAR* m_group_group_alphaTest_shadow = L"hitGroup_alphaTest_shadow";
+
 };

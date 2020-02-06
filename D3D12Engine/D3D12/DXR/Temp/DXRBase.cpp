@@ -187,6 +187,12 @@ bool DXRBase::InitializeRootSignatures()
 		return false;
 	}
 
+	//Empty Rootsignature
+	m_localRootSignature_empty = D3D12Utils::RootSignature(L"Root_Empty");
+	if (!m_localRootSignature_empty.Build(m_d3d12, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -262,7 +268,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			
 			pInstanceDesc->InstanceID = instanceID;
 			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
-			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex; // TODO: Change This
+			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex;
 			pInstanceDesc->Flags = (blas.first->allGeometryIsOpaque) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
 			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
 
@@ -286,7 +292,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			pInstanceDesc++;
 		}
 
-		blasStartIndex += blas.second.nGeometries;
+		blasStartIndex += blas.second.nGeometries * DXRShaderCommon::N_RAY_TYPES;
 	}
 	tlas.instanceDesc->Unmap(0, nullptr);
 
@@ -362,7 +368,7 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 
 		geomDesc[i].Triangles.Transform3x4 = 0;
 		//geomDesc[i].Flags = (true) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
-		geomDesc[i].Flags = (!item.blueprint->allGeometryIsOpaque && i > 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		geomDesc[i].Flags = (item.blueprint->allGeometryIsOpaque || i < 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
 		i++;
 	}
 
@@ -427,13 +433,14 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_gen[bufferIndex] = generationTable.Build(m_d3d12->GetDevice());
 
 	//===Update Miss Table===
-	DXRUtils::ShaderTableBuilder missTable(1, m_rtxPipelineState);
+	DXRUtils::ShaderTableBuilder missTable(2, m_rtxPipelineState);
 	missTable.AddShader(m_shader_missName);
+	missTable.AddShader(m_shader_shadowMissName);
 	m_shaderTable_miss[bufferIndex].Release();
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
 	//===Update HitGroup Table===
-	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame, m_rtxPipelineState, 64);
+	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame * DXRShaderCommon::N_RAY_TYPES, m_rtxPipelineState, 64);
 
 	UINT blasIndex = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
@@ -464,7 +471,29 @@ void DXRBase::UpdateShaderTable()
 			texture_gdh.ptr += m_descriptorSize;
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
 			texture_gdh.ptr += m_descriptorSize;
-			blasIndex++;
+
+			//===ShadowRayHit Shader===
+			if (i == 0) {
+				hitGroupTable.AddShader(L"NULL");
+			}
+			else {
+				texture_gdh.ptr -= m_descriptorSize * 2;
+				hitGroupTable.AddShader(m_group_group_alphaTest_shadow);
+
+				//===Add vertexbuffer descriptors===
+				hitGroupTable.AddDescriptor(vb_pos,		blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_norm,	blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_uv,		blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_tan_Bi,	blasIndex + 1);
+
+				//===Add texture descriptors===
+				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
+				texture_gdh.ptr += m_descriptorSize;
+				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
+				texture_gdh.ptr += m_descriptorSize;
+			}
+
+			blasIndex += DXRShaderCommon::N_RAY_TYPES;
 			i++;
 		}
 	}
@@ -515,14 +544,17 @@ bool DXRBase::CreateRaytracingPSO()
 
 	defines.push_back({ L"TEST_DEFINE" });
 
-	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_anyHitName, m_shader_missName }, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
 	psoBuilder.AddHitGroup(m_group_group_alphaTest, m_shader_closestHitName, m_shader_anyHitName);
+	psoBuilder.AddHitGroup(m_group_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
 
 	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName },     m_localRootSignature_rayGen.Get());
 	psoBuilder.AddSignatureToShaders({ m_group_group1 },          m_localRootSignature_hitGroups.Get());
 	psoBuilder.AddSignatureToShaders({ m_group_group_alphaTest }, m_localRootSignature_hitGroups.Get());
 	psoBuilder.AddSignatureToShaders({ m_shader_missName },       m_localRootSignature_miss.Get());
+	psoBuilder.AddSignatureToShaders({ m_shader_shadowMissName},  m_localRootSignature_empty.Get());
+	psoBuilder.AddSignatureToShaders({ m_group_group_alphaTest_shadow }, m_localRootSignature_hitGroups.Get());
 
 	psoBuilder.SetMaxPayloadSize(payloadSize);
 	psoBuilder.SetMaxAttributeSize(sizeof(float) * 4);
