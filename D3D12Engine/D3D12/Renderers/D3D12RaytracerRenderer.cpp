@@ -129,12 +129,12 @@ void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index)
 
 void D3D12RaytracerRenderer::Submit(SubmissionItem item, Camera* camera, unsigned char layer)
 {
-	m_OpaqueItems.emplace_back(item);
+	m_renderItems.emplace_back(item);
 }
 
 void D3D12RaytracerRenderer::ClearSubmissions()
 {
-	m_OpaqueItems.clear();
+	m_renderItems.clear();
 }
 
 void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
@@ -143,7 +143,7 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	InitializeOutputTextures(static_cast<D3D12Window*>(window));
 	
 	ResetCommandListAndAllocator(bufferIndex);
-	if (m_OpaqueItems.size() == 0) {
+	if (m_renderItems.size() == 0) {
 		return;
 	}
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
@@ -152,7 +152,7 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	//D3D12Texture* tex = static_cast<D3D12Texture*>(m_OpaqueItems[0].blueprint->textures[0]);
 
 	m_dxrBase->UpdateSceneData(static_cast<D3D12Camera*>(camera), m_lights);
-	m_dxrBase->UpdateAccelerationStructures(m_OpaqueItems, cmdlist);
+	m_dxrBase->UpdateAccelerationStructures(m_renderItems, cmdlist);
 	m_dxrBase->Dispatch(cmdlist);
 
 	///Copy final output to window resource
@@ -216,4 +216,18 @@ void D3D12RaytracerRenderer::Refresh(std::vector<std::wstring>* defines)
 void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lights)
 {
 	m_lights = lights;
+}
+
+void D3D12RaytracerRenderer::SetSetting(std::string setting, float value)
+{
+	if (setting == "anyhit") {
+		m_dxrBase->SetAllowAnyHitShader(value > 0);
+	}
+}
+
+float D3D12RaytracerRenderer::GetSetting(std::string setting)
+{
+	if (setting == "anyhit") {
+		return 0;
+	}
 }

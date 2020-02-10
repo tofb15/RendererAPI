@@ -43,6 +43,9 @@ public:
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
 	void ReloadShaders(std::vector<std::wstring>* defines);
 
+	//Settings
+	void SetAllowAnyHitShader(bool b);
+
 private:
 	struct AccelerationStructureBuffers {
 		ID3D12Resource* scratch = nullptr;
@@ -152,4 +155,6 @@ private:
 	const WCHAR* m_group_group_alphaTest = L"hitGroup_alphaTest";
 	const WCHAR* m_group_group_alphaTest_shadow = L"hitGroup_alphaTest_shadow";
 
+	//Settings
+	bool m_allowAnyhitshaders = true;
 };

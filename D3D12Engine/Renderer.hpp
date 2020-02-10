@@ -62,6 +62,8 @@ public:
 	virtual void Refresh(std::vector<std::wstring>* defines = nullptr) {};
 	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
 	
+	virtual void SetSetting(std::string setting, float value) {};
+	virtual float GetSetting(std::string setting) { return 0; };
 protected:
 	Renderer();
 

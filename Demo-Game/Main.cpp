@@ -11,13 +11,14 @@
 #include "../D3D12Engine/Light/LightSource.h"
 #include "../D3D12Engine/ResourceManager.h"
 #include "../D3D12Engine/External/IMGUI/imgui.h"
+#include "../D3D12Engine/External/IMGUI/imgui_internal.h"
 
 #include <iostream>
 #include <crtdbg.h>
 #include <chrono>
 
 #define AT_OFFICE
-
+#define PERFORMACE_TEST
 /*
 	GameObject/Entity that can interact with the world and be rendered.
 */
@@ -424,24 +425,14 @@ public:
 	}
 	void UpdateObjects(double dt)
 	{
+		if (m_animateLight) {
+			m_time_lightAnim += dt * 0.05;
+		}
+
 		Float3 lightCenter(0, 50, 0);
 		float lightRad = 50;
 		float lightSpeedMulti = 15;
-		m_lights.back().setPosition(lightCenter + Float3(cos(m_time * lightSpeedMulti) * lightRad, 0, sin(m_time * lightSpeedMulti) * lightRad));
-		//m_objects.back()->transform.pos = m_lights.back().getPosition();
-
-		static double t = 0.0f;
-		t += dt;
-		if (t > 2.0f * 3.14159265f)
-		{
-			t -= 2.0f * 3.14159265f;
-		}
-
-		for (int i = 0; i < m_objects.size(); i++)
-		{
-			//objects[i]->transform.scale.y = sin(time * 5 + i) * 2 + 2.5f;
-			//m_objects[i]->transform.rotation.y = sinf(m_time + i) * cosf(m_time * 2 + i) * 3.14159265f * 2.0f;
-		}
+		m_lights.back().setPosition(lightCenter + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
 	}
 	void UpdateInput()
 	{
@@ -477,7 +468,7 @@ public:
 			//m_blueprints[1]->technique = m_techniques[techniqueToUse];
 		}
 		if (input_Global.IsKeyDown(WindowInput::KEY_CODE_R)) {
-			m_renderer->Refresh();
+			ReloadShaders();
 		}
 	}
 	void ProcessLocalInput(double dt)
@@ -488,36 +479,41 @@ public:
 		{
 			inputs.push_back(&m_windows[i]->GetLocalWindowInputHandler());
 		}
+		bool rightMouse = inputs[0]->IsKeyDown(WindowInput::MOUSE_KEY_CODE_RIGHT);
+		if (rightMouse) {
+			for (size_t i = 0; i < m_windows.size(); i++)
+			{
+				bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
+				float ms = m_ms * (shift ? 1 : 0.02);
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
+				{
+					m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
+				{
+					m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
+				{
+					m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(ms * dt));
+				}
+				if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
+				{
+					m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (ms * dt));
+				}
+			}
 
-		for (size_t i = 0; i < m_windows.size(); i++)
-		{
-			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
-			float ms = m_ms * (shift ? 1 : 0.02);
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
-			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
-			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
-			{
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
-			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
-			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(ms * dt));
-			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
-			{
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (ms * dt));
-			}
+			// Rotation is based on delta time
+			Int2 mouseMovement = inputs[0]->GetMouseMovement();
+			m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
+			m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 		}
-
-		// Rotation is based on delta time
-		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
-		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
 	void RenderWindows()
 	{
+		if (m_reloadShaders) {
+			ReloadShaders();
+		}
 		Camera* cam0 = m_cameras[0];
 		Camera* cam;
 		Window* window;
@@ -546,9 +542,71 @@ public:
 		}
 	}
 
+	void RenderSettingWindow() {
+		static bool open = true;
+		ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Blueprint List", &open, ImGuiWindowFlags_MenuBar))
+		{
+			if (ImGui::BeginMenuBar())
+			{
+				if (ImGui::BeginMenu("File"))
+				{
+					if (ImGui::MenuItem("Save Selected")) {
+
+					}
+					if (ImGui::MenuItem("SaveAll")) {
+
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+
+			if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+			{			
+				if (ImGui::BeginTabItem("Scene"))
+				{
+					ImGui::Text("Scene Options");
+					if (ImGui::Checkbox("Animated Light", &m_animateLight)) {}
+					ImGui::SameLine();
+					ImGui::DragFloat("Light Anim time", &m_time_lightAnim, 0.001, 0, 1);
+					
+					if (ImGui::Checkbox("Allow Anyhit Shaders", &m_allowAnyhitShaders)) {
+						m_renderer->SetSetting("anyhit", m_allowAnyhitShaders);
+					}
+
+					ImGui::Separator();
+					ImGui::Text("Shader Options");
+					if (ImGui::Checkbox("NO_NORMAL_MAP", &m_def_NO_NORMAL_MAP)) {
+						m_reloadShaders = true;
+					}
+
+					if (ImGui::Checkbox("NO_SHADOWS", &m_def_NO_SHADOWS)) {
+						m_reloadShaders = true;
+					}
+
+					if (ImGui::Checkbox("NO_SHADING", &m_def_NO_SHADING)) {
+						m_reloadShaders = true;
+					}
+
+					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, m_allowAnyhitShaders);
+					if (ImGui::Checkbox("CLOSEST_HIT_ALPHA_TEST", &m_def_CLOSEST_HIT_ALPHA_TEST)) {
+						m_reloadShaders = true;
+					}
+					ImGui::PopItemFlag();
+
+					ImGui::EndTabItem();
+				}
+
+				ImGui::EndTabBar();
+			}
+		}
+		ImGui::End();
+	}
+
 	void RenderGUI() override {
 		//UI SETUP HERE
-		static bool b = true;
+		static bool b = false;
 		if (b)
 			ImGui::ShowDemoWindow(&b);
 
@@ -588,6 +646,30 @@ public:
 			}
 			ImGui::EndMainMenuBar();
 		}
+
+		RenderSettingWindow();
+	}
+
+	void ReloadShaders() {
+		m_reloadShaders = false;
+		std::vector<std::wstring> defines;
+		if (m_def_NO_NORMAL_MAP) {
+			defines.push_back(L"NO_NORMAL_MAP");
+		}
+
+		if (m_def_NO_SHADOWS) {
+			defines.push_back(L"NO_SHADOWS");
+		}
+
+		if (m_def_NO_SHADING) {
+			defines.push_back(L"NO_SHADING");
+		}
+
+		if (m_def_CLOSEST_HIT_ALPHA_TEST && !m_allowAnyhitShaders) {
+			defines.push_back(L"CLOSEST_HIT_ALPHA_TEST");
+		}
+
+		m_renderer->Refresh(&defines);
 	}
 
 private:
@@ -617,6 +699,17 @@ private:
 
 	std::vector<LightSource> m_lights;
 	ResourceManager* m_rm;
+
+	//Scene Settings
+	bool m_animateLight = false;
+	bool m_allowAnyhitShaders = true;
+	float m_time_lightAnim = 0.0;
+	//Shader Defines
+	bool m_def_NO_NORMAL_MAP = false;
+	bool m_def_NO_SHADOWS = false;
+	bool m_def_NO_SHADING = false;
+	bool m_def_CLOSEST_HIT_ALPHA_TEST = false;
+	bool m_reloadShaders = false;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/

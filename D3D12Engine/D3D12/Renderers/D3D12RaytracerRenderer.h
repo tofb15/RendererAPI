@@ -28,10 +28,13 @@ private:
 	virtual void ClearFrame() override;
 	virtual void Refresh(std::vector<std::wstring>* defines) override;
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
+	
+	virtual void SetSetting(std::string setting, float value) override;
+	virtual float GetSetting(std::string setting) override;
 
 private:
-	std::vector<SubmissionItem> m_OpaqueItems;
-	std::vector<SubmissionItem> m_NonOpaqueItems;
+	std::vector<SubmissionItem> m_renderItems;
+	//std::vector<SubmissionItem> m_NonOpaqueItems;
 	std::vector<LightSource> m_lights;
 
 	DXRBase* m_dxrBase;
@@ -42,5 +45,4 @@ private:
 	//RenderTargets
 	ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS] = { nullptr };
 	Int2 m_outputDim;
-
 };

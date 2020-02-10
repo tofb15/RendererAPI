@@ -169,6 +169,11 @@ void DXRBase::ReloadShaders(std::vector<std::wstring>* defines)
 	CreateRaytracingPSO(defines);
 }
 
+void DXRBase::SetAllowAnyHitShader(bool b)
+{
+	m_allowAnyhitshaders = b;
+}
+
 bool DXRBase::InitializeRootSignatures()
 {
 	if (!CreateDXRGlobalRootSignature()) {
@@ -269,7 +274,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			pInstanceDesc->InstanceID = instanceID;
 			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
 			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex;
-			pInstanceDesc->Flags = (blas.first->allGeometryIsOpaque) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
+			pInstanceDesc->Flags = (blas.first->allGeometryIsOpaque || !m_allowAnyhitshaders) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
 			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
 
 			// Construct and copy matrix data
@@ -368,7 +373,13 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 
 		geomDesc[i].Triangles.Transform3x4 = 0;
 		//geomDesc[i].Flags = (true) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
-		geomDesc[i].Flags = (item.blueprint->allGeometryIsOpaque || i < 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		
+		if (m_allowAnyhitshaders) {
+			geomDesc[i].Flags = (item.blueprint->allGeometryIsOpaque || i < 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		}
+		else {
+			geomDesc[i].Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+		}
 		i++;
 	}
 
@@ -458,7 +469,13 @@ void DXRBase::UpdateShaderTable()
 
 			//===Add Shader(group) Identifier===
 			//TODO: identify which geometry need none opaque
-			hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
+			
+			if (m_allowAnyhitshaders) {
+				hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
+			}
+			else {
+				hitGroupTable.AddShader(m_group_group1);
+			}
 
 			//===Add vertexbuffer descriptors===
 			hitGroupTable.AddDescriptor(vb_pos, blasIndex);
@@ -473,7 +490,7 @@ void DXRBase::UpdateShaderTable()
 			texture_gdh.ptr += m_descriptorSize;
 
 			//===ShadowRayHit Shader===
-			if (i == 0) {
+			if (i == 0 || !m_allowAnyhitshaders) {
 				hitGroupTable.AddShader(L"NULL");
 			}
 			else {

@@ -85,7 +85,7 @@ void D3D12TextureLoader::DoWork()
 {
 	{
 		std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
-		m_cv_not_empty.wait(lock, [this]() {return !m_texturesToLoadToGPU.empty(); });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
+		m_cv_not_empty.wait(lock, [this]() {return !m_texturesToLoadToGPU.empty() || m_stop; });//Force the thread to sleep if there is no texture to load. Mutex will be unlocked aslong as the thread is sleeping.
 	}
 
 	while (!m_stop)
@@ -317,6 +317,7 @@ void D3D12TextureLoader::Kill()
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
 	m_stop = true;
+	m_texturesToLoadToGPU.clear();
 	m_cv_not_empty.notify_all();
 }
 

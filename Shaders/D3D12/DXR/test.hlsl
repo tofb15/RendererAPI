@@ -95,6 +95,22 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]); 
     uv.y = -uv.y;
 
+#ifdef CLOSEST_HIT_ALPHA_TEST
+	float4 test = sys_texNormMap.SampleLevel(samp, uv, 0);
+	if (test.a < 0.5f)
+	{
+		//Pass the ray
+		RayDesc ray;
+		ray.Direction = WorldRayDirection();
+		ray.Origin = HitWorldPosition() + ray.Direction * 0.1f;
+		ray.TMin = 0.00001;
+		ray.TMax = 2000 - RayTCurrent();
+		//TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+
+		return;
+	}
+#endif
+
     //uv *= 8;
     //===Calculate Normal===
     float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
@@ -143,13 +159,16 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     if (shadowPayload.inShadow)
     {
         lightMul = 0.1;
-        //payload.color = float4(0.1f, 0.1f, 0.1f, 0.1f);
-        //return;
     }
-#endif
+#endif //NO_SHADOWS
   
     float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
+#ifndef NO_SHADING
     payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1.0f);
+#else
+    payload.color = float4(albedo.xyz, 1.0f);
+#endif //NO_LIGHT
+
 }
 
 [shader("anyhit")]

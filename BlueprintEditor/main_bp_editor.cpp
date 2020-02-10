@@ -11,6 +11,7 @@
 #include "../D3D12Engine/Light/LightSource.h"
 #include "../D3D12Engine/ResourceManager.h"
 #include "../D3D12Engine/External/IMGUI/imgui.h"
+#include "Profiler.h"
 
 #include <iostream>
 #include <string>
@@ -96,6 +97,8 @@ public:
 		m_lights.emplace_back();
 		m_lights.back().setPosition(Float3(0, 10, 0));
 		ListBlueprints();
+
+		m_profilerAVGFPS.SetTitle("FPS");
 
 		return 0;
 	}
@@ -243,12 +246,14 @@ public:
 
 				avgUpdateCount++;
 				totalFramesLastInterval += frameCount;
+				m_profilerAVGFPS.AddData(fps);
 
 				// Set long-term average FPS
 				if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
 				{
 					int avgFps = static_cast<int>(totalFramesLastInterval / TIME_PER_LONG_TERM);
 					fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
+
 					avgUpdateCount = 0;
 					totalFramesLastInterval = 0;
 				}
@@ -449,7 +454,7 @@ public:
 					ImGui::BeginChild("left pane", ImVec2(150, 0), true);
 					int i = 0;
 					for (auto& e : m_unloadedBlueprints)
-					{
+					{		
 						if (ImGui::Selectable(e.c_str(), selected == e)) {
 							if (selectedBP = m_rm->GetBlueprint(e)) {
 								selected = e;
@@ -460,6 +465,22 @@ public:
 							}
 						}
 
+						if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
+							Blueprint* bp = m_rm->GetBlueprint(e);
+							bool found = false;
+							for (int j = 0; j < m_objects.size(); j++) {
+								if (m_objects[j]->blueprint == bp) {
+									found = true;
+									m_objects.erase(m_objects.begin() + j);
+									break;
+								}
+							}
+
+							if (!found) {
+								m_objects.push_back(new Object);
+								m_objects.back()->blueprint = bp;
+							}
+						}
 						i++;
 					}
 
@@ -497,14 +518,13 @@ public:
 					}
 					ImGui::EndTabItem();
 				}
+
 				if (ImGui::BeginTabItem("Scene"))
 				{
 					ImGui::Text("Scene Options");
 					if (ImGui::Checkbox("Animated Light", &m_animateLight)) {}
 					ImGui::SameLine();
 					ImGui::DragFloat("Light Anim time", &m_time_lightAnim, 0.001, 0, 1);
-
-					ImTextureID id;
 
 					ImGui::Separator();
 					ImGui::Text("Shader Options");
@@ -516,8 +536,19 @@ public:
 						m_reloadShaders = true;
 					}
 
+					if (ImGui::Checkbox("NO_SHADING", &m_def_NO_SHADING)) {
+						m_reloadShaders = true;
+					}
+
 					ImGui::EndTabItem();
 				}
+
+				if (ImGui::BeginTabItem("Performance"))
+				{
+					m_profilerAVGFPS.Render();
+					ImGui::EndTabItem();
+				}
+
 				ImGui::EndTabBar();
 			}
 		}
@@ -557,6 +588,10 @@ public:
 		if (m_def_NO_SHADOWS) {
 			defines.push_back(L"NO_SHADOWS");
 		}
+		
+		if (m_def_NO_SHADING) {
+			defines.push_back(L"NO_SHADING");
+		}
 
 		m_renderer->Refresh(&defines);
 	}
@@ -573,6 +608,7 @@ private:
 	std::vector<RenderState*>	m_renderStates;
 	std::vector<Camera*>		m_cameras;
 	std::vector<Object*>		m_objects;
+	std::vector<Object*>		m_locked;
 
 	//Terrain* m_terrain;
 	Blueprint m_terrainBlueprint;
@@ -591,8 +627,11 @@ private:
 	//Shader Defines
 	bool m_def_NO_NORMAL_MAP = false;
 	bool m_def_NO_SHADOWS = false;
+	bool m_def_NO_SHADING = false;
 	bool m_reloadShaders = false;
 
+	//GUI
+	Profiler m_profilerAVGFPS;
 };
 
 /*This main is only an exemple of how this API could/should be used to render a scene.*/
