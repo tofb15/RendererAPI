@@ -145,7 +145,8 @@ private:
 	//==Shader Names==
 	const WCHAR* m_shader_rayGenName = L"rayGen";
 	const WCHAR* m_shader_closestHitName = L"closestHitTriangle";
-	const WCHAR* m_shader_anyHitName = L"anyHitTriangle";
+	const WCHAR* m_shader_closestHitAlphaTestName = L"closestHitAlphaTest";
+	const WCHAR* m_shader_anyHitName = L"anyHitAlphaTest";
 	const WCHAR* m_shader_missName = L"miss";
 
 	const WCHAR* m_shader_shadowMissName = L"shadow_GeometryMiss";

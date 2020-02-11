@@ -486,12 +486,12 @@ void DXRBase::UpdateShaderTable()
 			//===Add Shader(group) Identifier===
 			//TODO: identify which geometry need none opaque
 			
-			if (m_allowAnyhitshaders) {
-				hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
-			}
-			else {
-				hitGroupTable.AddShader(m_group_group1);
-			}
+			hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
+			//if (m_allowAnyhitshaders) {
+			//}
+			//else {
+			//	hitGroupTable.AddShader(m_group_group1);
+			//}
 
 			//===Add vertexbuffer descriptors===
 			hitGroupTable.AddDescriptor(vb_pos, blasIndex);
@@ -582,9 +582,9 @@ bool DXRBase::CreateRaytracingPSO(std::vector<std::wstring>* _defines)
 		}
 	}
 
-	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
-	psoBuilder.AddHitGroup(m_group_group_alphaTest, m_shader_closestHitName, m_shader_anyHitName);
+	psoBuilder.AddHitGroup(m_group_group_alphaTest, m_shader_closestHitAlphaTestName, (m_allowAnyhitshaders) ? m_shader_anyHitName : nullptr);
 	psoBuilder.AddHitGroup(m_group_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
 
 	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName },     m_localRootSignature_rayGen.Get());

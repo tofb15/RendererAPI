@@ -58,6 +58,11 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 
 	std::getline(in, line);
 	bp->mesh = GetMesh(line);
+	if (!bp->mesh) {
+		delete bp;
+		return nullptr;
+	}
+
 	std::getline(in, line);
 	if (line == "opaque") {
 		bp->allGeometryIsOpaque = true;
@@ -87,7 +92,10 @@ Mesh* ResourceManager::GetMesh(std::string name)
 	auto search = m_meshes.find(fName);
 	if (search == m_meshes.end()) {
 		mesh = m_api->MakeMesh();
-		mesh->LoadFromFile(fName.c_str());
+		if (!mesh->LoadFromFile(fName.c_str())) {
+			delete mesh;
+			return nullptr;
+		}
 		m_meshes[fName] = mesh;
 	}
 	else {
@@ -125,7 +133,9 @@ Blueprint* ResourceManager::GetBlueprint(std::string name)
 	auto search = m_blueprints.find(name);
 	if (search == m_blueprints.end()) {
 		bp = LoadBlueprintFromFile(name.c_str());
-		m_blueprints[name] = bp;
+		if (bp) {	
+			m_blueprints[name] = bp;
+		}
 	}
 	else {
 		bp = m_blueprints[name];

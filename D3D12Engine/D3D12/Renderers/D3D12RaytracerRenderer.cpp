@@ -11,6 +11,8 @@
 #include "../../External/IMGUI/imgui_impl_dx12.h"
 
 #include <d3d12.h>
+#include <comdef.h>
+#include <iostream>
 
 D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12)
 {
@@ -102,7 +104,8 @@ bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window)
 		if (m_outputTextures[i]) {
 			m_outputTextures[i]->Release();
 		}
-		hr = m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&m_outputTextures[i]));
+		hr = m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, &clearValue, IID_PPV_ARGS(&m_outputTextures[i]));
+		m_outputTextures[i]->SetName((L"D3D12RaytracerRenderer Output Texture #" + std::to_wstring(i)).c_str());
 		if (FAILED(hr)) {
 			return false;
 		}
@@ -173,7 +176,7 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 	
 	/////////////////
 	//Render GUI
-	if (gui) {
+	if (false) {
 		ID3D12Resource* windowOutput = w->GetCurrentRenderTargetResource();
 		D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
 		w->SetRenderTarget(cmdlist);
@@ -199,6 +202,13 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 
 	DXGI_PRESENT_PARAMETERS pp = {};
 	static_cast<D3D12Window*>(window)->GetSwapChain()->Present1(0, 0, &pp);
+
+	HRESULT hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
+	if (FAILED(hr)) {
+		_com_error err2(hr);
+		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+	}
+
 	//Lastly
 	m_d3d12->IncGPUBufferIndex();
 }

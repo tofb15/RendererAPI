@@ -20,7 +20,6 @@
 #include "Renderers/D3D12ForwardRenderer.h"
 #include "Renderers/D3D12RaytracerRenderer.h"
 
-#include <iostream>
 #include <comdef.h>
 #include <iostream>
 #include <dxgidebug.h>

@@ -76,6 +76,10 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 #else
 	GPUBuffer gpuBuffer = m_renderer->GetVertexBufferLoader()->CreateBuffer(nElements, elementSize, data);
 
+	if (gpuBuffer.resource == nullptr) {
+		return false;
+	}
+
 	//Initialize vertex buffer view, used in the render call.
 	m_view = MY_NEW D3D12_VERTEX_BUFFER_VIEW;
 	m_view->BufferLocation = gpuBuffer.resource->GetGPUVirtualAddress();
