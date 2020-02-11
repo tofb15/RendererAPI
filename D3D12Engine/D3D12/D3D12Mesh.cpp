@@ -130,7 +130,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName)
 				nrOfVertsOnFace++;
 			}
 
-			if (nrOfVertsOnFace >= 4) {
+			if (nrOfVertsOnFace > 4) {
 				MessageBoxA(NULL, "To many verticies on one face", "Error", 0);
 			}
 

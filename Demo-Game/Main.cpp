@@ -17,7 +17,7 @@
 #include <crtdbg.h>
 #include <chrono>
 
-#define AT_OFFICE
+//#define AT_OFFICE
 #define PERFORMACE_TEST
 /*
 	GameObject/Entity that can interact with the world and be rendered.
@@ -82,6 +82,11 @@ public:
 		}
 
 		m_rm = ResourceManager::GetInstance(m_renderAPI);
+#ifdef AT_OFFICE
+		m_rm->SetAssetPath("../../ExportedAssets/");
+#else
+		m_rm->SetAssetPath("../assets/");
+#endif // AT_OFFICE
 
 		if (!InitializeMaterialsAndRenderStates()) {
 			return -2;
@@ -191,13 +196,18 @@ public:
 
 	bool InitializeBlueprints()
 	{
+#ifdef AT_OFFICE
 		if (m_rm->GetBlueprint("map") == nullptr) { return false; }
 		if (m_rm->GetBlueprint("tree") == nullptr) { return false; }
 		if (m_rm->GetBlueprint("concrete") == nullptr) { return false; }
 		if (m_rm->GetBlueprint("sandbag") == nullptr) { return false; }
 		if (m_rm->GetBlueprint("floor") == nullptr) { return false; }
 		if (m_rm->GetBlueprint("tent") == nullptr) { return false; }
-
+#else
+		if (m_rm->GetBlueprint("turret") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("antenna") == nullptr) { return false; }
+		if (m_rm->GetBlueprint("enemy_flying") == nullptr) { return false; }
+#endif
 		return true;
 	}
 
@@ -283,6 +293,20 @@ public:
 			m_objects.push_back(object);
 		}
 #endif // DEBUG_SCENE
+#else
+		//Turret
+		object = new Object;
+		object->blueprint = m_rm->GetBlueprint("turret");
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 0, 0, 0 };
+		m_objects.push_back(object);
+
+		//Antenna
+		object = new Object;
+		object->blueprint = m_rm->GetBlueprint("antenna");
+		object->transform.scale = { 1.0f, 1.0f, 1.0f };
+		object->transform.pos = { 5, 0, 5 };
+		m_objects.push_back(object);
 #endif // AT_OFFICE
 
 	}

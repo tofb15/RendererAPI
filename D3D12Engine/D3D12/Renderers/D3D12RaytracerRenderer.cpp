@@ -176,7 +176,7 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 	
 	/////////////////
 	//Render GUI
-	if (false) {
+	if (true) {
 		ID3D12Resource* windowOutput = w->GetCurrentRenderTargetResource();
 		D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
 		w->SetRenderTarget(cmdlist);

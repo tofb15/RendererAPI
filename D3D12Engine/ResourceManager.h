@@ -11,9 +11,9 @@ class Texture;
 class Technique;
 class RenderAPI;
 
-const char MESH_PATH[]      = "../../Exported_Assets/Models/";
-const char TEXTURE_PATH[]   = "../../Exported_Assets/Textures/";
-const char BLUEPRINT_PATH[] = "../../Exported_Assets/Blueprints/";
+const char MESH_FOLDER_NAME[]      = "Models/";
+const char TEXTURE_FODLER_NAME[]   = "Textures/";
+const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 
 /*
 	Contain data used to describe a object and how it should be rendered.
@@ -44,8 +44,8 @@ public:
 	static bool SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions);
 	~ResourceManager();
 
+	void SetAssetPath(std::string s);
 	Blueprint* LoadBlueprintFromFile(std::string path);
-
 	Mesh* GetMesh(std::string name);
 	Texture* GetTexture(std::string name);
 	Blueprint* GetBlueprint(std::string name);
@@ -62,4 +62,6 @@ private:
 	std::unordered_map<std::string, Mesh*>      m_meshes;
 	std::unordered_map<std::string, Texture*>   m_textures;
 	std::unordered_map<std::string, Blueprint*> m_blueprints;
+
+	std::string m_assetPath = "../assets/";
 };

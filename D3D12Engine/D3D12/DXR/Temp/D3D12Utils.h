@@ -7,7 +7,6 @@
 
 constexpr unsigned int MAX_DEBUG_NAME_LENGHT = 32;
 constexpr unsigned int PARAM_APPEND = -1;
-constexpr unsigned int MAX_RAY_RECURSION_DEPTH = 2;
 
 namespace D3D12Utils{
 

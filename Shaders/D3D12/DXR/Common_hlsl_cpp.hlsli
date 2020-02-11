@@ -24,7 +24,8 @@ namespace DXRShaderCommon
 #endif
 
     static const int N_RAY_TYPES = 2;
-     
+	static const unsigned int MAX_RAY_RECURSION_DEPTH = 2;
+
     struct RayPayload
     {
         float4 color;

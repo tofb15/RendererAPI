@@ -6,7 +6,7 @@
 #include "..\..\D3D12Window.hpp"
 #include "..\..\D3D12Texture.hpp"
 #include "..\..\D3D12Technique.hpp"
-
+#include"..\Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
 {
@@ -596,7 +596,7 @@ bool DXRBase::CreateRaytracingPSO(std::vector<std::wstring>* _defines)
 
 	psoBuilder.SetMaxPayloadSize(payloadSize);
 	psoBuilder.SetMaxAttributeSize(sizeof(float) * 4);
-	psoBuilder.SetMaxRecursionDepth(MAX_RAY_RECURSION_DEPTH);
+	psoBuilder.SetMaxRecursionDepth(DXRShaderCommon::MAX_RAY_RECURSION_DEPTH);
 	psoBuilder.SetGlobalSignature(m_globalRootSignature.Get());
 
 	m_rtxPipelineState = psoBuilder.Build(m_d3d12->GetDevice());

@@ -19,7 +19,7 @@ bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpD
 {
 	for (auto& e : bpDescriptions)
 	{
-		std::string fName = BLUEPRINT_PATH + e.blueprintName + ".bp";
+		std::string fName = std::string(BLUEPRINT_FOLDER_NAME) + e.blueprintName + ".bp";
 		std::ofstream out(fName);
 
 		//out << e.blueprintName << "\n";
@@ -44,10 +44,14 @@ ResourceManager::~ResourceManager()
 	for (auto& e : m_textures)  {if (e.second) {delete e.second;}}
 }
 
+void ResourceManager::SetAssetPath(std::string s) {
+	m_assetPath = s;
+}
+
 Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 {
 	Blueprint* bp = MY_NEW Blueprint;
-	std::string fName = std::string(BLUEPRINT_PATH) + name + ".bp";
+	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name + ".bp";
 
 	std::ifstream in(fName);
 	if (!in.is_open()) {
@@ -87,7 +91,7 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 Mesh* ResourceManager::GetMesh(std::string name)
 {
 	Mesh* mesh = nullptr;
-	std::string fName = std::string(MESH_PATH) + name;
+	std::string fName = m_assetPath + MESH_FOLDER_NAME + name;
 
 	auto search = m_meshes.find(fName);
 	if (search == m_meshes.end()) {
@@ -108,7 +112,7 @@ Mesh* ResourceManager::GetMesh(std::string name)
 Texture* ResourceManager::GetTexture(std::string name)
 {
 	Texture* texture = nullptr;
-	std::string fName = std::string(TEXTURE_PATH) + name;
+	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
 
 	auto search = m_meshes.find(fName);
 	if (search == m_meshes.end()) {

@@ -79,8 +79,9 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     //return;
     
     payload.recursionDepth++;
-    if (payload.recursionDepth > 2)
+    if (payload.recursionDepth >= MAX_RAY_RECURSION_DEPTH)
     {
+		payload.color = float4(1,0,0,1);
         return;
     }
      
@@ -120,17 +121,18 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
 
 	RayPayload reflect_payload = payload;
-	float3 reflectVector = reflect(WorldRayDirection(), normalInWorldSpace);
 
-	RayDesc reflectRaydesc;	
-	reflectRaydesc.Direction = reflectVector;
-	reflectRaydesc.Origin = HitWorldPosition() + reflectRaydesc.Direction * 0.0001;
-	reflectRaydesc.TMin = 0.0001;
-	reflectRaydesc.TMax = 2000;
-	TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, reflectRaydesc, reflect_payload);
+	if (payload.recursionDepth < 2) {
+		float3 reflectVector = reflect(WorldRayDirection(), normalInWorldSpace);
 
-	payload.color = float4(1,0,0,1);
-	return;
+		RayDesc reflectRaydesc;	
+		reflectRaydesc.Direction = reflectVector;
+		reflectRaydesc.Origin = HitWorldPosition() + reflectRaydesc.Direction * 0.0001;
+		reflectRaydesc.TMin = 0.0001;
+		reflectRaydesc.TMax = 2000;
+		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, reflectRaydesc, payload);
+		return;
+	}
 
 #ifndef NO_NORMAL_MAP
     //===Add Normal Map===
@@ -193,7 +195,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 [shader("closesthit")]
 void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
 	payload.recursionDepth++;
-	if (payload.recursionDepth > 2)
+	if (payload.recursionDepth >= MAX_RAY_RECURSION_DEPTH)
 	{
 		return;
 	}
