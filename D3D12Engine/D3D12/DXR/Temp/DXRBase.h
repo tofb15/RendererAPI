@@ -157,4 +157,5 @@ private:
 
 	//Settings
 	bool m_allowAnyhitshaders = true;
+	bool m_forceBLASRebuild[NUM_GPU_BUFFERS] = { false };
 };

@@ -60,6 +60,16 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 		e.second.items.clear();
 	}
 
+	if (m_forceBLASRebuild[gpuBuffer]) {
+		m_forceBLASRebuild[gpuBuffer] = false;
+		//Destroy all BLASs
+		for (auto it = m_BLAS_buffers[gpuBuffer].begin(); it != m_BLAS_buffers[gpuBuffer].end();)
+		{
+			it->second.as.Release();
+			it = m_BLAS_buffers[gpuBuffer].erase(it);
+		}
+	}
+
 	//Build/Update BLAS
 	for (auto& e : items)
 	{
@@ -171,6 +181,12 @@ void DXRBase::ReloadShaders(std::vector<std::wstring>* defines)
 
 void DXRBase::SetAllowAnyHitShader(bool b)
 {
+	if (m_allowAnyhitshaders != b) {
+		for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+		{
+			m_forceBLASRebuild[i] = true;
+		}
+	}
 	m_allowAnyhitshaders = b;
 }
 
@@ -455,9 +471,9 @@ void DXRBase::UpdateShaderTable()
 
 	UINT blasIndex = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
-	for (auto& e : m_BLAS_buffers[bufferIndex])
+	for (auto& blas : m_BLAS_buffers[bufferIndex])
 	{
-		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(e.first->mesh);
+		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(blas.first->mesh);
 		std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = mesh->GetSubObjects();
 		uint i = 0;
 		for (auto& e : objects)

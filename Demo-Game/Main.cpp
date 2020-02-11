@@ -545,7 +545,7 @@ public:
 	void RenderSettingWindow() {
 		static bool open = true;
 		ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin("Blueprint List", &open, ImGuiWindowFlags_MenuBar))
+		if (ImGui::Begin("Scene Settings", &open, ImGuiWindowFlags_MenuBar))
 		{
 			if (ImGui::BeginMenuBar())
 			{

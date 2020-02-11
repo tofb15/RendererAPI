@@ -99,14 +99,14 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 	float4 test = sys_texNormMap.SampleLevel(samp, uv, 0);
 	if (test.a < 0.5f)
 	{
-		//Pass the ray
-		RayDesc ray;
-		ray.Direction = WorldRayDirection();
-		ray.Origin = HitWorldPosition() + ray.Direction * 0.1f;
-		ray.TMin = 0.00001;
-		ray.TMax = 2000 - RayTCurrent();
-		//TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-
+	//	//Pass the ray
+	//	RayDesc ray;
+	//	ray.Direction = WorldRayDirection();
+	//	ray.Origin = HitWorldPosition() + ray.Direction * 0.1f;
+	//	ray.TMin = 0.00001;
+	//	ray.TMax = 2000 - RayTCurrent();
+	//	//TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+		payload.color = float4(1, 0, 0, 1.0f);
 		return;
 	}
 #endif
@@ -141,12 +141,15 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     //Shadow
     RayDesc shadowRay;
 	float t = dot(-WorldRayDirection(), normalInWorldSpace);
-	if (t > 0) {
-		shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
-	}
-	else {
-		shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
-	}
+	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
+	//if (t >= 0) {
+	//	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
+	//}
+	//else {
+	//	shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
+	//}
+	//payload.color = float4((t + 1) * 0.5, 0, 0, 1.0f);
+	//return;
 
     shadowRay.Direction = lightDir;
     shadowRay.TMin = 0.00001;
@@ -188,7 +191,7 @@ void anyHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     if (normal.a < 0.5f)
     {
         IgnoreHit();
-    } 
+	}
 }
 
 [shader("miss")]
