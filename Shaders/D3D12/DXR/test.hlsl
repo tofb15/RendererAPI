@@ -87,12 +87,27 @@ void rayGen() {
 	else {
 		outputTexture[launchIndex] = payload.color;
 	}
-#else
+#else // TRACE_NON_OPAQUE_SEPARATELY
 	TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+#ifdef RAY_GEN_ALPHA_TEST
+	uint i = 1;
+	while (payload.color.a < 0.1) {
+		i++;
+		ray.TMin = payload.hitT + 0.01;
+		payload.hitT = 0;
+		payload.recursionDepth = 0;
+		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+	}
+	payload.recursionDepth = i;
+#endif // RAY_GEN_ALPHA_TEST
+
+#ifdef DEBUG_RECURSION_DEPTH
+	float t = payload.recursionDepth / 15.f;
+	outputTexture[launchIndex] = float4(t,t,t,1);
+#else
 	outputTexture[launchIndex] = payload.color;
 #endif
-
-
+#endif // !TRACE_NON_OPAQUE_SEPARATELY
 
 	//float t = pow(1.0f - (payload.hitT / RAY_T_MAX), 100);
 	//outputTexture[launchIndex] = float4(t,t,t,1);
@@ -232,6 +247,7 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	}
 #endif
 
+	float4 bumpMapColor = sys_texNormMap.SampleLevel(samp, uv, 0);
 #ifndef NO_NORMAL_MAP
 	//===Add Normal Map===
 	float3 tangent = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent));
@@ -240,7 +256,6 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	tangent = normalize(tangent);
 	binormal = normalize(binormal);
 
-	float4 bumpMapColor = sys_texNormMap.SampleLevel(samp, uv, 0);
 	//bumpMapColor *= bumpMapColor.a;
 	float3x3 tbn = float3x3(
 		tangent,
@@ -283,9 +298,9 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 
 	float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
 #ifndef NO_SHADING
-	payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1.0f);
+	payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), bumpMapColor.a);
 #else
-	payload.color = float4(albedo.xyz, 1.0f);
+	payload.color = float4(albedo.xyz, bumpMapColor.a);
 #endif //NO_LIGHT
 
 }

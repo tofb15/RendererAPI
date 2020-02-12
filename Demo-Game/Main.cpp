@@ -618,6 +618,14 @@ public:
 						m_reloadShaders = true;
 					}
 
+					if (ImGui::Checkbox("DEBUG_RECURSION_DEPTH", &m_def_DEBUG_RECURSION_DEPTH)) {
+						m_reloadShaders = true;
+					}
+
+					if (ImGui::Checkbox("RAY_GEN_ALPHA_TEST", &m_def_RAY_GEN_ALPHA_TEST)) {
+						m_reloadShaders = true;
+					}
+
 					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, m_allowAnyhitShaders);
 					if (ImGui::Checkbox("CLOSEST_HIT_ALPHA_TEST", &m_def_CLOSEST_HIT_ALPHA_TEST)) {
 						m_reloadShaders = true;
@@ -702,6 +710,14 @@ public:
 			defines.push_back(L"TRACE_NON_OPAQUE_SEPARATELY");
 		}
 
+		if (m_def_RAY_GEN_ALPHA_TEST) {
+			defines.push_back(L"RAY_GEN_ALPHA_TEST");
+		}
+
+		if (m_def_DEBUG_RECURSION_DEPTH) {
+			defines.push_back(L"DEBUG_RECURSION_DEPTH");
+		}
+
 		m_renderer->Refresh(&defines);
 	}
 
@@ -744,6 +760,8 @@ private:
 	bool m_def_NO_SHADING = false;
 	bool m_def_CLOSEST_HIT_ALPHA_TEST = false;
 	bool m_def_TRACE_NON_OPAQUE_SEPARATELY = false;
+	bool m_def_RAY_GEN_ALPHA_TEST = false;
+	bool m_def_DEBUG_RECURSION_DEPTH = false;
 	bool m_reloadShaders = false;
 };
 
