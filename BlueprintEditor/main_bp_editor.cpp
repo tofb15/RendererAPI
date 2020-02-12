@@ -568,7 +568,7 @@ public:
 		std::error_code err;
 		m_unloadedBlueprints.clear();
 
-		for (auto& file : std::filesystem::directory_iterator(BLUEPRINT_PATH, err)) {
+		for (auto& file : std::filesystem::directory_iterator("../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME), err)) {
 			if (file.path().extension().string() == ".bp") {
 				std::string s = file.path().filename().string();
 				s = s.substr(0, s.find_last_of("."));

@@ -2,6 +2,7 @@
 #include "Common_hlsl_cpp.hlsli"
 
 static const uint g_SHADOW_RAY_FLAGS = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+static const float RAY_T_MAX = 2000.0f;
 
 // Barycentric interpolation
 float2 barrypolation(float3 barry, float2 in1, float2 in2, float2 in3)
@@ -64,17 +65,42 @@ void rayGen() {
 	RayDesc ray;
     generateCameraRay(launchIndex, ray.Origin, ray.Direction);
 	ray.TMin = 0.00001;
-	ray.TMax = 2000.0;
+	ray.TMax = RAY_T_MAX;
 
 	RayPayload payload;
     payload.recursionDepth = 0;
-    TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-    outputTexture[launchIndex] = payload.color;
+	payload.hitT = 0;
+	
+#ifdef TRACE_NON_OPAQUE_SEPARATELY
+    TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+
+	RayPayload payload_non_opaque;
+	payload_non_opaque.recursionDepth = 0;
+	payload_non_opaque.hitT = 0;
+	
+	ray.TMax = payload.hitT;
+	TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload_non_opaque);
+
+	if (payload_non_opaque.hitT < RAY_T_MAX) {
+		outputTexture[launchIndex] = payload_non_opaque.color;
+	}
+	else {
+		outputTexture[launchIndex] = payload.color;
+	}
+#else
+	TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+	outputTexture[launchIndex] = payload.color;
+#endif
+
+
+
+	//float t = pow(1.0f - (payload.hitT / RAY_T_MAX), 100);
+	//outputTexture[launchIndex] = float4(t,t,t,1);
 }
 
 [shader("closesthit")]
 void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
-    
+	payload.hitT += RayTCurrent();
     //payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
     //return;
     
@@ -99,40 +125,10 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
     float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]); 
     uv.y = -uv.y;
 
-//#ifdef CLOSEST_HIT_ALPHA_TEST
-//	float4 test = sys_texNormMap.SampleLevel(samp, uv, 0);
-//	if (test.a < 0.5f)
-//	{
-//	//	//Pass the ray
-//	//	RayDesc ray;
-//	//	ray.Direction = WorldRayDirection();
-//	//	ray.Origin = HitWorldPosition() + ray.Direction * 0.1f;
-//	//	ray.TMin = 0.00001;
-//	//	ray.TMax = 2000 - RayTCurrent();
-//	//	//TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-//		payload.color = float4(1, 0, 0, 1.0f);
-//		return;
-//	}
-//#endif
-
     //uv *= 8;
     //===Calculate Normal===
     float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
     float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
-
-	RayPayload reflect_payload = payload;
-
-	if (payload.recursionDepth < 2) {
-		float3 reflectVector = reflect(WorldRayDirection(), normalInWorldSpace);
-
-		RayDesc reflectRaydesc;	
-		reflectRaydesc.Direction = reflectVector;
-		reflectRaydesc.Origin = HitWorldPosition() + reflectRaydesc.Direction * 0.0001;
-		reflectRaydesc.TMin = 0.0001;
-		reflectRaydesc.TMax = 2000;
-		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, reflectRaydesc, payload);
-		return;
-	}
 
 #ifndef NO_NORMAL_MAP
     //===Add Normal Map===
@@ -194,9 +190,11 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 [shader("closesthit")]
 void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
+	payload.hitT += RayTCurrent();
 	payload.recursionDepth++;
 	if (payload.recursionDepth >= MAX_RAY_RECURSION_DEPTH)
 	{
+		payload.color = float4(1,0,0,1);
 		return;
 	}
 
@@ -219,29 +217,20 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	//===Calculate Normal===
 	float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
 	float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
-//#ifdef CLOSEST_HIT_ALPHA_TEST
-//	float4 test = sys_texNormMap.SampleLevel(samp, uv, 0);
-//	if (test.a < 0.5f)
-//	{
-//		//	//Pass the ray
-//		//RayDesc ray;
-//		//ray.Direction = WorldRayDirection();
-//		//ray.Origin = HitWorldPosition() + ray.Direction;
-//		//ray.TMin = 0.00001;
-//		//ray.TMax = 2000;
-//		//TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-//
-//		//payload.color = float4(0, 1, 0, 1.0f);
-//
-//		RayDesc reflectedRay = { HitWorldPosition(), 0.01,
-//							  reflect(WorldRayDirection(), normalInWorldSpace),
-//							  2000 };
-//		TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, reflectedRay, payload);
-//		TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-//
-//		return;
-//	}
-//#endif
+#ifdef CLOSEST_HIT_ALPHA_TEST
+	float4 test = sys_texNormMap.SampleLevel(samp, uv, 0);
+	if (test.a < 0.5f)
+	{
+		RayDesc ray;
+		ray.Direction = WorldRayDirection();
+		ray.Origin = HitWorldPosition() + ray.Direction * 0.15;
+		ray.TMin = 0.00001;
+		ray.TMax = RAY_T_MAX - payload.hitT;
+		TraceRay(gAS, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+
+		return;
+	}
+#endif
 
 #ifndef NO_NORMAL_MAP
 	//===Add Normal Map===
@@ -324,6 +313,7 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 [shader("miss")]
 void miss(inout RayPayload payload) {
 	payload.color = float4(0.2f, 0.0f, 0.3f, 1.0f);
+	payload.hitT = RAY_T_MAX;
 }
 
 [shader("miss")]

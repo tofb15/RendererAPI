@@ -17,7 +17,7 @@
 #include <crtdbg.h>
 #include <chrono>
 
-//#define AT_OFFICE
+#define AT_OFFICE
 #define PERFORMACE_TEST
 /*
 	GameObject/Entity that can interact with the world and be rendered.
@@ -83,7 +83,7 @@ public:
 
 		m_rm = ResourceManager::GetInstance(m_renderAPI);
 #ifdef AT_OFFICE
-		m_rm->SetAssetPath("../../ExportedAssets/");
+		m_rm->SetAssetPath("../../Exported_Assets/");
 #else
 		m_rm->SetAssetPath("../assets/");
 #endif // AT_OFFICE
@@ -597,6 +597,7 @@ public:
 					
 					if (ImGui::Checkbox("Allow Anyhit Shaders", &m_allowAnyhitShaders)) {
 						m_renderer->SetSetting("anyhit", m_allowAnyhitShaders);
+						m_reloadShaders = true;
 					}
 
 					ImGui::Separator();
@@ -610,6 +611,10 @@ public:
 					}
 
 					if (ImGui::Checkbox("NO_SHADING", &m_def_NO_SHADING)) {
+						m_reloadShaders = true;
+					}				
+					
+					if (ImGui::Checkbox("TRACE_NON_OPAQUE_SEPARATELY", &m_def_TRACE_NON_OPAQUE_SEPARATELY)) {
 						m_reloadShaders = true;
 					}
 
@@ -693,6 +698,10 @@ public:
 			defines.push_back(L"CLOSEST_HIT_ALPHA_TEST");
 		}
 
+		if (m_def_TRACE_NON_OPAQUE_SEPARATELY) {
+			defines.push_back(L"TRACE_NON_OPAQUE_SEPARATELY");
+		}
+
 		m_renderer->Refresh(&defines);
 	}
 
@@ -728,11 +737,13 @@ private:
 	bool m_animateLight = false;
 	bool m_allowAnyhitShaders = true;
 	float m_time_lightAnim = 0.0;
+
 	//Shader Defines
 	bool m_def_NO_NORMAL_MAP = false;
 	bool m_def_NO_SHADOWS = false;
 	bool m_def_NO_SHADING = false;
 	bool m_def_CLOSEST_HIT_ALPHA_TEST = false;
+	bool m_def_TRACE_NON_OPAQUE_SEPARATELY = false;
 	bool m_reloadShaders = false;
 };
 
