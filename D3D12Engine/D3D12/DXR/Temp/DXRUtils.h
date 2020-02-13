@@ -26,7 +26,7 @@ namespace DXRUtils {
 		bool Initialize();
 
 		D3D12_STATE_SUBOBJECT* Append(const D3D12_STATE_SUBOBJECT_TYPE type, const void* desc);
-		void AddLibrary(const std::string& shaderPath, const std::vector<LPCWSTR>& names, const std::vector<DxcDefine>& defines = std::vector<DxcDefine>());
+		bool AddLibrary(const std::string& shaderPath, const std::vector<LPCWSTR>& names, const std::vector<DxcDefine>& defines = std::vector<DxcDefine>(), std::wstring* errorMessage = nullptr);
 		void AddHitGroup(LPCWSTR exportName, LPCWSTR closestHitShaderImport, LPCWSTR anyHitShaderImport = nullptr, LPCWSTR intersectionShaderImport = nullptr, D3D12_HIT_GROUP_TYPE type = D3D12_HIT_GROUP_TYPE_TRIANGLES);
 		void AddSignatureToShaders(const std::vector<LPCWSTR>& shaderNames, ID3D12RootSignature** rootSignature);
 		void SetGlobalSignature(ID3D12RootSignature** rootSignature);

@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <vector>
 #include <dxcapi.h>
+#include <string>
 
 class DXILShaderCompiler {
 public:
@@ -24,7 +25,7 @@ public:
 
 	// Compiles a shader into a blob
 	// Compiles from source if source != nullptr, otherwise from file
-	HRESULT compile(Desc* desc, IDxcBlob** ppResult);
+	HRESULT compile(Desc* desc, IDxcBlob** ppResult, std::wstring* errorMessage = nullptr);
 
 private:
 	IDxcLibrary* m_library;

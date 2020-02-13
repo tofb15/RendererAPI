@@ -43,7 +43,7 @@ HRESULT DXILShaderCompiler::init() {
 	return hr;
 }
 
-HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult) {
+HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult, std::wstring* errorMessage) {
 	HRESULT hr = E_FAIL;
 
 	if (desc) {
@@ -85,8 +85,12 @@ HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult) {
 							IDxcBlobEncoding* pPrintBlob16 = nullptr;
 							m_library->GetBlobAsUtf16(pPrintBlob, &pPrintBlob16);
 
-							OutputDebugStringW((LPCWSTR)pPrintBlob16->GetBufferPointer());
-							MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
+							if (errorMessage) {
+
+								OutputDebugStringW((LPCWSTR)pPrintBlob16->GetBufferPointer());
+								*errorMessage = (LPCWSTR)pPrintBlob16->GetBufferPointer();
+							//MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
+							}
 
 							pPrintBlob->Release();
 							pPrintBlob16->Release();
@@ -94,6 +98,9 @@ HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult) {
 					}
 
 					pResult->Release();
+					if (FAILED(hrCompile)) {
+						return hrCompile;
+					}
 				}
 			}
 		}
