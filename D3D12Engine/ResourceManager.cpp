@@ -37,6 +37,24 @@ bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpD
 	return true;
 }
 
+bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, std::string bpName)
+{
+	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName + ".bp";
+	std::ofstream out(fName);
+
+	out << GetMeshName(bp->mesh) << "\n";
+	out << ((bp->allGeometryIsOpaque) ? "opaque" : "transparent") << "\n";
+	out << bp->textures.size() << "\n";
+	for (auto& t : bp->textures)
+	{
+		out << GetTextureName(t) << "\n";
+	}
+
+	out.close();
+
+	return true;
+}
+
 ResourceManager::~ResourceManager()
 {
 	for (auto& e : m_blueprints){if (e.second) {delete e.second;}}
@@ -93,20 +111,30 @@ Mesh* ResourceManager::GetMesh(std::string name)
 	Mesh* mesh = nullptr;
 	std::string fName = m_assetPath + MESH_FOLDER_NAME + name;
 
-	auto search = m_meshes.find(fName);
+	auto search = m_meshes.find(name);
 	if (search == m_meshes.end()) {
 		mesh = m_api->MakeMesh();
 		if (!mesh->LoadFromFile(fName.c_str())) {
 			delete mesh;
 			return nullptr;
 		}
-		m_meshes[fName] = mesh;
+		m_meshes[name] = mesh;
 	}
 	else {
-		mesh = m_meshes[fName];
+		mesh = m_meshes[name];
 	}
 
 	return mesh;
+}
+
+std::string ResourceManager::GetMeshName(Mesh* mesh) {
+	for (auto& e : m_meshes)
+	{
+		if (e.second == mesh) {
+			return e.first;
+		}
+	}
+	return std::string();
 }
 
 Texture* ResourceManager::GetTexture(std::string name)
@@ -114,17 +142,27 @@ Texture* ResourceManager::GetTexture(std::string name)
 	Texture* texture = nullptr;
 	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
 
-	auto search = m_meshes.find(fName);
-	if (search == m_meshes.end()) {
+	auto search = m_textures.find(name);
+	if (search == m_textures.end()) {
 		texture = m_api->MakeTexture();
-		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_CPU_FLAG | Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures[fName] = texture;
+		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures[name] = texture;
 	}
 	else {
-		texture = m_textures[fName];
+		texture = m_textures[name];
 	}
 
 	return texture;
+}
+
+std::string ResourceManager::GetTextureName(Texture* texture) {
+	for (auto& e : m_textures)
+	{
+		if (e.second == texture) {
+			return e.first;
+		}
+	}
+	return std::string();
 }
 
 bool ResourceManager::IsBlueprintLoaded(std::string name){
@@ -148,11 +186,32 @@ Blueprint* ResourceManager::GetBlueprint(std::string name)
 	return bp;
 }
 
+Blueprint* ResourceManager::CreateBlueprint(std::string name) {
+	Blueprint* bp = nullptr;
+	auto search = m_blueprints.find(name);
+	if (search == m_blueprints.end()) {
+		bp = new Blueprint;
+		m_blueprints[name] = bp;
+	}
+
+	return bp;
+}
+
+std::string ResourceManager::GetBlueprintName(Blueprint* bp)
+{
+	for (auto& e : m_blueprints)
+	{
+		if (e.second == bp) {
+			return e.first;
+		}
+	}
+	return std::string();
+}
+
 std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
 	return m_blueprints;
 }
 
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api)
 {
-	
 }

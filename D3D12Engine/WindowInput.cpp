@@ -4,7 +4,11 @@
 
 WindowInput::WindowInput()
 {
-	Reset();
+	for (size_t i = 0; i < NUM_KEYS; i++)
+	{
+		m_isKeysDown[i] = false;
+		m_isKeysPressed[i] = false;
+	}
 }
 
 WindowInput::~WindowInput()
@@ -15,7 +19,6 @@ void WindowInput::Reset()
 {
 	for (size_t i = 0; i < NUM_KEYS; i++)
 	{
-		//m_isKeysDown[i] = false;
 		m_isKeysPressed[i] = false;
 	}
 }

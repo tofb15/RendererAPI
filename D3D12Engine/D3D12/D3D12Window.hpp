@@ -102,6 +102,7 @@ public:
 	ID3D12DescriptorHeap* GetGUIDescriptorHeap();
 
 private:
+	bool m_firstResize = true; //Used to skip the first resize message
 	IDXGISwapChain4*			m_SwapChain4 = nullptr;
 	HWND						m_Wnd;
 	ID3D12DescriptorHeap* m_GUIDescriptHeap = nullptr;
@@ -129,4 +130,5 @@ private:
 	bool InitializeDepthBuffer();	//4.
 	bool InitializeRawInput();
 
+	void ApplyResize();
 };

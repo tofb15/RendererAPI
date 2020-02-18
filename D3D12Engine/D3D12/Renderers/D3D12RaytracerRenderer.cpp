@@ -218,7 +218,7 @@ void D3D12RaytracerRenderer::ClearFrame()
 
 }
 
-void D3D12RaytracerRenderer::Refresh(std::vector<std::wstring>* defines)
+void D3D12RaytracerRenderer::Refresh(std::vector<ShaderDefine>* defines)
 {
 	m_dxrBase->ReloadShaders(defines);
 }

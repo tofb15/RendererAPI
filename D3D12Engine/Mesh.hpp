@@ -56,11 +56,18 @@ public:
 	unsigned GetVertexBufferFlags() const;
 	//virtual void SetTechnique(Technique*);
 	const char* GetMaterialName() const;
+	std::string GetName() const;
+	void SetName(std::string name);
+
+	virtual int GetNumberOfSubMeshes() = 0;
+	virtual std::string GetSubMesheName(int i) = 0;
+
 protected:
 	Mesh();
 	const char* m_DefaultMaterialName;
 	unsigned m_VertexBufferFlags;
 private:
+	std::string m_name;
 	bool m_IsCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
 	//std::vector<VertexBuffer*> vertexBuffers;
 	//Technique* tech; //Moved To blueprint

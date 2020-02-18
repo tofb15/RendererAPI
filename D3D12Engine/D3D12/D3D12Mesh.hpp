@@ -18,6 +18,9 @@ public:
 	virtual bool LoadFromFile(const char * fileName) override;
 	virtual bool InitializeCube(unsigned int vertexBufferFlags) override;
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) override;
+	virtual int GetNumberOfSubMeshes() override;
+	virtual std::string GetSubMesheName(int i) override;
+
 	virtual D3D12VertexBuffer* GetVertexBuffer(VertexBufferFlag bufferType);
 	virtual std::unordered_map<std::string, std::unordered_map<VertexBufferFlag, D3D12VertexBuffer*>>& GetSubObjects();
 
@@ -27,6 +30,7 @@ public:
 	std::vector<D3D12VertexBuffer*> GetVertexBuffers_vec();
 	
 	unsigned short GetID() const;
+
 private:
 	virtual bool AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType, std::string subObject);
 

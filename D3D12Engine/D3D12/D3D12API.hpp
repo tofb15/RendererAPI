@@ -80,7 +80,6 @@ private:
 	UINT m_cbv_srv_uav_size;
 
 	D3D12TextureLoader* m_textureLoader;
-	std::thread m_thread_texture;
 
 	// Default resources
 	ID3D12Device5*           m_device = nullptr;

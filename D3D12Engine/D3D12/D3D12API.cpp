@@ -54,7 +54,7 @@ D3D12API::~D3D12API()
 	m_CommandQueue_direct->Release();
 
 	m_textureLoader->Kill();	//Notify the other thread to stop.
-	m_thread_texture.join();	//Wait for the other thread to stop.
+	//m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
 		delete m_textureLoader;
 
@@ -100,7 +100,7 @@ bool D3D12API::Initialize()
 	}
 
 	//Start new Texture loading thread
-	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
+	//m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
 	m_vertexBufferLoader = MY_NEW D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())

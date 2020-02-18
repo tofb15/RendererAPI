@@ -371,6 +371,24 @@ bool D3D12Mesh::InitializeSphere(const uint16_t verticalSections, const uint16_t
 	return true;
 }
 
+int D3D12Mesh::GetNumberOfSubMeshes()
+{
+	return m_subObjects.size();
+}
+
+std::string D3D12Mesh::GetSubMesheName(int i)
+{
+	int j = 0;
+	for (auto& e : m_subObjects)
+	{
+		if (i == j)
+			return e.first;
+		j++;
+	}
+
+	return std::string();
+}
+
 bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType, std::string subObject)
 {
 	std::unordered_map<VertexBufferFlag, D3D12VertexBuffer*>& m_subObject = m_subObjects[subObject];

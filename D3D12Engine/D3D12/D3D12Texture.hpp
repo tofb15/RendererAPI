@@ -31,6 +31,8 @@ public:
 	std::vector<unsigned char> GetData_cpy() const;
 private:
 	friend D3D12TextureLoader;
+	//Called from D3D12TextureLoader
+	bool LoadFromFile_Blocking();
 
 	//void load();
 	//bool CreateGPUTextureResource();
@@ -43,4 +45,5 @@ private:
 
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/
 	int m_GPU_Loader_index = -1;
+	std::string m_fileName;
 };

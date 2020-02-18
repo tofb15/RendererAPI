@@ -20,17 +20,10 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 {
 	if (flags == 0)
 		return false;
+
 	m_Flags = flags;
-
-	//decode
-	unsigned error = lodepng::decode(m_Image_CPU, m_Width, m_Height, fileName);
+	m_fileName = fileName;
 	m_BytesPerPixel = 4;
-
-	//if there's an error, display it
-	if (error) {
-		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-		return false;
-	}
 
 	//If GPU_USAGE_FLAG is set, create a texture recorce on the GPU.
 	if (flags & Texture_Load_Flags::TEXTURE_USAGE_GPU_FLAG) {
@@ -91,4 +84,17 @@ const std::vector<unsigned char>& D3D12Texture::GetData_addr_const() const
 std::vector<unsigned char> D3D12Texture::GetData_cpy() const
 {
 	return m_Image_CPU;
+}
+
+bool D3D12Texture::LoadFromFile_Blocking()
+{
+	unsigned error = lodepng::decode(m_Image_CPU, m_Width, m_Height, m_fileName);
+
+	//if there's an error, display it
+	if (error) {
+		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+		return false;
+	}
+
+	return true;
 }

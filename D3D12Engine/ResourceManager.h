@@ -21,7 +21,8 @@ const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 */
 class Blueprint {
 public:
-	Mesh* mesh;
+	bool hasChanged = false;
+	Mesh* mesh = nullptr;
 	std::vector<Technique*> techniques;
 	std::vector<Texture*>	textures;
 
@@ -42,13 +43,22 @@ class ResourceManager
 public:
 	static ResourceManager* GetInstance(RenderAPI* api);
 	static bool SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions);
+	bool SaveBlueprintToFile(Blueprint* bp, std::string bpName);
+
 	~ResourceManager();
 
 	void SetAssetPath(std::string s);
 	Blueprint* LoadBlueprintFromFile(std::string path);
 	Mesh* GetMesh(std::string name);
+	std::string GetMeshName(Mesh* mesh);
+
 	Texture* GetTexture(std::string name);
+	std::string GetTextureName(Texture* texture);
+
 	Blueprint* GetBlueprint(std::string name);
+	Blueprint* CreateBlueprint(std::string name);
+
+	std::string GetBlueprintName(Blueprint* bp);
 	bool IsBlueprintLoaded(std::string name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 

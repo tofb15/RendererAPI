@@ -84,6 +84,13 @@ public:
 		}
 
 		m_rm = ResourceManager::GetInstance(m_renderAPI);
+		m_dummyTexture = m_rm->GetTexture("emplyNormal.png");
+
+#ifdef AT_OFFICE
+		m_rm->SetAssetPath("../../Exported_Assets/");
+#else
+		m_rm->SetAssetPath("../assets/");
+#endif // AT_OFFICE
 
 		if (!InitializeMaterialsAndRenderStates()) {
 			return -2;
@@ -422,8 +429,76 @@ public:
 		}
 	}
 
+	void RenderGeometryWindow(Blueprint* bp) {
+		if(ImGui::Checkbox("Opaque Geometry", &bp->allGeometryIsOpaque)) {
+			bp->hasChanged = true;
+		}
+
+		ImGui::BeginChild("Geometry left pane", ImVec2(150, 0), true);
+		static int selectedGeometry = 0;
+
+		if (bp->mesh) {
+			for (int i = 0; i < bp->mesh->GetNumberOfSubMeshes(); i++)
+			{
+				if (ImGui::Selectable(bp->mesh->GetSubMesheName(i).c_str(), i == selectedGeometry)) {
+						selectedGeometry = i;
+				}
+
+				if (ImGui::IsItemHovered()) {
+					ImGui::BeginTooltip();
+					ImGui::Text(bp->mesh->GetSubMesheName(i).c_str());
+					ImGui::EndTooltip();
+				}
+			}
+			ImGui::Separator();
+		}
+
+		ImGui::EndChild();
+		ImGui::SameLine();
+
+		// right
+		if (bp->mesh && selectedGeometry < bp->mesh->GetNumberOfSubMeshes()) {
+			ImGui::BeginGroup();
+			ImGui::BeginChild("item view 2", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+
+			//if (selectedBP) {
+			//	meshName = m_rm->GetMeshName(selectedBP->mesh);
+			//}
+			std::string textureName;
+			int textureIndex;
+
+			textureIndex = selectedGeometry * 2;	
+			textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
+			if (ImGui::BeginCombo("Albedo Texture", textureName.c_str())) {
+				for (auto const& texture : m_textureList) {
+					if (ImGui::Selectable(texture.c_str(), texture == textureName)) {
+						bp->textures[textureIndex] = m_rm->GetTexture(texture);
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+
+			textureIndex++;
+			textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
+			if (ImGui::BeginCombo("NormalMap Texture", textureName.c_str())) {
+				for (auto const& texture : m_textureList) {
+					if (ImGui::Selectable(texture.c_str(), texture == textureName)) {
+						bp->textures[textureIndex] = m_rm->GetTexture(texture);
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::EndChild();
+			ImGui::EndGroup();
+		}
+	}
+
 	void RenderBlueprintWindow() {
 		static bool open = true;
+		static std::string selected = "";
+		static Blueprint* selectedBP = nullptr;
+
 		ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin("Blueprint List", &open, ImGuiWindowFlags_MenuBar))
 		{
@@ -431,6 +506,23 @@ public:
 			{
 				if (ImGui::BeginMenu("File"))
 				{
+					if (ImGui::MenuItem("Add New Blueprint")) {
+						Blueprint* bp = nullptr;
+						if (bp = m_rm->CreateBlueprint("unsavedBP")) {
+							selected = "unsavedBP";
+							selectedBP = bp;
+							m_unSavedBlueprints.push_back("unsavedBP");
+
+							for (auto& e : m_objects)
+							{
+								delete e;
+							}
+							m_objects.clear();
+						}
+					}
+					if (ImGui::MenuItem("Refresh")) {
+						ListBlueprints();
+					}
 					if (ImGui::MenuItem("Save Selected")) {
 
 					}
@@ -448,12 +540,46 @@ public:
 				{
 					// left
 					//static Blueprint* selected = nullptr;
-					static std::string selected = "";
-					static Blueprint* selectedBP = nullptr;
 
 					ImGui::BeginChild("left pane", ImVec2(150, 0), true);
 					int i = 0;
-					for (auto& e : m_unloadedBlueprints)
+
+					if (!m_unSavedBlueprints.empty()) {
+						for (auto& e : m_unSavedBlueprints)
+						{
+							if (ImGui::Selectable(e.c_str(), selected == e)) {
+								if (selectedBP = m_rm->GetBlueprint(e)) {
+									selected = e;
+									if (m_objects.empty()) {
+										m_objects.push_back(new Object);
+									}
+									m_objects.front()->blueprint = selectedBP;
+								}
+							}
+
+							if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
+								Blueprint* bp = m_rm->GetBlueprint(e);
+								bool found = false;
+								for (int j = 0; j < m_objects.size(); j++) {
+									if (m_objects[j]->blueprint == bp) {
+										found = true;
+										m_objects.erase(m_objects.begin() + j);
+										break;
+									}
+								}
+
+								if (!found) {
+									m_objects.push_back(new Object);
+									m_objects.back()->blueprint = bp;
+								}
+							}
+							i++;
+						}
+
+						ImGui::Separator();
+					}
+					
+					for (auto& e : m_SavedBlueprints)
 					{		
 						if (ImGui::Selectable(e.c_str(), selected == e)) {
 							if (selectedBP = m_rm->GetBlueprint(e)) {
@@ -492,9 +618,39 @@ public:
 						ImGui::BeginGroup();
 						ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
 						ImGui::Text(selected.c_str());
+
+						std::string meshName = "";
+						if (selectedBP) {
+							meshName = m_rm->GetMeshName(selectedBP->mesh);
+						}
+						if (ImGui::BeginCombo("Mesh Select", meshName.c_str())) {
+							for (auto const& mesh : m_meshList) {
+								if (ImGui::Selectable(mesh.c_str(), mesh == meshName)) {
+									selectedBP->hasChanged = true;
+									selectedBP->mesh = m_rm->GetMesh(mesh);
+									int nNeededTextures = selectedBP->mesh->GetNumberOfSubMeshes() * 2;
+									for (size_t i = selectedBP->textures.size(); i < nNeededTextures; i++)
+									{
+										selectedBP->textures.push_back(m_dummyTexture);
+									}
+
+									if (selectedBP->textures.size() > nNeededTextures) {
+										selectedBP->textures.erase(selectedBP->textures.begin() + nNeededTextures, selectedBP->textures.end());
+									}
+								}
+							}
+							ImGui::EndCombo();
+						}
+
 						ImGui::Separator();
 						if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
 						{
+							if (ImGui::BeginTabItem("Geometries"))
+							{
+								RenderGeometryWindow(selectedBP);
+								ImGui::EndTabItem();
+							}
+
 							if (ImGui::BeginTabItem("Textures"))
 							{
 								for (auto& e : selectedBP->textures)
@@ -513,7 +669,9 @@ public:
 						ImGui::EndChild();
 						if (ImGui::Button("Revert")) {}
 						ImGui::SameLine();
-						if (ImGui::Button("Save")) {}
+						if (ImGui::Button("Save")) {				
+							m_rm->SaveBlueprintToFile(selectedBP, m_rm->GetBlueprintName(selectedBP));						
+						}
 						ImGui::EndGroup();
 					}
 					ImGui::EndTabItem();
@@ -566,35 +724,60 @@ public:
 	}
 	void ListBlueprints() {
 		std::error_code err;
-		m_unloadedBlueprints.clear();
 
+		m_SavedBlueprints.clear();
 		for (auto& file : std::filesystem::directory_iterator("../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME), err)) {
 			if (file.path().extension().string() == ".bp") {
 				std::string s = file.path().filename().string();
 				s = s.substr(0, s.find_last_of("."));
 				if (!m_rm->IsBlueprintLoaded(file.path().filename().string())) {
-					m_unloadedBlueprints.push_back(s);
+					m_SavedBlueprints.push_back(s);
 				}
+			}
+		}
+
+		//Textures
+		m_textureList.clear();
+		for (auto& file : std::filesystem::directory_iterator("../../Exported_Assets/" + std::string(TEXTURE_FODLER_NAME), err)) {
+			if (file.path().extension().string() == ".png") {
+				std::string s = file.path().filename().string();
+				//s = s.substr(0, s.find_last_of("."));
+				m_textureList.push_back(s);
+			}
+		}
+
+		//Meshes
+		m_meshList.clear();
+		for (auto& file : std::filesystem::directory_iterator("../../Exported_Assets/" + std::string(MESH_FOLDER_NAME), err)) {
+			if (file.path().extension().string() == ".obj") {
+				std::string s = file.path().filename().string();
+				//s = s.substr(0, s.find_last_of("."));
+				m_meshList.push_back(s);
 			}
 		}
 	}
 	void ReloadShaders() {
 		m_reloadShaders = false;
-		std::vector<std::wstring> defines;
+		std::vector<ShaderDefine> defines;
 		if (m_def_NO_NORMAL_MAP) {
-			defines.push_back(L"NO_NORMAL_MAP");
+			defines.push_back({L"NO_NORMAL_MAP"});
 		}
 
 		if (m_def_NO_SHADOWS) {
-			defines.push_back(L"NO_SHADOWS");
+			defines.push_back({ L"NO_SHADOWS" });
 		}
 		
 		if (m_def_NO_SHADING) {
-			defines.push_back(L"NO_SHADING");
+			defines.push_back({ L"NO_SHADING" });
 		}
 
 		m_renderer->Refresh(&defines);
 	}
+
+	void CreateNewBlueprint(std::string bpName) {
+		
+	}
+
 private:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;
@@ -621,7 +804,13 @@ private:
 	std::vector<LightSource> m_lights;
 	ResourceManager* m_rm;
 
-	std::vector<std::string> m_unloadedBlueprints;
+	std::vector<std::string> m_SavedBlueprints;
+	std::vector<std::string> m_unSavedBlueprints;
+
+	std::vector<std::string> m_textureList;
+	std::vector<std::string> m_meshList;
+
+	Texture* m_dummyTexture;
 
 	bool m_animateLight = false;
 	//Shader Defines

@@ -30,6 +30,9 @@ constexpr UINT NUM_DESCRIPTORS_TOTAL = NUM_DESCRIPTORS_PER_GPU_BUFFER * NUM_GPU_
 // Include defines shared with dxr shaders
 //#include "Sail/../../SPLASH/res/shaders/dxr/Common_hlsl_cpp.hlsl"
 
+//TODO: allow dynamic value
+constexpr int MAX_NUM_GEOMETRIES_IN_BLAS = 20;
+
 class DXRBase {
 public:
 	DXRBase(D3D12API* d3d12);
@@ -41,7 +44,7 @@ public:
 
 	void UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights);
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
-	void ReloadShaders(std::vector<std::wstring>* defines);
+	void ReloadShaders(std::vector<ShaderDefine>* defines);
 
 	//Settings
 	void SetAllowAnyHitShader(bool b);
@@ -60,14 +63,16 @@ private:
 	};
 
 	struct BottomLayerData {
+		bool needsRebuild = false;
 		AccelerationStructureBuffers as;
 		//number of geometries(meshes) inside the BLAS
 		uint nGeometries;
-		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[5];
+		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[MAX_NUM_GEOMETRIES_IN_BLAS];
 		std::vector<PerInstance> items;
 
 		BottomLayerData& operator =(const BottomLayerData& other) {
 			as = other.as;
+			needsRebuild = other.needsRebuild;
 			nGeometries = other.nGeometries;
 			for (size_t i = 0; i < nGeometries; i++)
 			{
@@ -98,7 +103,7 @@ private:
 	bool CreateHitGroupLocalRootSignature();
 	bool CreateMissLocalRootSignature();
 	bool CreateEmptyLocalRootSignature();
-	bool CreateRaytracingPSO(std::vector<std::wstring>* defines);
+	bool CreateRaytracingPSO(std::vector<ShaderDefine>* defines);
 	bool CreateDescriptorHeap();
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();

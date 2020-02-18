@@ -19,7 +19,6 @@ public:
 
 	bool Initialize();
 
-	void DoWork();
 	void LoadTextureToGPU(D3D12Texture* texture);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);
@@ -33,19 +32,33 @@ public:
 
 	void SynchronizeWork();
 	void Kill();
+
 private:
+	void GPUUploaderDoWork();
+	void RAMUploaderDoWork();
+	
 	void SignalAndWaitForCopy();
 	void WaitForCopy(UINT64 fence);
 	bool AddDescriptorHeap();
 
 	std::mutex m_mutex_TextureResources;
-	std::condition_variable m_cv_not_empty;	//Notify that there is work to be done.
-	std::condition_variable m_cv_empty;		//Notify that there is no work to be done.
+	//std::mutex m_mutex_TextureResources2;
+
+	std::condition_variable m_cv_gpu_not_empty;	//Notify that there is work to be done.
+	std::condition_variable m_cv_gpu_empty;		//Notify that there is no work to be done.
+
+	std::condition_variable m_cv_ram_not_empty;		//Notify that there is work to be done.
+	std::condition_variable m_cv_ram_empty;			//Notify that there is no work to be done.
+
+	std::thread m_gpu_upload_Worker;
+	std::thread m_ram_upload_Worker;
+
 	bool m_stop = false;
 	bool m_atLeastOneTextureIsLoaded = false;
 
 	//Temp Storage
 	std::vector<D3D12Texture*> m_texturesToLoadToGPU;
+	std::vector<D3D12Texture*> m_texturesToLoadToRAM;
 
 	//Permanent Storage
 	const unsigned MAX_SRVs_PER_DESCRIPTOR_HEAP = 100;
@@ -54,6 +67,9 @@ private:
 	std::vector<ID3D12Resource*> m_textureResources;
 
 	unsigned m_CBV_SRV_UAV_DescriptorSize;
+
+	ID3D12Resource* m_uploadResource = nullptr;
+	UINT m_uploadResource_Size = 0;
 
 	D3D12API*				m_renderer;
 	ID3D12CommandQueue*			m_commandQueue = nullptr;

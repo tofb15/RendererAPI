@@ -58,6 +58,16 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	for (auto& e : m_BLAS_buffers[gpuBuffer])
 	{
 		e.second.items.clear();
+		if (e.first->hasChanged) {
+			e.first->hasChanged = false;
+			for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
+			{
+				auto search = m_BLAS_buffers[i].find(e.first);
+				if (search != m_BLAS_buffers[i].end()) {
+					search->second.needsRebuild = true;
+				}
+			}
+		}
 	}
 
 	if (m_forceBLASRebuild[gpuBuffer]) {
@@ -79,8 +89,15 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 			CreateBLAS(e, 0, cmdList);
 		}
 		else {
-			//Prepare TLAS update		
-			search->second.items.emplace_back(PerInstance{ e.transform });
+			if (search->second.needsRebuild) {
+				search->second.as.Release();
+				m_BLAS_buffers[gpuBuffer].erase(search);
+				CreateBLAS(e, 0, cmdList);
+			}
+			else {
+				//Insert instance	
+				search->second.items.emplace_back(PerInstance{ e.transform });
+			}
 		}
 	}
 
@@ -172,7 +189,7 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	cmdList->DispatchRays(&desc);
 }
 
-void DXRBase::ReloadShaders(std::vector<std::wstring>* defines)
+void DXRBase::ReloadShaders(std::vector<ShaderDefine>* defines)
 {
 	m_d3d12->WaitForGPU_ALL();
 	// Recompile hlsl
@@ -361,10 +378,10 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 	//D3D12_VERTEX_BUFFER_VIEW* bufferView = vb_pos->GetView();
 	
 	//=======Describe the geometry========
-	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc[5] = {};
+	D3D12_RAYTRACING_GEOMETRY_DESC geomDesc[MAX_NUM_GEOMETRIES_IN_BLAS] = {};
 
 	std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = static_cast<D3D12Mesh*>(item.blueprint->mesh)->GetSubObjects();
-	unsigned int nObjects = min(objects.size(), 5);
+	unsigned int nObjects = min(objects.size(), MAX_NUM_GEOMETRIES_IN_BLAS);
 
 	int i = 0;
 	for (auto& e : objects)
@@ -528,6 +545,9 @@ void DXRBase::UpdateShaderTable()
 
 			blasIndex += DXRShaderCommon::N_RAY_TYPES;
 			i++;
+			if (i == blas.second.nGeometries) {
+				break;
+			}
 		}
 	}
 
@@ -561,7 +581,7 @@ void DXRBase::createInitialShaderResources(bool remake)
 {
 }
 
-bool DXRBase::CreateRaytracingPSO(std::vector<std::wstring>* _defines)
+bool DXRBase::CreateRaytracingPSO(std::vector<ShaderDefine>* _defines)
 {
 	if (m_rtxPipelineState) {
 		m_rtxPipelineState->Release();
@@ -578,7 +598,7 @@ bool DXRBase::CreateRaytracingPSO(std::vector<std::wstring>* _defines)
 	if (_defines) {
 		for (auto& e : *_defines)
 		{
-			defines.push_back({ e.c_str() });
+			defines.push_back({ e.define.c_str(), e.value.c_str() });
 		}
 	}
 

@@ -10,6 +10,11 @@ class Technique;
 class Mesh;
 class Texture;
 
+struct ShaderDefine {
+	std::wstring define;
+	_Maybenull_ std::wstring value;
+};
+
 struct SubmissionItem {
 	Blueprint* blueprint;
 	Transform transform;
@@ -59,7 +64,7 @@ public:
 	*/
 	virtual void Present(Window* window, GUI* gui = nullptr) = 0;
 	virtual void ClearFrame() = 0;
-	virtual void Refresh(std::vector<std::wstring>* defines = nullptr) {};
+	virtual void Refresh(std::vector<ShaderDefine>* defines = nullptr) {};
 	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
 	
 	virtual void SetSetting(std::string setting, float value) {};
