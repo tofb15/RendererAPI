@@ -84,7 +84,9 @@ bool D3D12TextureLoader::Initialize()
 	m_eventHandle = CreateEvent(0, false, false, 0);
 
 	m_gpu_upload_Worker = std::thread(&D3D12TextureLoader::GPUUploaderDoWork, this);
-	m_ram_upload_Worker = std::thread(&D3D12TextureLoader::RAMUploaderDoWork, this);
+	for (int i = 0; i < N_RAM_LOADER_THREADS; i++) {
+		m_ram_upload_Worker[i] = std::thread(&D3D12TextureLoader::RAMUploaderDoWork, this);
+	}
 
 	return true;
 }
@@ -176,7 +178,9 @@ void D3D12TextureLoader::Kill()
 	}
 
 	m_gpu_upload_Worker.join();
-	m_ram_upload_Worker.join();
+	for (int i = 0; i < N_RAM_LOADER_THREADS; i++) {
+		m_ram_upload_Worker[i].join();
+	}
 }
 
 void D3D12TextureLoader::GPUUploaderDoWork()

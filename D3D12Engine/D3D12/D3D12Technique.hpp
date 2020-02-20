@@ -12,6 +12,8 @@ struct ID3D12RootSignature;
 /*
 	Describes how a mesh should be rendered.
 	Contains a collection of shader data(Material) and specific render states(RenderState)
+
+	TODO: integrate it with RTX
 */
 class D3D12Technique : public Technique{
 public:
@@ -35,5 +37,4 @@ private:
 	D3D12RenderState* m_rs;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	ID3D12RootSignature* m_rootSignature = nullptr;
-
 };

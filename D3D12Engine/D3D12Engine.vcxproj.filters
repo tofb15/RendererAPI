@@ -153,6 +153,9 @@
     <ClCompile Include="External\IMGUI\imgui_impl_win32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Loaders\OBJ_Loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Texture.hpp">
@@ -300,6 +303,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="External\IMGUI\imgui_impl_win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Loaders\OBJ_Loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -175,6 +175,7 @@
     <ClCompile Include="External\IMGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Light\LightSource.cpp" />
+    <ClCompile Include="Loaders\OBJ_Loader.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -245,6 +246,7 @@
     <ClInclude Include="External\IMGUI\imgui_impl_win32.h" />
     <ClInclude Include="External\IMGUI\imgui_internal.h" />
     <ClInclude Include="Light\LightSource.h" />
+    <ClInclude Include="Loaders\OBJ_Loader.h" />
     <ClInclude Include="Renderer.hpp" />
     <ClInclude Include="ParticleSystem.hpp" />
     <ClInclude Include="ResourceManager.h" />

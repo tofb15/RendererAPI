@@ -151,7 +151,7 @@ void DXRBase::UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource
 	DirectX::XMStoreFloat4x4(&sceneData->projectionToWorld, viewProj_inv);
 	
 	if (!lights.empty()) {
-		sceneData->pLight.position = lights.back().getPosition();
+		sceneData->pLight.position = lights.back().m_position_animated;
 	}
 	else {
 		sceneData->pLight.position = Float3(-10, 50, -10);
@@ -407,8 +407,8 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 		geomDesc[i].Triangles.Transform3x4 = 0;
 		//geomDesc[i].Flags = (true) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
 		
-		if (m_allowAnyhitshaders) {
-			geomDesc[i].Flags = (item.blueprint->allGeometryIsOpaque || i < 1) ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION; //Todo: Make this changable		
+		if (!item.blueprint->allGeometryIsOpaque && m_allowAnyhitshaders) {
+			geomDesc[i].Flags = (item.blueprint->alphaTested[i]) ? D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION : D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE; //Todo: Make this changable		
 		}
 		else {
 			geomDesc[i].Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
@@ -503,7 +503,7 @@ void DXRBase::UpdateShaderTable()
 			//===Add Shader(group) Identifier===
 			//TODO: identify which geometry need none opaque
 			
-			hitGroupTable.AddShader(i == 0 ? m_group_group1 : m_group_group_alphaTest);
+			hitGroupTable.AddShader((blas.first->alphaTested[i] && m_allowAnyhitshaders) ? m_group_group_alphaTest : m_group_group1);
 			//if (m_allowAnyhitshaders) {
 			//}
 			//else {
@@ -523,10 +523,8 @@ void DXRBase::UpdateShaderTable()
 			texture_gdh.ptr += m_descriptorSize;
 
 			//===ShadowRayHit Shader===
-			if (i == 0 || !m_allowAnyhitshaders) {
-				hitGroupTable.AddShader(L"NULL");
-			}
-			else {
+			if (blas.first->alphaTested[i] && m_allowAnyhitshaders) {
+				//Alphatest geometry shadow hit shader
 				texture_gdh.ptr -= m_descriptorSize * 2;
 				hitGroupTable.AddShader(m_group_group_alphaTest_shadow);
 
@@ -541,6 +539,10 @@ void DXRBase::UpdateShaderTable()
 				texture_gdh.ptr += m_descriptorSize;
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
 				texture_gdh.ptr += m_descriptorSize;
+			}
+			else {
+				//Opaque geometry dont need a shadow hit shader
+				hitGroupTable.AddShader(L"NULL");
 			}
 
 			blasIndex += DXRShaderCommon::N_RAY_TYPES;

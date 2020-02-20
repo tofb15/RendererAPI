@@ -41,6 +41,8 @@ private:
 	void WaitForCopy(UINT64 fence);
 	bool AddDescriptorHeap();
 
+	static const int N_RAM_LOADER_THREADS = 2;
+
 	std::mutex m_mutex_TextureResources;
 	//std::mutex m_mutex_TextureResources2;
 
@@ -51,7 +53,7 @@ private:
 	std::condition_variable m_cv_ram_empty;			//Notify that there is no work to be done.
 
 	std::thread m_gpu_upload_Worker;
-	std::thread m_ram_upload_Worker;
+	std::thread m_ram_upload_Worker[N_RAM_LOADER_THREADS];
 
 	bool m_stop = false;
 	bool m_atLeastOneTextureIsLoaded = false;

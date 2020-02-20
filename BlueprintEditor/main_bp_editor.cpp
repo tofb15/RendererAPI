@@ -102,9 +102,9 @@ public:
 		}
 		InitializeCameras();
 		m_lights.emplace_back();
-		m_lights.back().setPosition(Float3(0, 10, 0));
-		ListBlueprints();
+		m_lights.back().m_position_center = (Float3(0, 10, 0));
 
+		ListBlueprints();
 		m_profilerAVGFPS.SetTitle("FPS");
 
 		return 0;
@@ -289,10 +289,11 @@ public:
 			m_time_lightAnim += dt * 0.05;
 		}
 
-		Float3 lightCenter(0, 50, 0);
 		float lightRad = 50;
 		float lightSpeedMulti = 15;
-		m_lights.back().setPosition(lightCenter + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
+		for (auto& e : m_lights) {
+			e.m_position_animated = (e.m_position_center + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
+		}
 	}
 	void UpdateInput()
 	{
@@ -430,16 +431,16 @@ public:
 	}
 
 	void RenderGeometryWindow(Blueprint* bp) {
-		if(ImGui::Checkbox("Opaque Geometry", &bp->allGeometryIsOpaque)) {
-			bp->hasChanged = true;
-		}
+		//if(ImGui::Checkbox("Force Opaque", &bp->allGeometryIsOpaque)) {
+		//	bp->hasChanged = true;
+		//}
 
 		ImGui::BeginChild("Geometry left pane", ImVec2(150, 0), true);
 		static int selectedGeometry = 0;
 
 		if (bp->mesh) {
 			for (int i = 0; i < bp->mesh->GetNumberOfSubMeshes(); i++)
-			{
+			{		
 				if (ImGui::Selectable(bp->mesh->GetSubMesheName(i).c_str(), i == selectedGeometry)) {
 						selectedGeometry = i;
 				}
@@ -460,6 +461,20 @@ public:
 		if (bp->mesh && selectedGeometry < bp->mesh->GetNumberOfSubMeshes()) {
 			ImGui::BeginGroup();
 			ImGui::BeginChild("item view 2", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+
+			bool b = bp->alphaTested[selectedGeometry];
+			if (ImGui::Checkbox("Alpha Tested", &b)) {
+				bp->hasChanged = true;
+				bp->alphaTested[selectedGeometry] = b;
+
+				bp->allGeometryIsOpaque = true;
+				for (bool b : bp->alphaTested) {
+					if (b) {
+						bp->allGeometryIsOpaque = false;
+						break;
+					}
+				}
+			}
 
 			//if (selectedBP) {
 			//	meshName = m_rm->GetMeshName(selectedBP->mesh);
@@ -637,6 +652,13 @@ public:
 									if (selectedBP->textures.size() > nNeededTextures) {
 										selectedBP->textures.erase(selectedBP->textures.begin() + nNeededTextures, selectedBP->textures.end());
 									}
+
+									selectedBP->allGeometryIsOpaque = true;
+									selectedBP->alphaTested.clear();
+									for (size_t i = 0; i < selectedBP->mesh->GetNumberOfSubMeshes(); i++)
+									{
+										selectedBP->alphaTested.push_back(false);
+									}
 								}
 							}
 							ImGui::EndCombo();
@@ -648,20 +670,6 @@ public:
 							if (ImGui::BeginTabItem("Geometries"))
 							{
 								RenderGeometryWindow(selectedBP);
-								ImGui::EndTabItem();
-							}
-
-							if (ImGui::BeginTabItem("Textures"))
-							{
-								for (auto& e : selectedBP->textures)
-								{
-
-								}
-								ImGui::EndTabItem();
-							}
-							if (ImGui::BeginTabItem("Details"))
-							{
-								ImGui::Text("ID: 0123456789");
 								ImGui::EndTabItem();
 							}
 							ImGui::EndTabBar();

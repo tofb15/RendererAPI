@@ -23,18 +23,19 @@ class Blueprint {
 public:
 	bool hasChanged = false;
 	Mesh* mesh = nullptr;
-	std::vector<Technique*> techniques;
+	std::vector<Technique*> techniques; //used for raster
 	std::vector<Texture*>	textures;
 
-	//RTX defines. TODO: find a place to store these that is not here.
-	bool allGeometryIsOpaque = true;
+	//===TODO: find a place to store these that is not here. They should be integrated in to the Technique
+	std::vector<bool> alphaTested;   //for each geometry in the mesh; is it alphatested.
+	bool allGeometryIsOpaque = true; //false if at least one geometry in the mesh is alphaTested
 };
 
 struct BlueprintDescription
 {
 	std::string blueprintName;
 	std::string meshPath;
-	bool allGeometryIsOpaque = true;
+	std::vector<bool> alphaTested;
 	std::vector<std::string> texturePaths;
 };
 
@@ -49,19 +50,18 @@ public:
 
 	void SetAssetPath(std::string s);
 	Blueprint* LoadBlueprintFromFile(std::string path);
-	Mesh* GetMesh(std::string name);
-	std::string GetMeshName(Mesh* mesh);
-
-	Texture* GetTexture(std::string name);
-	std::string GetTextureName(Texture* texture);
-
 	Blueprint* GetBlueprint(std::string name);
 	Blueprint* CreateBlueprint(std::string name);
+	Mesh* GetMesh(std::string name);
+	Texture* GetTexture(std::string name);
 
+	std::string GetMeshName(Mesh* mesh);
+	std::string GetTextureName(Texture* texture);
 	std::string GetBlueprintName(Blueprint* bp);
 	bool IsBlueprintLoaded(std::string name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
+	bool DoesFileExist(std::string s);
 public:
 
 private:

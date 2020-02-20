@@ -3,6 +3,7 @@
 #include "RenderAPI.hpp"
 #include "Mesh.hpp"
 #include "Texture.hpp"
+#include <filesystem>
 
 ResourceManager* s_instance = nullptr;
 
@@ -24,7 +25,12 @@ bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpD
 
 		//out << e.blueprintName << "\n";
 		out << e.meshPath << "\n";
-		out << ((e.allGeometryIsOpaque) ? "opaque" : "transparent") << "\n";
+		out << e.alphaTested.size() << "\n";
+		for (auto b : e.alphaTested)
+		{
+			out << (b ? "alphaTested" : "opaque") << "\n";
+		}
+
 		out << e.texturePaths.size() << "\n";
 		for (auto& t : e.texturePaths)
 		{
@@ -43,7 +49,14 @@ bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, std::string bpName)
 	std::ofstream out(fName);
 
 	out << GetMeshName(bp->mesh) << "\n";
-	out << ((bp->allGeometryIsOpaque) ? "opaque" : "transparent") << "\n";
+	//out << ((bp->allGeometryIsOpaque) ? "opaque" : "transparent") << "\n";
+
+	out << bp->alphaTested.size() << "\n";
+	for (auto b : bp->alphaTested)
+	{
+		out << (b ? "alphaTested" : "opaque") << "\n";
+	}
+
 	out << bp->textures.size() << "\n";
 	for (auto& t : bp->textures)
 	{
@@ -85,19 +98,23 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 		return nullptr;
 	}
 
-	std::getline(in, line);
-	if (line == "opaque") {
-		bp->allGeometryIsOpaque = true;
-	}
-	else if (line == "transparent") {
-		bp->allGeometryIsOpaque = false;
+	int tempInt;
+	in >> tempInt;
+	in.ignore();
+	for (size_t i = 0; i < tempInt; i++)
+	{
+		std::getline(in, line);
+		bool b = (line == "alphaTested");
+
+		bp->alphaTested.push_back(b);
+		if (b) {
+			bp->allGeometryIsOpaque = false;
+		}
 	}
 
-	int nTextures;
-	in >> nTextures;
-	in.ignore();
-	
-	for (size_t i = 0; i < nTextures; i++)
+	in >> tempInt;
+	in.ignore();	
+	for (size_t i = 0; i < tempInt; i++)
 	{
 		std::getline(in, line);
 		bp->textures.push_back(GetTexture(line));
@@ -113,6 +130,10 @@ Mesh* ResourceManager::GetMesh(std::string name)
 
 	auto search = m_meshes.find(name);
 	if (search == m_meshes.end()) {
+		if (!DoesFileExist(fName)) {
+			return nullptr;
+		}
+		
 		mesh = m_api->MakeMesh();
 		if (!mesh->LoadFromFile(fName.c_str())) {
 			delete mesh;
@@ -144,6 +165,10 @@ Texture* ResourceManager::GetTexture(std::string name)
 
 	auto search = m_textures.find(name);
 	if (search == m_textures.end()) {
+		if (!DoesFileExist(fName)) {
+			return nullptr;
+		}
+
 		texture = m_api->MakeTexture();
 		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
 		m_textures[name] = texture;
@@ -210,6 +235,11 @@ std::string ResourceManager::GetBlueprintName(Blueprint* bp)
 
 std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
 	return m_blueprints;
+}
+
+bool ResourceManager::DoesFileExist(std::string s)
+{
+	return std::filesystem::exists(s);
 }
 
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api)

@@ -1,7 +1,7 @@
 #define HLSL
 #include "Common_hlsl_cpp.hlsli"
 
-static const uint g_SHADOW_RAY_FLAGS = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+static const uint g_SHADOW_RAY_FLAGS = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
 static const float RAY_T_MAX = 2000.0f;
 
 // Barycentric interpolation
@@ -120,9 +120,10 @@ void rayGen() {
 		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload);
 #ifdef RAY_GEN_ALPHA_TEST
 		uint i = 1;
-		while (payload.color.a < 0.1) {
+		while (payload.color.a < 0.5) {
 			i++;
-			ray.TMin = payload.hitT + 0.01;
+			ray[r].TMin = payload.hitT + 0.001f;
+			payload.hitT = 0.0f;
 			payload.recursionDepth = 0;
 			TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload);
 		}
@@ -181,6 +182,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 	float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
 	float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
 
+	float4 bumpMapColor = sys_texNormMap.SampleLevel(samp, uv, 0);
 #ifndef NO_NORMAL_MAP
 	//===Add Normal Map===
 	float3 tangent = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent));
@@ -189,7 +191,6 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 	tangent = normalize(tangent);
 	binormal = normalize(binormal);
 
-	float4 bumpMapColor = sys_texNormMap.SampleLevel(samp, uv, 0);
 	//bumpMapColor *= bumpMapColor.a;
 	float3x3 tbn = float3x3(
 		tangent,
@@ -232,9 +233,9 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 	float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
 #ifndef NO_SHADING
-	payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1.0f);
+	payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), bumpMapColor.a);
 #else
-	payload.color = float4(albedo.xyz, 1.0f);
+	payload.color = float4(albedo.xyz, bumpMapColor.a);
 #endif //NO_LIGHT
 
 }

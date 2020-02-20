@@ -36,10 +36,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostMessageW(hWnd, WM_SIZE_CUSTOM, wParam, lParam);
 	}
 	break;
+	case WM_QUIT:
+	case WM_CLOSE:
 	case WM_DESTROY:
-		PostQuitMessage(0);
+		//PostQuitMessage(0);
 		quit = true;
-		break;
+		return 0;
 	case WM_KEYDOWN:
 	{
 		short key = static_cast<short>(wParam);
@@ -56,7 +58,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
-
 	}
 		break;
 	}
