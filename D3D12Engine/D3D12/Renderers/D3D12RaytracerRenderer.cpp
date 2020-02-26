@@ -176,7 +176,7 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 	
 	/////////////////
 	//Render GUI
-	if (true) {
+	if (gui) {
 		ID3D12Resource* windowOutput = w->GetCurrentRenderTargetResource();
 		D3D12Utils::SetResourceTransitionBarrier(cmdlist, windowOutput, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
 		w->SetRenderTarget(cmdlist);
@@ -241,3 +241,11 @@ float D3D12RaytracerRenderer::GetSetting(std::string setting)
 		return 0;
 	}
 }
+
+#ifdef DO_TESTING
+double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues)
+{
+	return m_dxrBase->GetGPU_Timers(nValues);
+}
+#endif // DO_TESTING
+

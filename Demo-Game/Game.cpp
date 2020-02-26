@@ -72,6 +72,27 @@ int Game::Initialize()
 
 	m_lights.emplace_back();
 
+#ifdef DO_TESTING
+
+	for (auto e : m_TestScenes.files)
+	{
+		//Preload all Textures from all Scenes
+		PreLoadScene(e.path, Asset_Type_Texture);
+	}
+	
+	m_shaderDefineTestCases = {
+		{},
+		{{L"NO_SHADOWS"}},
+		{{L"RAY_GEN_ALPHA_TEST"}, {L"NO_SHADOWS"}},
+		{{L"RAY_GEN_ALPHA_TEST"}},
+		{{L"RAY_GEN_ALPHA_TEST"}, {L"DEBUG_RECURSION_DEPTH"}},
+	};
+
+	m_currentTestSceneIndex = 0;
+	m_currentShaderDefineTestCase = 0;
+#endif // DO_TESTING
+
+
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -476,8 +497,105 @@ void Game::RenderWindows()
 
 		//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 		m_renderer->Frame(window, cam);
+#ifdef DO_TESTING
+		m_renderer->Present(window, nullptr);
+#else
 		m_renderer->Present(window, this);
+#endif // DO_TESTING
+
 	}
+
+#ifdef DO_TESTING
+	m_nFrames++;
+	if (m_nFrames > m_nWarmUpFrames + 1000u) {
+		m_nFrames = 0;
+		
+		if (m_currentSceneName != "") {
+			int nValues;
+			double* timerValues = m_renderer->GetGPU_Timers(nValues);
+			double average = 0;
+			std::filesystem::create_directories("data/");
+
+			std::string fileName = m_currentSceneName.substr(0, m_currentSceneName.find_last_of("."));
+			fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
+			std::ofstream outF("data/" + fileName + ".data");
+			for (int i = 0; i < nValues; i++)
+			{
+				outF << timerValues[i] << "\n";
+				average += timerValues[i];
+			}
+			outF.close();
+			average /= nValues;
+			std::cout << "Average: " << average << "\n";
+			
+			m_currentShaderDefineTestCase++;
+			if (m_currentShaderDefineTestCase >= m_shaderDefineTestCases.size()) {
+				m_currentShaderDefineTestCase = 0;
+				m_currentTestSceneIndex++;
+
+				if (m_currentTestSceneIndex < m_TestScenes.files.size()) {	
+					ClearScene();
+					std::filesystem::path scenePath = m_TestScenes.files[m_currentTestSceneIndex].path;
+					m_currentSceneName = scenePath.filename().string();
+					std::cout << "Loading Scene #" << m_currentTestSceneIndex << " : " << m_currentSceneName << "...";
+					LoadScene(scenePath, false);
+					std::cout << "OK.      ";
+				}
+				else {
+					m_currentTestSceneIndex = 0;
+
+					FileSystem::Directory dataFiles;
+					FileSystem::ListDirectory(dataFiles, "data", {".data"});
+					std::ifstream* iFiles = new std::ifstream[dataFiles.files.size()];
+					std::ofstream oFile(dataFiles.path.string() + "/data.MergedData");
+					for (size_t i = 0; i < dataFiles.files.size(); i++)
+					{
+						iFiles[i] = std::ifstream(dataFiles.files[i].path);
+						std::string fileName = dataFiles.files[i].path.filename().string();
+						//fileName = fileName.substr(0, fileName.find_last_of("."));
+						//fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
+						oFile << fileName << "\t";
+					}
+
+					oFile << "\n";
+					std::string line;
+					for (size_t i = 0; i < nValues; i++)
+					{
+						for (size_t i = 0; i < dataFiles.files.size(); i++)
+						{
+							std::getline(iFiles[i], line);
+							oFile << line << "\t";
+						}
+						oFile << "\n";
+					}
+
+					for (size_t i = 0; i < dataFiles.files.size(); i++)
+					{
+						iFiles[i].close();
+					}
+					oFile.close();
+					delete[] iFiles;
+					exit(0);
+				}
+			}
+
+		}
+		else {
+			m_currentShaderDefineTestCase = 0;
+			m_currentTestSceneIndex = 0;
+
+			ClearScene();
+			std::filesystem::path scenePath = m_TestScenes.files[m_currentTestSceneIndex].path;
+			m_currentSceneName = scenePath.filename().string();
+			std::cout << "Loading Scene #" << m_currentTestSceneIndex << " : " << m_currentSceneName << "...";
+			LoadScene(scenePath, false);
+			std::cout << "OK.      ";
+		}
+
+		ReloadShaders(m_shaderDefineTestCases[m_currentShaderDefineTestCase]);
+	}
+#endif // DO_TESTING
+
 }
 std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory & path, const std::string & selectedItem, const bool isMenuBar, unsigned int currDepth)
 {
@@ -829,6 +947,11 @@ void Game::RenderSettingWindow() {
 					RefreshSceneList();
 				}
 
+				if (ImGui::BeginMenu("Load Settings")) {
+					ImGui::Checkbox("Keep Kamera", &m_loadSettingkeepKamera);
+					ImGui::EndMenu();
+				}
+
 				ImGui::Separator();
 
 				if (ImGui::BeginMenu("Load Scene"))
@@ -1080,24 +1203,57 @@ bool Game::SaveScene(bool saveAsNew) {
 
 	return true;
 }
-bool Game::LoadScene(std::string name) {
-	ClearScene();
 
-	std::filesystem::path scenePath;
-	scenePath = (m_sceneFolderPath + name + ".scene");
-	//if (name.find_last_of(".scene") == name.npos) {
-	//}
-	//else {
-	//	scenePath = (m_sceneFolderPath + name);
-	//}
+bool Game::PreLoadScene(std::filesystem::path path, Asset_Types assets_to_load_flag)
+{
+	std::ifstream inFile(path);
 
-	std::ifstream inFile(scenePath);
-
-	if (!std::filesystem::exists(scenePath) || !inFile.is_open()) {
+	if (!std::filesystem::exists(path) || !inFile.is_open()) {
+		m_currentSceneName = "";
 		return false;
 	}
 
-	m_currentSceneName = name;
+	//Load Camera
+	std::stringstream ss;
+	std::string line;
+	Float3 tempFloat;
+	size_t tempSizeT;
+
+	bool allGood = true;
+
+	while (std::getline(inFile, line))
+	{
+		if (line[0] == '#') {
+			continue;
+		}
+		else if (line == "Objects") {
+			//Load Objects
+			inFile >> tempSizeT;
+			for (size_t i = 0; i < tempSizeT; i++)
+			{
+				inFile.ignore();
+				std::getline(inFile, line);
+				if (m_rm->PreLoadBlueprint(line, assets_to_load_flag)) {
+					allGood = false;
+				}
+			}
+		}
+	}
+
+	return allGood;
+}
+
+bool Game::LoadScene(std::filesystem::path path, bool clearOld) {
+	if (clearOld) {
+		ClearScene();
+	}
+
+	std::ifstream inFile(path);
+
+	if (!std::filesystem::exists(path) || !inFile.is_open()) {
+		m_currentSceneName = "";
+		return false;
+	}
 
 	//Load Camera
 	std::stringstream ss;
@@ -1110,7 +1266,7 @@ bool Game::LoadScene(std::string name) {
 		if (line[0] == '#') {
 			continue;
 		}
-		else if (line == "Cameras") {
+		else if (line == "Cameras" && !m_loadSettingkeepKamera) {
 
 			inFile >> tempSizeT;
 
@@ -1148,6 +1304,8 @@ bool Game::LoadScene(std::string name) {
 				inFile.ignore();
 				std::getline(inFile, line);
 				if ((bp = m_rm->GetBlueprint(line)) == nullptr) {
+					ClearScene();
+					m_currentSceneName = "";
 					return false;
 				}
 
@@ -1168,6 +1326,15 @@ bool Game::LoadScene(std::string name) {
 
 	return true;
 }
+
+bool Game::LoadScene(std::string name, bool clearOld) {
+	std::filesystem::path scenePath;
+	scenePath = (m_sceneFolderPath + name + ".scene");
+	m_currentSceneName = name;
+
+	return LoadScene(scenePath, clearOld);
+}
+
 void Game::NewScene() {
 	ClearScene();
 
@@ -1186,53 +1353,33 @@ void Game::NewScene() {
 	ls.m_position_center = (Float3(10, 60, 10));
 	m_lights.push_back(ls);
 }
-void Game::ClearScene() {
-	m_currentSceneName = "";
+void Game::ClearScene(bool clearName) {
+	if (clearName) {
+		m_currentSceneName = "";
+	}
 
 	for (auto e : m_objects) {
 		delete e;
 	}
 	m_objects.clear();
 
-	for (auto e : m_cameras) {
-		delete e;
+	if (!m_loadSettingkeepKamera) {
+		for (auto e : m_cameras) {
+			delete e;
+		}
+		m_cameras.clear();
 	}
-	m_cameras.clear();
 
 	m_lights.clear();
 }
 void Game::RefreshSceneList() {
-	m_foundScenes.Clear();
-	m_foundBluePrints.Clear();
-	m_foundMeshes.Clear();
-	m_foundTextures.Clear();
-
+#ifdef DO_TESTING
+	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
+#endif // DO_TESTING
 	FileSystem::ListDirectory(m_foundScenes, m_sceneFolderPath, { ".scene" });
 	FileSystem::ListDirectory(m_foundBluePrints, "../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
 	FileSystem::ListDirectory(m_foundMeshes, "../../Exported_Assets/" + std::string(MESH_FOLDER_NAME), { ".obj" });
 	FileSystem::ListDirectory(m_foundTextures, "../../Exported_Assets/" + std::string(TEXTURE_FODLER_NAME), { ".png" });
-
-	//m_foundScenes.path = m_sceneFolderPath;
-	//for (auto& file : std::filesystem::directory_iterator(m_sceneFolderPath))
-	//{
-	//	if (file.path().extension().string() == ".scene") {
-	//		std::string sceneName = file.path().filename().string();
-	//		sceneName = sceneName.substr(0, sceneName.find_last_of("."));
-	//		
-	//		m_foundScenes.push_back(sceneName);
-	//	}
-	//}
-
-	//
-	/*m_foundBluePrints.clear();
-	for (auto& file : std::filesystem::directory_iterator("../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME))) {
-		if (file.path().extension().string() == ".bp") {
-			std::string s = file.path().filename().string();
-			s = s.substr(0, s.find_last_of("."));
-			m_foundBluePrints.push_back(s);
-		}
-	}*/
-
 }
 void Game::ReloadShaders() {
 	m_reloadShaders = false;
@@ -1271,5 +1418,10 @@ void Game::ReloadShaders() {
 		defines.push_back({ L"DEBUG_DEPTH_EXP", std::to_wstring(m_def_DEBUG_DEPTH_EXP) });
 	}
 
+	m_renderer->Refresh(&defines);
+}
+
+void Game::ReloadShaders(std::vector<ShaderDefine>& defines)
+{
 	m_renderer->Refresh(&defines);
 }

@@ -51,6 +51,19 @@ public:
 	//Settings
 	void SetAllowAnyHitShader(bool b);
 
+#ifdef DO_TESTING
+	/*
+		Returns the stored GPU timers.
+		In order to get the most recent values this function will
+			force the CPU to wait for all GPU work to finnish.
+
+		@param nValues the size of the returned array will be stored here
+		
+		@return an array countaining all the timer values. It's size will be given in @param nValues
+	*/
+	virtual double* GetGPU_Timers(int& nValues);
+#endif // DO_TESTING
+
 private:
 	struct AccelerationStructureBuffers {
 		ID3D12Resource* scratch = nullptr;
@@ -110,15 +123,27 @@ private:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
 
-
 private:
-//#ifdef ENABLE_GPU_TIMER
+#ifdef DO_TESTING	
+	/*
+		Extracts the next timervalue from the gpu and places it in m_timerValue.
+		This function in itself does not guarantee that the GPU operation to fill
+			the timervalue was done executing.
+		It is therefor important not to call this function until it is certin that the next value is
+			calculated.
+
+		@return the value extracted from the GPU,
+			which is also placed in the next position in the m_timerValue array.
+	*/
+	virtual double ExtractGPUTimer();
+
 	static constexpr int N_TIMER_VALUES = 1000;
 	FR::D3D12Timer m_gpuTimer;
 	double m_timerValue[N_TIMER_VALUES] = {0};
 	unsigned int m_nextTimerIndex = 0;
 	double m_averageTime = 0;
-//#endif // ENABLE_GPU_TIMER
+	int m_nUnExtractedTimerValues = 0;
+#endif DO_TESTING
 
 	D3D12API* m_d3d12;
 	Int2 m_outputDim;

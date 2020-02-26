@@ -32,6 +32,10 @@ private:
 	virtual void SetSetting(std::string setting, float value) override;
 	virtual float GetSetting(std::string setting) override;
 
+#ifdef DO_TESTING
+	virtual double* GetGPU_Timers(int& nValues) override;
+#endif // DO_TESTING
+
 private:
 	std::vector<SubmissionItem> m_renderItems;
 	//std::vector<SubmissionItem> m_NonOpaqueItems;

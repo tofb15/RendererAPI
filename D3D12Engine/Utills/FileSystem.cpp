@@ -19,32 +19,33 @@ namespace FileSystem {
 				}
 			}
 		}
-	
-		return true;	
+
+		return true;
+	}
+
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::unordered_set<std::string>& extList, unsigned int maxDepth)
+	{
+		root.Clear();
+		if (!std::filesystem::exists(root.path)) {
+			return false;
+		}
+
+		return FileSystem::ListDir(root, extList, 0, maxDepth);
+	}
+
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, unsigned int maxDepth)
+	{
+		return FileSystem::ListDirectory(root, std::unordered_set<std::string>(), maxDepth);
+	}
+
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::string& rootPath, const std::unordered_set<std::string>& extList, unsigned int maxDepth) {
+		root.path = rootPath;
+		return FileSystem::ListDirectory(root, extList, maxDepth);
+	}
+
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::string& rootPath, unsigned int maxDepth) {
+		root.path = rootPath;
+		return FileSystem::ListDirectory(root, std::unordered_set<std::string>(), maxDepth);
 	}
 }
 
-bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::unordered_set<std::string>& extList, unsigned int maxDepth)
-{
-	root.Clear();
-	if (!std::filesystem::exists(root.path)) {
-		return false;
-	}
-
-	return FileSystem::ListDir(root, extList, 0, maxDepth);
-}
-
-bool FileSystem::ListDirectory(FileSystem::Directory& root, unsigned int maxDepth)
-{
-	return FileSystem::ListDirectory(root, std::unordered_set<std::string>(), maxDepth);
-}
-
-bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::string& rootPath, const std::unordered_set<std::string>& extList, unsigned int maxDepth) {
-	root.path = rootPath;
-	return FileSystem::ListDirectory(root, extList, maxDepth);
-}
-
-bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::string& rootPath, unsigned int maxDepth) {
-	root.path = rootPath;
-	return FileSystem::ListDirectory(root, std::unordered_set<std::string>(), maxDepth);
-}

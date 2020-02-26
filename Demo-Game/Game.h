@@ -88,7 +88,9 @@ public:
 		Other assets loaded indirectly and asynchronously with this function, like textures,
 		may fail to load even though it returns true.
 	*/
-	bool LoadScene(std::string name);
+	bool PreLoadScene(std::filesystem::path path, Asset_Types assets_to_load_flag = Asset_Type_Any);
+	bool LoadScene(std::filesystem::path path, bool clearOld = true);
+	bool LoadScene(std::string name, bool clearOld = true);
 	/*
 		Calls ClearScene() and sets up basic scene elements.
 	*/
@@ -96,7 +98,7 @@ public:
 	/*
 		Clears the scene
 	*/
-	void ClearScene();
+	void ClearScene(bool clearName = true);
 	/*
 		Refresh all assets stored in the filesystem.
 	*/
@@ -105,6 +107,7 @@ public:
 		Triggers the renderer to recompile shaders with the current shader defines and settings
 	*/
 	void ReloadShaders();
+	void ReloadShaders(std::vector<ShaderDefine>& defines);
 
 	//===========ImGui Rendering============
 	/**
@@ -198,4 +201,17 @@ private:
 	bool m_def_DEBUG_DEPTH = false;
 	int m_def_DEBUG_DEPTH_EXP = 100;
 	bool m_reloadShaders = false;
+
+	//Scene Load Settings	
+	bool m_loadSettingkeepKamera = false;
+
+#ifdef DO_TESTING
+	FileSystem::Directory m_TestScenes;
+	uint64_t m_nFrames = 0;
+	unsigned int m_currentTestSceneIndex = 0;
+	unsigned int m_nWarmUpFrames = 500;
+
+	std::vector<std::vector<ShaderDefine>> m_shaderDefineTestCases;
+	unsigned int m_currentShaderDefineTestCase;
+#endif // DO_TESTING
 };

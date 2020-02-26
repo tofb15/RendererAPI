@@ -69,6 +69,10 @@ public:
 	
 	virtual void SetSetting(std::string setting, float value) {};
 	virtual float GetSetting(std::string setting) { return 0; };
+#ifdef DO_TESTING
+	virtual double* GetGPU_Timers(int& nValues) { nValues = 0; return nullptr; };
+#endif // DO_TESTING
+
 protected:
 	Renderer();
 

@@ -15,6 +15,13 @@ const char MESH_FOLDER_NAME[]      = "Models/";
 const char TEXTURE_FODLER_NAME[]   = "Textures/";
 const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 
+enum Asset_Types : unsigned {
+	Asset_Type_Texture   = 0b001,
+	Asset_Type_Model     = 0b010,
+	Asset_Type_Blueprint = 0b100,
+	Asset_Type_Any       = 0xffffffff,
+};
+
 /*
 	Contain data used to describe a object and how it should be rendered.
 	This class should ONLY be used as a blueprint/prefab to create other object copying data from this class.
@@ -51,6 +58,9 @@ public:
 	void SetAssetPath(std::string s);
 	Blueprint* LoadBlueprintFromFile(std::string path);
 	Blueprint* GetBlueprint(std::string name);
+	bool PreLoadBlueprintFromFile(std::string path, Asset_Types assets_to_load);
+	bool PreLoadBlueprint(std::string name, Asset_Types assets_to_load = Asset_Type_Any);
+
 	Blueprint* CreateBlueprint(std::string name);
 	Mesh* GetMesh(std::string name);
 	Texture* GetTexture(std::string name);
@@ -62,6 +72,8 @@ public:
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
 	bool DoesFileExist(std::string s);
+	
+	void WaitUntilResourcesIsLoaded();
 public:
 
 private:

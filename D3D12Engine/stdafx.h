@@ -11,5 +11,3 @@
 #else
 #define MY_NEW new
 #endif
-
-#define ENABLE_GPU_TIMER

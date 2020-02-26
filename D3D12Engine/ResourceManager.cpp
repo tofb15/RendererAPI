@@ -211,6 +211,60 @@ Blueprint* ResourceManager::GetBlueprint(std::string name)
 	return bp;
 }
 
+bool ResourceManager::PreLoadBlueprintFromFile(std::string path, Asset_Types assets_to_load)
+{
+	bool allGood = true;
+	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + path + ".bp";
+
+	std::ifstream in(fName);
+	if (!in.is_open()) {
+		return false;
+	}
+	std::string line;
+
+	std::getline(in, line);
+	if (assets_to_load & Asset_Type_Model) {
+		Mesh* tempMesh = GetMesh(line);
+		if (!tempMesh) {
+			allGood = false;
+		}
+	}
+
+	if (assets_to_load & Asset_Type_Texture) {
+		int tempInt;
+		in >> tempInt;
+		in.ignore();
+		for (size_t i = 0; i < tempInt; i++)
+		{
+			//Skip lines
+			std::getline(in, line);
+		}
+
+		in >> tempInt;
+		in.ignore();
+		for (size_t i = 0; i < tempInt; i++)
+		{
+			std::getline(in, line);
+			Texture* tempTexture = GetTexture(line);
+			if (!tempTexture) {
+				allGood = false;
+			}
+		}
+	}
+
+	return allGood;
+}
+
+bool ResourceManager::PreLoadBlueprint(std::string name, Asset_Types assets_to_load)
+{
+	auto search = m_blueprints.find(name);
+	if (search == m_blueprints.end()) {
+		return PreLoadBlueprintFromFile(name.c_str(), assets_to_load);
+	}
+
+	return true;
+}
+
 Blueprint* ResourceManager::CreateBlueprint(std::string name) {
 	Blueprint* bp = nullptr;
 	auto search = m_blueprints.find(name);
@@ -241,6 +295,17 @@ bool ResourceManager::DoesFileExist(std::string s)
 {
 	return std::filesystem::exists(s);
 }
+
+void ResourceManager::WaitUntilResourcesIsLoaded() {
+	//for (auto& e : m_textures)
+	//{
+	//	while (e.second->is)
+	//	{
+
+	//	}
+	//}
+}
+
 
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api)
 {

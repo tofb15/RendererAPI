@@ -36,9 +36,9 @@ bool DXRBase::Initialize()
 		return false;
 	}
 	
-#ifdef ENABLE_GPU_TIMER
+#ifdef DO_TESTING
 	m_gpuTimer.Init(m_d3d12->GetDevice(), NUM_GPU_BUFFERS);
-#endif // ENABLE_GPU_TIMER
+#endif // DO_TESTING
 
 	return true;
 }
@@ -192,48 +192,19 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	cmdList->SetPipelineState1(m_rtxPipelineState);
 	
-#ifdef ENABLE_GPU_TIMER
-	if (counter >= NUM_GPU_BUFFERS) {
-		//get time in ms
-		UINT64 queueFreq;
-		m_d3d12->GetDirectCommandQueue()->GetTimestampFrequency(&queueFreq);
-		double timestampToMs = (1.0 / queueFreq) * 1000.0;
-
-		FR::GPUTimestampPair drawTime = m_gpuTimer.GetTimestampPair(bufferIndex);
-
-		UINT64 dt = drawTime.Stop - drawTime.Start;
-		double timeInMs = dt * timestampToMs;
-		
-		m_timerValue[m_nextTimerIndex++] = timeInMs;
-		m_nextTimerIndex %= N_TIMER_VALUES;
-
-		if (m_nextTimerIndex % 500 == 0) {
-			m_averageTime = 0;
-			for (size_t i = 0; i < N_TIMER_VALUES; i++)
-			{
-				m_averageTime += m_timerValue[i];
-			}
-			m_averageTime /= N_TIMER_VALUES;
-		}
-
-		std::string s = "Dispatch Time: " + std::to_string(timeInMs) + "ms";
-		while (s.length() < 30)
-		{
-			s += " ";
-		}
-		s += "Average: " + std::to_string(m_averageTime) + "ms";
-		std::cout << s << "\n";
+#ifdef DO_TESTING
+	if (m_nUnExtractedTimerValues == NUM_GPU_BUFFERS) {
+		ExtractGPUTimer();
 	}
-	else {
-		counter++;
-	}
+
 	m_gpuTimer.Start(cmdList, bufferIndex);
+	m_nUnExtractedTimerValues++;
 	cmdList->DispatchRays(&desc);
 	m_gpuTimer.Stop(cmdList, bufferIndex);
 	m_gpuTimer.ResolveQueryToCPU(cmdList, bufferIndex);
 #else
 	cmdList->DispatchRays(&desc);
-#endif // ENABLE_GPU_TIMER
+#endif // DO_TESTING
 }
 
 void DXRBase::ReloadShaders(std::vector<ShaderDefine>* defines)
@@ -644,12 +615,18 @@ bool DXRBase::CreateRaytracingPSO(std::vector<ShaderDefine>* _defines)
 	UINT payloadSize = sizeof(DXRShaderCommon::RayPayload);
 	std::vector<DxcDefine> defines;
 
+	bool allowAnyhit = true;
 	if (_defines) {
 		for (auto& e : *_defines)
 		{
+			if (e.define == L"RAY_GEN_ALPHA_TEST") {
+				allowAnyhit = false;
+			}
 			defines.push_back({ e.define.c_str(), e.value.c_str() });
 		}
 	}
+
+	SetAllowAnyHitShader(allowAnyhit);
 
 	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
@@ -725,6 +702,47 @@ D3D12_GPU_DESCRIPTOR_HANDLE DXRBase::GetCurrentDescriptorHandle()
 
 	return handle;
 }
+
+#ifdef DO_TESTING
+
+double* DXRBase::GetGPU_Timers(int& nValues)
+{
+	m_d3d12->WaitForGPU_ALL();
+
+	while (m_nUnExtractedTimerValues > 0)
+	{
+		ExtractGPUTimer();
+	}
+
+	nValues = N_TIMER_VALUES;
+	return m_timerValue;
+}
+
+double DXRBase::ExtractGPUTimer()
+{
+	if (m_nUnExtractedTimerValues <= 0) {
+		return 0;
+	}
+
+	m_nUnExtractedTimerValues--;
+	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
+
+	UINT64 queueFreq;
+	m_d3d12->GetDirectCommandQueue()->GetTimestampFrequency(&queueFreq);
+	double timestampToMs = (1.0 / queueFreq) * 1000.0;
+
+	FR::GPUTimestampPair drawTime = m_gpuTimer.GetTimestampPair(bufferIndex);
+
+	UINT64 dt = drawTime.Stop - drawTime.Start;
+	double timeInMs = dt * timestampToMs;
+
+	m_timerValue[m_nextTimerIndex++] = timeInMs;
+	m_nextTimerIndex %= N_TIMER_VALUES;
+
+	return timeInMs;
+}
+
+#endif //DO_TESTING
 
 bool DXRBase::CreateDXRGlobalRootSignature()
 {
