@@ -1,5 +1,5 @@
-//#include "../D3D12Engine/D3D12/DXR/Temp/DXRUtils.h"
-#include "../D3D12Engine/D3D12/DXR/Temp/DXILShaderCompiler.h"
+//#include "../D3D12Engine/D3D12/DXR/DXRUtils.h"
+#include "../D3D12Engine/D3D12/DXR/DXILShaderCompiler.h"
 
 #include <filesystem>
 #include <chrono>
@@ -8,7 +8,7 @@
 #include <thread>
 #include <iostream>
 
-//#include "../D3D12Engine/D3D12/DXR/Temp/DXILShaderCompiler.h"
+//#include "../D3D12Engine/D3D12/DXR/DXILShaderCompiler.h"
 
 	//==Shader Names==
 const WCHAR* m_shader_rayGenName = L"rayGen";

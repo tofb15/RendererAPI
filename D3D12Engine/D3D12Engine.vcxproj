@@ -23,7 +23,7 @@
     <ProjectGuid>{D6A4E757-0104-4FDE-8551-828A230E8A15}</ProjectGuid>
     <RootNamespace>Test</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>D3D12Engine</ProjectName>
+    <ProjectName>FusionReactor</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -129,7 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="D3D12\DXR\Temp\D3D12Utils.cpp" />
+    <ClCompile Include="D3D12\DXR\D3D12Utils.cpp" />
     <ClCompile Include="D3D12\D3D12Terrain.cpp" />
     <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
     <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
@@ -143,9 +143,9 @@
     <ClCompile Include="D3D12\D3D12VertexBufferLoader.cpp" />
     <ClCompile Include="D3D12\D3D12Window.cpp" />
     <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
-    <ClCompile Include="D3D12\DXR\Temp\DXILShaderCompiler.cpp" />
-    <ClCompile Include="D3D12\DXR\Temp\DXRBase.cpp" />
-    <ClCompile Include="D3D12\DXR\Temp\DXRUtils.cpp" />
+    <ClCompile Include="D3D12\DXR\DXILShaderCompiler.cpp" />
+    <ClCompile Include="D3D12\DXR\DXRBase.cpp" />
+    <ClCompile Include="D3D12\DXR\DXRUtils.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
     <ClCompile Include="D3D12\FullScreenPass.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -168,6 +168,7 @@
     <ClCompile Include="D3D12\Renderers\D3D12ForwardRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
+    <ClCompile Include="D3D12\Utills\D3D12Timer.cpp" />
     <ClCompile Include="External\IMGUI\imgui.cpp" />
     <ClCompile Include="External\IMGUI\imgui_demo.cpp" />
     <ClCompile Include="External\IMGUI\imgui_draw.cpp" />
@@ -186,6 +187,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Terrain.cpp" />
+    <ClCompile Include="Utills\FileSystem.cpp" />
     <ClCompile Include="WindowInput.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -198,7 +200,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="D3D12\DXR\Temp\D3D12Utils.h" />
+    <ClInclude Include="D3D12\DXR\D3D12Utils.h" />
     <ClInclude Include="D3D12\D3D12Terrain.hpp" />
     <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
     <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
@@ -211,9 +213,9 @@
     <ClInclude Include="D3D12\D3D12Texture.hpp" />
     <ClInclude Include="D3D12\D3D12Window.hpp" />
     <ClInclude Include="D3D12\D3D12_FDecl.h" />
-    <ClInclude Include="D3D12\DXR\Temp\DXILShaderCompiler.h" />
-    <ClInclude Include="D3D12\DXR\Temp\DXRBase.h" />
-    <ClInclude Include="D3D12\DXR\Temp\DXRUtils.h" />
+    <ClInclude Include="D3D12\DXR\DXILShaderCompiler.h" />
+    <ClInclude Include="D3D12\DXR\DXRBase.h" />
+    <ClInclude Include="D3D12\DXR\DXRUtils.h" />
     <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
     <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
@@ -240,6 +242,7 @@
     <ClInclude Include="D3D12\Renderers\D3D12ForwardRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
+    <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
     <ClInclude Include="External\IMGUI\imconfig.h" />
     <ClInclude Include="External\IMGUI\imgui.h" />
     <ClInclude Include="External\IMGUI\imgui_impl_dx12.h" />
@@ -252,6 +255,7 @@
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Terrain.hpp" />
+    <ClInclude Include="Utills\FileSystem.h" />
     <ClInclude Include="WindowInput.hpp" />
     <ClInclude Include="Material.hpp" />
     <ClInclude Include="Math.hpp" />

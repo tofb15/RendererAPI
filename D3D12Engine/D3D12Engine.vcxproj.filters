@@ -114,18 +114,6 @@
     <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12\DXR\Temp\DXRBase.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12\DXR\Temp\D3D12Utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12\DXR\Temp\DXRUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D3D12\DXR\Temp\DXILShaderCompiler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -154,6 +142,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Loaders\OBJ_Loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utills\FileSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\DXR\D3D12Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\DXR\DXILShaderCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\DXR\DXRBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\DXR\DXRUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12\Utills\D3D12Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -269,18 +275,6 @@
     <ClInclude Include="D3D12\D3D12_FDecl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12\DXR\Temp\DXRBase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12\DXR\Temp\D3D12Utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12\DXR\Temp\DXRUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12\DXR\Temp\DXILShaderCompiler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -306,6 +300,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Loaders\OBJ_Loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utills\FileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\DXR\D3D12Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\DXR\DXILShaderCompiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\DXR\DXRBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\DXR\DXRUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\Utills\D3D12Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -87,65 +87,71 @@ inline void generateCameraRay2(uint2 index, out float3 origin, out float3 direct
 void rayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 
-	RayDesc ray[2];
+	RayDesc ray;
 
 	//generateCameraRay2(launchIndex, ray[0].Origin, ray[0].Direction, ray[1].Origin, ray[1].Direction);
-	generateCameraRay(launchIndex, ray[0].Origin, ray[0].Direction);
+	generateCameraRay(launchIndex, ray.Origin, ray.Direction);
 
-	ray[0].TMin = ray[1].TMin = 0.00001;
-	ray[0].TMax = ray[1].TMax = RAY_T_MAX;
+	ray.TMin = 0.00001;
+	ray.TMax = RAY_T_MAX;
 
-	outputTexture[launchIndex] = float4(0,0,0,0);
-	for (int r = 0; r < 1; r++) {
+	//outputTexture[launchIndex] = float4(0,0,0,0);
+	//for (int r = 0; r < 1; r++) {
 		RayPayload payload;
 		payload.recursionDepth = 0;
 		payload.hitT = 0;
 #ifdef TRACE_NON_OPAQUE_SEPARATELY
-		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload);
+		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
 
 		RayPayload payload_non_opaque;
 		payload_non_opaque.recursionDepth = 0;
 		payload_non_opaque.hitT = 0;
 
 		ray.TMax = payload.hitT;
-		TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload_non_opaque);
+		TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload_non_opaque);
 
 		if (payload_non_opaque.hitT < RAY_T_MAX) {
-			outputTexture[launchIndex] += payload_non_opaque.color;
+			outputTexture[launchIndex] = payload_non_opaque.color;
 		}
 		else {
-			outputTexture[launchIndex] += payload.color;
+			outputTexture[launchIndex] = payload.color;
 		}
 #else // TRACE_NON_OPAQUE_SEPARATELY
-		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload);
+		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
 #ifdef RAY_GEN_ALPHA_TEST
 		uint i = 1;
+		//float3 c = payload.color.xyz;
 		while (payload.color.a < 0.5) {
 			i++;
-			ray[r].TMin = payload.hitT + 0.001f;
+			ray.TMin = payload.hitT + 0.001f;
 			payload.hitT = 0.0f;
 			payload.recursionDepth = 0;
-			TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray[r], payload);
+			TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+			//c += (payload.color.xyz);
 		}
 		payload.recursionDepth = i;
 #endif // RAY_GEN_ALPHA_TEST
 
 #ifdef DEBUG_RECURSION_DEPTH
 		float t = payload.recursionDepth / 15.f;
-		outputTexture[launchIndex] += float4(t, t, t, 1);
+		outputTexture[launchIndex] = float4(t, t, t, 1);
+//#ifdef RAY_GEN_ALPHA_TEST
+//		outputTexture[launchIndex] = float4(saturate(c), 1.0f);
+//#endif
+
 #elif defined(DEBUG_DEPTH)
 #ifndef DEBUG_DEPTH_EXP
 #define DEBUG_DEPTH_EXP 100
 #endif
 
 		float t = 1 - pow(1 - (payload.hitT / RAY_T_MAX), DEBUG_DEPTH_EXP);
-		outputTexture[launchIndex] += float4(t, t, t, 1);
+		outputTexture[launchIndex] = float4(t, t, t, 1);
 #else
-		outputTexture[launchIndex] += payload.color;
+		outputTexture[launchIndex] = payload.color;
 #endif
 #endif // !TRACE_NON_OPAQUE_SEPARATELY
 
-	}
+	//}
 
 	//outputTexture[launchIndex] = saturate(outputTexture[launchIndex]);
 }
@@ -249,6 +255,7 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 		payload.color = float4(1, 0, 0, 1);
 		return;
 	}
+	//return;
 
 	float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
 	float3 lightDir = -normalize(HitWorldPosition() - CB_SceneData.pLight.position);

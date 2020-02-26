@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../D3D12Engine/D3D12/External/LodePNG/lodepng.h"
 #include <Windows.h>
+#include <filesystem>
 
 void subdivide(const Float3* tri, std::vector<Float3>& result, int cur, const int max) {
 
@@ -130,7 +131,7 @@ bool checkVertex(const Float2* v_uv, const Texture& texture) {
 	{
 		Barrycoords.x = rand() / (float)RAND_MAX;
 		Barrycoords.y = rand() / (float)RAND_MAX;
-		Barrycoords.z = rand() / (float)RAND_MAX;
+		Barrycoords.z = 1 - (Barrycoords.x + Barrycoords.y);
 		if (GetAlpha(Barrypolation(Barrycoords, v_uv[0], v_uv[1], v_uv[2]), texture) > 128) {
 			return true;
 		}
@@ -156,16 +157,7 @@ int Cut(const Texture& texture, std::vector<Float3>& pos, std::vector<Float3>& n
 
 	while (i < size)
 	{
-		bool keep = false;
-		for (size_t i2 = 0; i2 < 3; i2++)
-		{
-			if (GetAlpha(u[i2], texture) > 100) {
-				keep = true;
-				break;
-			}
-		}
-
-		if (keep) {
+		if (checkVertex(u, texture)) {
 			for (size_t i2 = 0; i2 < 3; i2++)
 			{
 				result_p.push_back(v[i2]);
@@ -195,30 +187,51 @@ int main() {
 	LOADER::FLOAT3_BUFFER n_data;
 	LOADER::FLOAT2_BUFFER uv_data;
 
-	if (!LOADER::LoadOBJ("../../Exported_Assets/Models/Small_Tree_subdivided.obj", p_data, n_data, uv_data)) {
-		return false;
-	}
-
-	//LOADER::SaveOBJ("../../Exported_Assets/Models/cover_cutted_orig.obj", material_facePositions, material_faceNormals, material_faceUVs);
-
 	Texture texture;
 	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/T_WF_TreeBirch_foliage1_NNTS.png");
-
 	std::string mat = "debrisclusterdata_M_WF_TreeBirch_01_foliage";
 	
-	int i = 0;
-	i = Cut(texture, p_data[mat], n_data[mat], uv_data[mat]);
+	std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest/Cut/temp1/";
+	std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest/Cut/temp2/";
 
-	LOADER::SaveOBJ("../../Exported_Assets/Models/Small_Tree_subdivided_cut.obj", p_data, n_data, uv_data);
+	std::filesystem::create_directories(inPath);
+	std::filesystem::create_directories(outPath);
 
-	MessageBoxA(NULL, (std::to_string(i) + " triangles was removed!").c_str(), "Done", 0);
+	std::string message = "";
+	for (auto e : std::filesystem::directory_iterator(inPath))
+	{
+		//std::string a = e.path().string();
+		//std::string b = e.path().extension().string();
+		//std::string c = e.path().filename().string();
+		//std::string d = e.path().parent_path().string();
+		//
+		//std::string outName = e.path().filename().string();
+		//int ind = outName.find_last_of(".");
+		//outName = outName.substr(0, ind);
+		
+		if (e.path().extension().string() == ".obj") {
+			
+			std::string outName = outPath + e.path().filename().string();
+			p_data.clear();
+			n_data.clear();
+			uv_data.clear();
+			if (!LOADER::LoadOBJ(e.path().string().c_str(), p_data, n_data, uv_data)) {
+				return false;
+			}
+			
+			int i = 0;
+			i = Cut(texture, p_data[mat], n_data[mat], uv_data[mat]);
+			
+			LOADER::SaveOBJ(outName.c_str(), p_data, n_data, uv_data);
 
-	//material_facePositions.clear();
-	//material_faceNormals.clear();
-	//material_faceUVs.clear();
-	//if (!LOADER::LoadOBJ("../../Exported_Assets/Models/cover_cutted.obj", material_facePositions, material_faceNormals, material_faceUVs)) {
-	//	return false;
-	//}
+			message += ("removed " + std::to_string(i) + " triangles from: " + e.path().filename().string()) + "\n";
+		}
+	}
+
+	if (message == "") {
+		message = "No files found.";
+	}
+	MessageBoxA(NULL, message.c_str(), "Done", 0);
 
 	return 0;
 }

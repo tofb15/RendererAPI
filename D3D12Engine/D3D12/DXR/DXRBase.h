@@ -1,14 +1,16 @@
 #pragma once
 
 #include "DXRUtils.h"
-#include "..\..\..\Math.hpp"
-#include "..\..\D3D12API.hpp"
-#include "..\..\D3D12Camera.hpp"
-#include "..\..\D3D12Window.hpp"
-#include "..\..\Renderers\D3D12Renderer.h"
+#include "..\..\Math.hpp"
+#include "..\D3D12API.hpp"
+#include "..\D3D12Camera.hpp"
+#include "..\D3D12Window.hpp"
+#include "..\Renderers\D3D12Renderer.h"
 #include <DirectXMath.h>
-#include "../../../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
-#include "..\..\..\Light\LightSource.h"
+#include "../../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
+#include "..\..\Light\LightSource.h"
+
+#include "..\Utills\D3D12Timer.h"
 
 #include <vector>
 #include <Windows.h>
@@ -108,7 +110,16 @@ private:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
 
+
 private:
+//#ifdef ENABLE_GPU_TIMER
+	static constexpr int N_TIMER_VALUES = 1000;
+	FR::D3D12Timer m_gpuTimer;
+	double m_timerValue[N_TIMER_VALUES] = {0};
+	unsigned int m_nextTimerIndex = 0;
+	double m_averageTime = 0;
+//#endif // ENABLE_GPU_TIMER
+
 	D3D12API* m_d3d12;
 	Int2 m_outputDim;
 

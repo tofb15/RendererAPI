@@ -4,7 +4,7 @@
 #include "..\D3D12Window.hpp"
 #include "..\D3D12Texture.hpp"
 #include "..\D3D12API.hpp"
-#include "..\DXR\Temp\DXRBase.h"
+#include "..\DXR\DXRBase.h"
 
 #include "../../External/IMGUI/imgui.h"
 #include "../../External/IMGUI/imgui_impl_win32.h"

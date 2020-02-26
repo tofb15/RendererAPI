@@ -1,11 +1,11 @@
 #include "stdafx.h"
 
 #include "DXRBase.h"
-#include "..\..\D3D12Mesh.hpp"
-#include "..\..\D3D12VertexBuffer.hpp"
-#include "..\..\D3D12Window.hpp"
-#include "..\..\D3D12Texture.hpp"
-#include "..\..\D3D12Technique.hpp"
+#include "..\D3D12Mesh.hpp"
+#include "..\D3D12VertexBuffer.hpp"
+#include "..\D3D12Window.hpp"
+#include "..\D3D12Texture.hpp"
+#include "..\D3D12Technique.hpp"
 #include"..\Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
@@ -36,6 +36,10 @@ bool DXRBase::Initialize()
 		return false;
 	}
 	
+#ifdef ENABLE_GPU_TIMER
+	m_gpuTimer.Init(m_d3d12->GetDevice(), NUM_GPU_BUFFERS);
+#endif // ENABLE_GPU_TIMER
+
 	return true;
 }
 
@@ -162,6 +166,7 @@ void DXRBase::UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource
 
 void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 {
+	static unsigned int counter = 0;
 	D3D12_DISPATCH_RAYS_DESC desc = {};
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 
@@ -186,7 +191,49 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 
 	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	cmdList->SetPipelineState1(m_rtxPipelineState);
+	
+#ifdef ENABLE_GPU_TIMER
+	if (counter >= NUM_GPU_BUFFERS) {
+		//get time in ms
+		UINT64 queueFreq;
+		m_d3d12->GetDirectCommandQueue()->GetTimestampFrequency(&queueFreq);
+		double timestampToMs = (1.0 / queueFreq) * 1000.0;
+
+		FR::GPUTimestampPair drawTime = m_gpuTimer.GetTimestampPair(bufferIndex);
+
+		UINT64 dt = drawTime.Stop - drawTime.Start;
+		double timeInMs = dt * timestampToMs;
+		
+		m_timerValue[m_nextTimerIndex++] = timeInMs;
+		m_nextTimerIndex %= N_TIMER_VALUES;
+
+		if (m_nextTimerIndex % 500 == 0) {
+			m_averageTime = 0;
+			for (size_t i = 0; i < N_TIMER_VALUES; i++)
+			{
+				m_averageTime += m_timerValue[i];
+			}
+			m_averageTime /= N_TIMER_VALUES;
+		}
+
+		std::string s = "Dispatch Time: " + std::to_string(timeInMs) + "ms";
+		while (s.length() < 30)
+		{
+			s += " ";
+		}
+		s += "Average: " + std::to_string(m_averageTime) + "ms";
+		std::cout << s << "\n";
+	}
+	else {
+		counter++;
+	}
+	m_gpuTimer.Start(cmdList, bufferIndex);
 	cmdList->DispatchRays(&desc);
+	m_gpuTimer.Stop(cmdList, bufferIndex);
+	m_gpuTimer.ResolveQueryToCPU(cmdList, bufferIndex);
+#else
+	cmdList->DispatchRays(&desc);
+#endif // ENABLE_GPU_TIMER
 }
 
 void DXRBase::ReloadShaders(std::vector<ShaderDefine>* defines)

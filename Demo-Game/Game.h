@@ -14,10 +14,10 @@
 #include "../D3D12Engine/ResourceManager.h"
 #include "../D3D12Engine/External/IMGUI/imgui.h"
 #include "../D3D12Engine/External/IMGUI/imgui_internal.h"
+#include "../D3D12Engine/Utills/FileSystem.h"
 
 #include <iostream>
 #include <chrono>
-#include <filesystem>
 #include <sstream>
 
 #define AT_OFFICE
@@ -62,19 +62,93 @@ public:
 	void UpdateInput();
 	void ProcessGlobalInput();
 	void ProcessLocalInput(double dt);
+	/*
+		Submits the scene to the renderer and triggers it to render.
+	*/
 	void RenderWindows();
+	/*
+		Save the current scene to file. The filename of the scene will be decided by m_currentSceneName.
+		
+		@param saveAsNew, if true m_currentSceneName will be set a non existing generated filename
+			before saving in order to avoid overwriting a previusly saved scene.
+			If Set to false m_currentSceneName will be used as the filename and potentially overwrite
+			any previusly saved scene.
+
+		@return true of succeeded
+	*/
 	bool SaveScene(bool saveAsNew);
+	/*
+		Loads a scene from file.
+		If the scene uses any assets not yet loaded into memory these will be loaded aswell.
+
+		@param name, the name of the scene to  be loaded.
+		@return true if the scene file could be loaded correctly, else false.
+
+		==Remarks==
+		Other assets loaded indirectly and asynchronously with this function, like textures,
+		may fail to load even though it returns true.
+	*/
 	bool LoadScene(std::string name);
+	/*
+		Calls ClearScene() and sets up basic scene elements.
+	*/
 	void NewScene();
+	/*
+		Clears the scene
+	*/
 	void ClearScene();
+	/*
+		Refresh all assets stored in the filesystem.
+	*/
 	void RefreshSceneList();
+	/*
+		Triggers the renderer to recompile shaders with the current shader defines and settings
+	*/
 	void ReloadShaders();
 
+	//===========ImGui Rendering============
+	/**
+		Populates a dynamic ImGui container with files listed in a FileSystem::Directory.
 
-	//GUI
+		@param path, the directory from which to populate the ImGui Container.
+		@param selectedItem, any file with this name will be visualized as selected.
+		@param isMenuBar, set this to true if the ImGui container is a menubar, else set this to false.
+		@param currDepth, used internally, set this to 0.
+
+		@return the path to the file that was clicked by the user(if any).
+			If no file was clicked this will return an empty path: ""
+	*/
+	std::filesystem::path RecursiveDirectoryList(const FileSystem::Directory& path, const std::string& selectedItem, const bool isMenuBar = false, unsigned int currDepth = 0);
+
+	/*
+		ImGui subwindow
+	*/
 	void RenderObjectEditor();
+	/*
+		ImGui subwindow
+	*/
+	void RenderBlueprintWindow();
+	/*
+		ImGui subwindow
+	*/
+	void RenderGeometryWindow(Blueprint* bp);
+	/*
+		ImGui subwindow
+	*/
 	void RenderLightsAndCameraEditor();
+	/*
+		ImGui subwindow
+	*/
 	void RenderSettingWindow();
+	/**
+		The root-function used to render all the ImGui windows.
+		All ImGui rendering shoud be implemented in this functions or functions called from here.
+		This will be called at the right time by the renderer if a pointer to this class is passed to Renderer->Present().
+
+		==Remarks==
+		This function will be called i the middle of a render call.
+		Changing Blueprints or other assets used by the renderer here must be done with care to avoid crashes.
+	*/
 	void RenderGUI() override;
 
 private:
@@ -89,12 +163,16 @@ private:
 	//std::vector<RenderState*>	m_renderStates; //Used for raster
 	std::vector<Camera*>		m_cameras;
 	std::vector<Object*>		m_objects;
+	std::vector<std::string>    m_unSavedBlueprints;
 
 	std::string m_sceneFolderPath;
 	std::string m_currentSceneName = "";
+
 	int m_selectedObject = 0;
-	std::vector<std::string>	m_foundScenes;
-	std::vector<std::string>	m_foundBluePrints;
+	FileSystem::Directory m_foundScenes;
+	FileSystem::Directory m_foundBluePrints;
+	FileSystem::Directory m_foundMeshes;
+	FileSystem::Directory m_foundTextures;
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
@@ -102,6 +180,7 @@ private:
 
 	std::vector<LightSource> m_lights;
 	ResourceManager* m_rm;
+	Texture* m_dummyTexture;
 
 	//Scene Settings
 	bool m_animateLight = false;

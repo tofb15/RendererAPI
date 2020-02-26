@@ -168,7 +168,7 @@ bool LOADER::SaveOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 
 	size_t j = 1;
 
-	file << "mtllib cover.mtl\n";
+	file << "mtllib treeMat.mtl\n";
 	//file << std::setprecision(5);
 	file << "o dummy" << "\n";
 	for (auto& e: material_facePositions)
