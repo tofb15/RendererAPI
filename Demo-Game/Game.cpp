@@ -1,5 +1,5 @@
 #include "Game.h"
-
+#include "../D3D12Engine/Utills/Utills.h"
 
 Game::Game()
 {
@@ -39,6 +39,7 @@ Game::~Game()
 }
 int Game::Initialize()
 {
+
 	if (!InitializeRendererAndWindow())
 	{
 		return -1;
@@ -73,26 +74,40 @@ int Game::Initialize()
 	m_lights.emplace_back();
 
 #ifdef DO_TESTING
+	
+	m_shaderSettings = {
+		{"MY-VER-SIMPLE",            {{L"SIMPLE_HIT"}} },
+		{"DICE-SIMPLE",              {{L"SIMPLE_HIT"}, {L"DICE_ANYHIT"}}},
+		{"RayGen-SIMPLE",            {{L"SIMPLE_HIT"},{L"RAY_GEN_ALPHA_TEST"}}},
+		{"Close1-SIMPLE",            {{L"SIMPLE_HIT"},{L"CLOSEST_HIT_ALPHA_TEST_1"}}},
+		{"Close2-SIMPLE",            {{L"SIMPLE_HIT"},{L"CLOSEST_HIT_ALPHA_TEST_2"}}},
+		
+		{"MY-VER-NO-SHADOW",         {{L"_MY_VER_NO_SHADOW"}, {L"NO_SHADOWS"}} },
+		{"DICE-NO-SHADOW",           {{L"DICE_ANYHIT"}, {L"NO_SHADOWS"}}},
+		{"RayGen-No-SHADOW",         {{L"RAY_GEN_ALPHA_TEST"}, {L"NO_SHADOWS"}}},
+		{"Close1-No-SHADOW",         {{L"CLOSEST_HIT_ALPHA_TEST_1"}, {L"NO_SHADOWS"}}},
+		{"Close2-No-SHADOW",         {{L"CLOSEST_HIT_ALPHA_TEST_2"}, {L"NO_SHADOWS"}}},
+		
+		{"MY-VER",                   {} },
+		{"DICE",                     {{L"DICE_ANYHIT"}}},
+		{"RayGen",                   {{L"RAY_GEN_ALPHA_TEST"}}},
+		{"Close1",                   {{L"CLOSEST_HIT_ALPHA_TEST_1"}}},
+		{"Close2",                   {{L"CLOSEST_HIT_ALPHA_TEST_2"}}},
+	    
+		//DEBUG
+		{"RayGen-Debug",             {{L"RAY_GEN_ALPHA_TEST"}, {L"DEBUG_RECURSION_DEPTH"}}},
+	};
 
+	m_currentTestSceneIndex = 0;
+	m_currentShaderDefineTestCase = 0;
+	GenerateGnuPlotScript("TestData/Scripts", "TestData/Data");
+	return -1;
 	for (auto e : m_TestScenes.files)
 	{
 		//Preload all Textures from all Scenes
 		PreLoadScene(e.path, Asset_Type_Texture);
 	}
-	
-	m_shaderDefineTestCases = {
-		{},
-		{{L"NO_SHADOWS"}},
-		{{L"RAY_GEN_ALPHA_TEST"}, {L"NO_SHADOWS"}},
-		{{L"RAY_GEN_ALPHA_TEST"}},
-		{{L"RAY_GEN_ALPHA_TEST"}, {L"DEBUG_RECURSION_DEPTH"}},
-	};
-
-	m_currentTestSceneIndex = 0;
-	m_currentShaderDefineTestCase = 0;
 #endif // DO_TESTING
-
-
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -467,6 +482,7 @@ void Game::ProcessLocalInput(double dt)
 		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
 		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
+
 }
 void Game::RenderWindows()
 {
@@ -497,7 +513,7 @@ void Game::RenderWindows()
 
 		//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 		m_renderer->Frame(window, cam);
-#ifdef DO_TESTING
+#if defined(DO_TESTING) && !defined(_DEBUG)
 		m_renderer->Present(window, nullptr);
 #else
 		m_renderer->Present(window, this);
@@ -514,11 +530,13 @@ void Game::RenderWindows()
 			int nValues;
 			double* timerValues = m_renderer->GetGPU_Timers(nValues);
 			double average = 0;
-			std::filesystem::create_directories("data/");
+			std::filesystem::create_directories("TestData/Data");
 
 			std::string fileName = m_currentSceneName.substr(0, m_currentSceneName.find_last_of("."));
 			fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
-			std::ofstream outF("data/" + fileName + ".data");
+			std::ofstream outF("TestData/Data/" + fileName + ".data");
+			outF << m_shaderSettings[m_currentShaderDefineTestCase].name << "\n";
+
 			for (int i = 0; i < nValues; i++)
 			{
 				outF << timerValues[i] << "\n";
@@ -529,7 +547,7 @@ void Game::RenderWindows()
 			std::cout << "Average: " << average << "\n";
 			
 			m_currentShaderDefineTestCase++;
-			if (m_currentShaderDefineTestCase >= m_shaderDefineTestCases.size()) {
+			if (m_currentShaderDefineTestCase >= m_shaderSettings.size()) {
 				m_currentShaderDefineTestCase = 0;
 				m_currentTestSceneIndex++;
 
@@ -545,21 +563,17 @@ void Game::RenderWindows()
 					m_currentTestSceneIndex = 0;
 
 					FileSystem::Directory dataFiles;
-					FileSystem::ListDirectory(dataFiles, "data", {".data"});
+					FileSystem::ListDirectory(dataFiles, "TestData/Data", {".data"});
 					std::ifstream* iFiles = new std::ifstream[dataFiles.files.size()];
 					std::ofstream oFile(dataFiles.path.string() + "/data.MergedData");
 					for (size_t i = 0; i < dataFiles.files.size(); i++)
 					{
 						iFiles[i] = std::ifstream(dataFiles.files[i].path);
-						std::string fileName = dataFiles.files[i].path.filename().string();
-						//fileName = fileName.substr(0, fileName.find_last_of("."));
-						//fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
-						oFile << fileName << "\t";
 					}
 
-					oFile << "\n";
+					//oFile << "\n";
 					std::string line;
-					for (size_t i = 0; i < nValues; i++)
+					for (size_t i = 0; i < nValues + 1; i++)
 					{
 						for (size_t i = 0; i < dataFiles.files.size(); i++)
 						{
@@ -575,6 +589,8 @@ void Game::RenderWindows()
 					}
 					oFile.close();
 					delete[] iFiles;
+
+					GenerateGnuPlotScript(dataFiles.path.parent_path().string() + "/Scripts", dataFiles.path);
 					exit(0);
 				}
 			}
@@ -592,7 +608,7 @@ void Game::RenderWindows()
 			std::cout << "OK.      ";
 		}
 
-		ReloadShaders(m_shaderDefineTestCases[m_currentShaderDefineTestCase]);
+		ReloadShaders(m_shaderSettings[m_currentShaderDefineTestCase].shaderDefines);
 	}
 #endif // DO_TESTING
 
@@ -646,7 +662,7 @@ void Game::RenderObjectEditor()
 	ImGui::NextColumn();
 	ImGui::Text("Scene Objects");
 	ImGui::NextColumn();
-	ImGui::Text("Selected Object");
+	ImGui::Text(("Selected Objects: " + std::to_string(m_selectedObjects.size())).c_str());
 	ImGui::NextColumn();
 	ImGui::Separator();
 
@@ -678,8 +694,33 @@ void Game::RenderObjectEditor()
 	int i = 0;
 	for (auto& e : m_objects)
 	{
-		if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), m_selectedObject == i)) {
-			m_selectedObject = i;
+		if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), Contains<std::vector, int>(m_selectedObjects, i))) {
+			//m_selectedObjects.push_back(i);
+		}
+		
+		if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
+			if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
+				int min = m_selectedObjects.front();
+				int max = i;
+				if (min > max) {
+					std::swap(min, max);
+				}
+
+				m_selectedObjects.clear();
+				for (int a = min; a <= max; a++)
+				{
+					m_selectedObjects.push_back(a);
+				}
+			}
+			else if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
+				if (!Contains<std::vector, int>(m_selectedObjects, i)) {
+					m_selectedObjects.push_back(i);
+				}
+			}
+			else {
+				m_selectedObjects.clear();
+				m_selectedObjects.push_back(i);
+			}
 		}
 		i++;
 	}
@@ -688,11 +729,67 @@ void Game::RenderObjectEditor()
 
 	ImGui::BeginChild("Object pane");
 
-	if (m_selectedObject >= 0 && m_selectedObject < m_objects.size()) {
-		ImGui::DragFloat3("Pos", (float*)& m_objects[m_selectedObject]->transform.pos, 0.1, -100, 100);
-		ImGui::DragFloat3("Rot", (float*)& m_objects[m_selectedObject]->transform.rotation, 0.1, -100, 100);
-		ImGui::DragFloat3("Scale", (float*)& m_objects[m_selectedObject]->transform.scale, 0.1, -100, 100);
+	if (!m_selectedObjects.empty()) {
+		if (m_selectedObjects.size() == 1) {
+			int& selectedObject = m_selectedObjects.front();
+
+			if (ImGui::Button("Copy")) {
+				Object* obj = new Object();
+				memcpy(obj, m_objects[selectedObject], sizeof(Object));
+				m_objects.push_back(obj);
+				selectedObject = m_objects.size() - 1;
+			}
+		
+			ImGui::SameLine();
+		
+			if (ImGui::Button("Delete")) {
+				delete m_objects[selectedObject];
+				m_objects.erase(m_objects.begin() + selectedObject);
+				selectedObject--;
+			}
+		
+			if (selectedObject < m_objects.size()) {
+				ImGui::DragFloat3("Pos", (float*)& m_objects[selectedObject]->transform.pos, 0.1, -100, 100);
+				ImGui::DragFloat3("Rot", (float*)& m_objects[selectedObject]->transform.rotation, 0.1, -100, 100);
+				ImGui::DragFloat3("Scale", (float*)& m_objects[selectedObject]->transform.scale, 0.1, -100, 100);
+			}
+		}
+		else{
+
+			if (ImGui::Button("Reset Rotation")) {
+				for (int i = m_selectedObjects.front(); i <= m_selectedObjects.back(); i++)
+				{
+					m_objects[i]->transform.rotation = { 0,0,0 };
+				}
+			}
+
+			if (ImGui::Button("Random X-Rot")) {
+				for (int i = m_selectedObjects.front(); i <= m_selectedObjects.back(); i++)
+				{
+					m_objects[i]->transform.rotation.x = (rand() / (float)RAND_MAX) * 2 * 3.15;
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Random Y-Rot")) {
+				for (int i = m_selectedObjects.front(); i <= m_selectedObjects.back(); i++)
+				{
+					m_objects[i]->transform.rotation.y = (rand() / (float)RAND_MAX) * 2 * 3.15;
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Random Z-Rot")) {
+				for (int i = m_selectedObjects.front(); i <= m_selectedObjects.back(); i++)
+				{
+					m_objects[i]->transform.rotation.z = (rand() / (float)RAND_MAX) * 2 * 3.15;
+				}
+			}
+		}
 	}
+
 
 	ImGui::EndChild();
 	ImGui::NextColumn();
@@ -1067,11 +1164,13 @@ void Game::RenderSettingWindow() {
 					m_reloadShaders = true;
 				}
 
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, m_allowAnyhitShaders);
-				if (ImGui::Checkbox("CLOSEST_HIT_ALPHA_TEST", &m_def_CLOSEST_HIT_ALPHA_TEST)) {
+				if (ImGui::Checkbox("CLOSEST_HIT_ALPHA_TEST_1", &m_def_CLOSEST_HIT_ALPHA_TEST_1)) {
 					m_reloadShaders = true;
 				}
-				ImGui::PopItemFlag();
+
+				if (ImGui::Checkbox("CLOSEST_HIT_ALPHA_TEST_2", &m_def_CLOSEST_HIT_ALPHA_TEST_2)) {
+					m_reloadShaders = true;
+				}
 				ImGui::EndTabItem();
 			}
 
@@ -1081,6 +1180,8 @@ void Game::RenderSettingWindow() {
 	ImGui::End();
 }
 void Game::RenderGUI() {
+	
+#ifndef DO_TESTING
 	//UI SETUP HERE
 	static bool b = false;
 	if (b)
@@ -1124,7 +1225,264 @@ void Game::RenderGUI() {
 	}
 
 	RenderSettingWindow();
+#else
+	ImGui::SetNextWindowSize(ImVec2(300, 0), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Test", NULL, 
+		ImGuiWindowFlags_NoCollapse | 
+		ImGuiWindowFlags_NoDecoration |
+		ImGuiWindowFlags_NoTitleBar	
+	))
+	{
+		ImGui::Text(("Scene: " + m_currentSceneName).c_str());
+		ImGui::Text(("Shader: " + m_shaderSettings[m_currentShaderDefineTestCase].name).c_str());
+	}
+	ImGui::End();
+#endif // DO_TESTING
+
 }
+#ifdef DO_TESTING
+void Game::GenerateGnuPlotScript(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+{
+	//scriptPath = scriptPath.lexically_normal();
+	//dataPath = dataPath.lexically_normal();
+	//std::filesystem::path::preferred_separator = "";
+	GenerateGnuPlotScript_full(scriptPath, dataPath);
+	GenerateGnuPlotScript_perScene(scriptPath.string()  + "/PerScene", dataPath);
+	GenerateGnuPlotScript_perShader(scriptPath.string() + "/PerShader", dataPath);
+}
+void Game::GenerateGnuPlotScript_full(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+{
+	std::filesystem::create_directories(scriptPath);
+	std::string dataLexPath = dataPath.lexically_relative(scriptPath).string();
+	std::replace(dataLexPath.begin(), dataLexPath.end(), '\\', '/');
+
+	std::string common;
+	common += "###!!!                     Autogenerated file                       !!!\n";
+	common += "###!!!Any changes made to this file may be overwritten automatically!!!\n";
+	common += "\n";
+	common += "reset\n";
+	common += "file=\"" + dataLexPath + "/data.MergedData\"\n";
+	common += "set title \"\" font \", 16\"\n";
+	common += "set xlabel \"Frame Number\"\n";
+	common += "set ylabel \"Frame Draw Time (ms)\"\n";
+	common += "set format x \"%.f frame\"\n";
+	common += "set format y \"%.3f ms\"\n";
+	common += "set grid ytics mytics  # draw lines for each ytics and mytics\n";
+	common += "set mytics 0.1         # set the spacing for the mytics\n";
+	common += "set grid\n";
+	common += "set key horizontal noinvert left\n";
+	common += "set yrange [0:10]\n";
+
+	//Plot All
+	std::ofstream oFile(scriptPath.string() + "/generated_plotAll.gp");
+	oFile << common;
+	oFile << "plot \\\n";
+
+	size_t s = m_shaderSettings.size();
+	std::string line;
+	for (size_t i = 0; i < m_TestScenes.files.size(); i++)
+	{
+		line = "";
+		line += "for[i=1:" + std::to_string(s) + "]";
+		while (line.length() < 15)
+		{
+			line += " ";
+		}
+		line += "file using i+" + std::to_string(i * s);
+		while (line.length() < 35)
+		{
+			line += " ";
+		}	
+		line += " w lines lc i t columnheader,\\\n";
+		oFile << line;
+	}
+	oFile.close();
+
+
+}
+void Game::GenerateGnuPlotScript_perScene(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+{
+	std::filesystem::create_directories(scriptPath);
+
+	std::string dataLexPath = dataPath.lexically_relative(scriptPath).string();
+	std::replace(dataLexPath.begin(), dataLexPath.end(), '\\', '/');
+
+	std::string common;
+	common += "###!!!                     Autogenerated file                       !!!\n";
+	common += "###!!!Any changes made to this file may be overwritten automatically!!!\n";
+	common += "\n";
+	common += "reset\n";
+	common += "set title \"\" font \", 16\"\n";
+	common += "set xlabel \"Frame Number\"\n";
+	common += "set ylabel \"Frame Draw Time (ms)\"\n";
+	common += "set format x \"%.f frame\"\n";
+	common += "set format y \"%.3f ms\"\n";
+	common += "set grid ytics mytics  # draw lines for each ytics and mytics\n";
+	common += "set mytics 0.1         # set the spacing for the mytics\n";
+	common += "set grid\n";
+	common += "set key horizontal noinvert left\n";
+	common += "set yrange [0:10]\n";
+	common += "set yrange [0:10]\n";
+	//common += "file=\"" + dataLexPath + "/data.MergedData\"\n";
+
+	//Plot per Scene
+	size_t s = m_shaderSettings.size();
+	for (size_t i = 0; i < m_TestScenes.files.size(); i++)
+	{
+		std::ofstream oFile(scriptPath.string() + "/generated_LinePlot_Scene_" + std::to_string(i) + ".gp");
+		oFile << common;
+		oFile << "plot \\\n";
+		std::string line;
+		for (size_t j = 0; j < s; j++)
+		{
+			line = "";
+			line += "\"" + dataLexPath + "/Scene" + std::to_string(i) + "#" + std::to_string(j) + ".data\"" + " using " + std::to_string(1);
+			while (line.length() < 20)
+			{
+				line += " ";
+			}
+			line += " w lines lc "+ std::to_string(j) + "t \"shader-" + m_shaderSettings[i].name + "\",\\\n";
+			oFile << line;
+		}
+		oFile.close();
+	}
+
+	/////////////////////////////
+	/*BoxPlot*/
+	common.clear();
+	common += "###!!!                     Autogenerated file                       !!!\n";
+	common += "###!!!Any changes made to this file may be overwritten automatically!!!\n";
+	common += "\n";
+	common += "reset\n";
+	common += "set xlabel \"Test Case\"\n";
+	common += "set ylabel \"Frame Draw Time (ms)\"\n";
+	common += "set boxwidth 0.05\n";
+	common += "set style data histogram\n";
+	common += "set style histogram cluster\n";
+	common += "set style boxplot nooutliers\n";
+
+	//Non Common
+	common += "set xtics (";
+	for (size_t i = 0; i < s; i++)
+	{
+		common += "\" " + m_shaderSettings[i].name + "\" " + std::to_string(i * 0.1);
+		common += ((i == s - 1) ? ")" : ",");
+	}
+	common += "\n";
+	//common += "file=\"" + dataLexPath + "/data.MergedData\"\n";
+	common += "set xrange [-0.1:" + std::to_string(s * 0.1f) + "]\n";
+	common += "set yrange [:4]\n";
+
+	for (size_t j = 0; j < m_TestScenes.files.size(); j++)
+	{
+		std::ofstream oFile(scriptPath.string() + "/generated_BoxPlot_Scene_" + std::to_string(j) + ".gp");
+		oFile << common;
+		oFile << "set title \"Scene " + std::to_string(j) + "\" font \", 16\"\n";
+		oFile << "plot \\\n";
+		std::string line;
+		for (size_t i = 0; i < s; i++)
+		{
+			line = "";
+			line += "\"" + dataLexPath + "/" + m_TestScenes.files[j].path.stem().string() + "#" + std::to_string(i) + ".data\"" + " using (" + std::to_string(0.1 * i) + "):" + std::to_string(1) + ":xticlabels(1)";
+			//line += "file using (" + std::to_string(0.1 * i) + "):" + std::to_string(i + j * s + 1) + ":xticlabels(1)";
+			line += " w boxplot t \"" + m_shaderSettings[i].name + "\",\\\n";
+			oFile << line;
+		}
+		oFile.close();
+	}
+}
+void Game::GenerateGnuPlotScript_perShader(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+{
+	std::filesystem::create_directories(scriptPath);
+
+	std::string dataLexPath = dataPath.lexically_relative(scriptPath).string();
+	std::replace(dataLexPath.begin(), dataLexPath.end(), '\\', '/');
+
+	std::string common;
+	/*LinePlot*/
+	common += "###!!!                     Autogenerated file                       !!!\n";
+	common += "###!!!Any changes made to this file may be overwritten automatically!!!\n";
+	common += "\n";
+	common += "reset\n";
+	common += "file=\"" + dataLexPath + "/data.MergedData\"\n";
+	common += "set title \"\" font \", 16\"\n";
+	common += "set xlabel \"Frame Number\"\n";
+	common += "set ylabel \"Frame Draw Time (ms)\"\n";
+	common += "set format x \"%.f frame\"\n";
+	common += "set format y \"%.3f ms\"\n";
+	common += "set grid ytics mytics  # draw lines for each ytics and mytics\n";
+	common += "set mytics 0.1         # set the spacing for the mytics\n";
+	common += "set grid\n";
+	common += "set key horizontal noinvert left\n";
+	
+	size_t s = m_shaderSettings.size();
+
+	//Plot per Shader
+	for (size_t j = 0; j < s; j++)
+	{
+		std::ofstream oFile(scriptPath.string() + "/generated_LinePlot_Shader_" + std::to_string(j) + ".gp");
+		oFile << common;
+		oFile << "plot \\\n";
+		std::string line;
+		for (size_t i = 0; i < m_TestScenes.files.size(); i++)
+		{
+			line = "";
+			line += "file using " + std::to_string(i * s + j + 1);
+			while (line.length() < 20)
+			{
+				line += " ";
+			}
+			line += " w lines lc " + std::to_string(j) + "t \"shader-" + std::to_string(j) + "\",\\\n";
+			oFile << line;
+		}
+		oFile.close();
+	}
+
+	/////////////////////////////
+	/*BoxPlot*/
+	common.clear();
+	common += "###!!!                     Autogenerated file                       !!!\n";
+	common += "###!!!Any changes made to this file may be overwritten automatically!!!\n";
+	common += "\n";
+	common += "reset\n";
+	common += "set xlabel \"Test Case\"\n";
+	common += "set ylabel \"Frame Draw Time (ms)\"\n";
+	common += "set boxwidth 0.05\n";
+	common += "set style data histogram\n";
+	common += "set style histogram cluster\n";
+	common += "set style boxplot nooutliers\n";
+
+	//Non Common
+	common += "set xtics (";
+	for (size_t i = 0; i < m_TestScenes.files.size(); i++)
+	{
+		common += "\"Scene " + std::to_string(i) + "\" " + std::to_string(i * 0.1);
+		common += ((i == m_TestScenes.files.size() - 1) ? ")" : ",");
+	}
+	common += "\n";
+	common += "file=\"" + dataLexPath + "/data.MergedData\"\n";
+	common += "set xrange [-0.1:" + std::to_string(m_TestScenes.files.size() * 0.1f) + "]\n";
+	common += "set yrange [:" + std::to_string(m_TestScenes.files.size()) + "]\n";
+
+	for (size_t j = 0; j < s; j++)
+	{
+		common += "set title \"Shader Config " + std::to_string(j) + "\" font \", 16\"\n";
+		std::ofstream oFile(scriptPath.string() + "/generated_BoxPlot_Shader_" + std::to_string(j) + ".gp");
+		oFile << common;
+		oFile << "plot \\\n";
+		std::string line;
+		for (size_t i = 0; i < m_TestScenes.files.size(); i++)
+		{
+			line = "";
+			line += "file using (" + std::to_string(0.1 * i) + "):" + std::to_string(i * s + j + 1) 
+				+ ":xticlabels(1)";
+			line += " w boxplot t \"Scene-" + std::to_string(i) + "\",\\\n";
+			oFile << line;
+		}
+		oFile.close();
+	}
+}
+#endif
 bool Game::SaveScene(bool saveAsNew) {
 	if (!std::filesystem::exists(m_sceneFolderPath)) {
 		std::filesystem::create_directories(m_sceneFolderPath);
@@ -1397,8 +1755,12 @@ void Game::ReloadShaders() {
 		defines.push_back({ L"NO_SHADING" });
 	}
 
-	if (m_def_CLOSEST_HIT_ALPHA_TEST && !m_allowAnyhitShaders) {
-		defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST" });
+	if (m_def_CLOSEST_HIT_ALPHA_TEST_1) {
+		defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_1"});
+	}
+
+	if (m_def_CLOSEST_HIT_ALPHA_TEST_2) {
+		defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_2"});
 	}
 
 	if (m_def_TRACE_NON_OPAQUE_SEPARATELY) {

@@ -138,11 +138,13 @@ int main() {
 					shaderDesc.defines = defines;
 
 					IDxcBlob* pShaders = nullptr;
-					if (SUCCEEDED(dxilCompiler.compile(&shaderDesc, &pShaders))) {
+					std::wstring error;
+					if (SUCCEEDED(dxilCompiler.compile(&shaderDesc, &pShaders, &error))) {
 						std::cout << "Compiled OK: " << p << "\n";
 					}
 					else {
 						std::cout << "Compiled FAILED: " << p << "\n";
+						std::cout << error.c_str() << std::endl;
 					}
 				}
 			}

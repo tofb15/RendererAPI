@@ -151,6 +151,137 @@ bool LOADER::LoadOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 	return true;
 }
 
+/*
+	LOAD using indexBuffer. This is not done so dont use this.
+*/
+bool LOADER::LoadOBJ(const char* fileName, std::vector<Float3>& allPos, std::vector<Float2>& allUV, INT_BUFFER& faceIndex, FLOAT3_BUFFER& faceNorms)
+{
+	if (!fileName)
+		return false;
+
+	allPos.clear();
+	allUV.clear();
+
+	// Open .obj file
+	// TODO: generalize for other file formats
+	std::string fullPath = fileName;
+	std::ifstream inFile(fullPath);
+	if (!inFile.is_open())
+		return false;
+
+	std::string line, type;
+
+	std::vector<Float3> all_normals;
+
+	std::string currentMaterialName;
+
+	//Name of the current subobject
+	std::string currentSubobject;
+
+	bool hasNor, hasUV;
+	while (std::getline(inFile, line))
+	{
+		type = "";
+
+		std::istringstream iss(line);
+		iss >> type;
+
+		if (type == "mtllib")
+		{
+			iss >> line;
+			//m_DefaultMaterialName = line.c_str();
+		}
+		else if (type == "usemtl") {
+			iss >> currentMaterialName;
+		}
+		else if (type == "v")
+		{
+			Float3 v;
+			iss >> v.x >> v.y >> v.z;
+			allPos.push_back(v);
+		}
+		else if (type == "vn")
+		{
+			hasNor = true;
+			Float3 vn;
+			iss >> vn.x >> vn.y >> vn.z;
+			all_normals.push_back(vn);
+		}
+		else if (type == "vt")
+		{
+			hasUV = true;
+
+			Float2 vt;
+			iss >> vt.x >> vt.y;
+			allUV.push_back(vt);
+		}
+		else if (type == "f")
+		{
+			int pIdx[4] = {0};
+			int nIdx[4] = {0};
+			int uvIdx[4] = {0};
+
+			int nrOfVertsOnFace = 0;
+
+			std::string str;
+			while (iss >> str)
+			{
+				if (hasNor)
+					str.replace(str.find("/"), 1, " ");
+				if (hasUV)
+					str.replace(str.find("/"), 1, " ");
+
+				std::istringstream stringStream2(str);
+
+				stringStream2 >> pIdx[nrOfVertsOnFace];
+				pIdx[nrOfVertsOnFace]--;
+
+				if (hasUV) {
+					stringStream2 >> uvIdx[nrOfVertsOnFace];
+					uvIdx[nrOfVertsOnFace]--;
+				}
+				if (hasNor) {
+					stringStream2 >> nIdx[nrOfVertsOnFace];
+					nIdx[nrOfVertsOnFace]--;
+				}
+
+				nrOfVertsOnFace++;
+			}
+
+			if (nrOfVertsOnFace > 4) {
+				return false;
+				//MessageBoxA(NULL, "To many verticies on one face", "Error", 0);
+			}
+
+			faceIndex[currentMaterialName].push_back(pIdx[0]);
+			faceIndex[currentMaterialName].push_back(pIdx[1]);
+			faceIndex[currentMaterialName].push_back(pIdx[2]);
+
+			if (nrOfVertsOnFace == 4)
+			{
+				faceIndex[currentMaterialName].push_back(pIdx[2]);
+				faceIndex[currentMaterialName].push_back(pIdx[3]);
+				faceIndex[currentMaterialName].push_back(pIdx[0]);
+			}		
+
+			if (all_normals.size() > 0)
+			{
+				faceNorms[currentMaterialName].push_back(all_normals[nIdx[0]]);
+				faceNorms[currentMaterialName].push_back(all_normals[nIdx[1]]);
+				faceNorms[currentMaterialName].push_back(all_normals[nIdx[2]]);
+
+				if (nrOfVertsOnFace == 4)
+				{
+					faceNorms[currentMaterialName].push_back(all_normals[nIdx[2]]);
+					faceNorms[currentMaterialName].push_back(all_normals[nIdx[3]]);
+					faceNorms[currentMaterialName].push_back(all_normals[nIdx[0]]);
+				}
+			}
+		}
+	}
+
+	return true;
+}
 
 bool LOADER::SaveOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions, FLOAT3_BUFFER& material_faceNormals, FLOAT2_BUFFER& material_faceUVs)
 {
@@ -168,7 +299,7 @@ bool LOADER::SaveOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 
 	size_t j = 1;
 
-	file << "mtllib treeMat.mtl\n";
+	file << "mtllib cover.mtl\n";
 	//file << std::setprecision(5);
 	file << "o dummy" << "\n";
 	for (auto& e: material_facePositions)

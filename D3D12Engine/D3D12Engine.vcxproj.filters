@@ -320,5 +320,8 @@
     <ClInclude Include="D3D12\Utills\D3D12Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utills\Utills.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

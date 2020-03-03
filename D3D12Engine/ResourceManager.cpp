@@ -135,7 +135,7 @@ Mesh* ResourceManager::GetMesh(std::string name)
 		}
 		
 		mesh = m_api->MakeMesh();
-		if (!mesh->LoadFromFile(fName.c_str())) {
+		if (!mesh->LoadFromFile(fName.c_str(), Mesh::MESH_LOAD_FLAG_NONE)) {
 			delete mesh;
 			return nullptr;
 		}

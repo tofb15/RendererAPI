@@ -466,6 +466,7 @@
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
+    <ClInclude Include="Utills\Utills.h" />
     <ClInclude Include="External\IMGUI\imconfig.h" />
     <ClInclude Include="External\IMGUI\imgui.h" />
     <ClInclude Include="External\IMGUI\imgui_impl_dx12.h" />

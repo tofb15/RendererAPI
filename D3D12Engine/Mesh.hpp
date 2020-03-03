@@ -12,10 +12,16 @@ class Mesh {
 public:
 
 	enum VertexBufferFlag {
-		VERTEX_BUFFER_FLAG_POSITION = 1,
-		VERTEX_BUFFER_FLAG_NORMAL = 2,
-		VERTEX_BUFFER_FLAG_UV = 4,
-		VERTEX_BUFFER_FLAG_TANGENT_BINORMAL = 8
+		VERTEX_BUFFER_FLAG_INDEX            = 1,
+		VERTEX_BUFFER_FLAG_POSITION         = 2,
+		VERTEX_BUFFER_FLAG_NORMAL           = 4,
+		VERTEX_BUFFER_FLAG_UV               = 8,
+		VERTEX_BUFFER_FLAG_TANGENT_BINORMAL = 16
+	};
+
+	enum MeshLoadFlag {
+		MESH_LOAD_FLAG_NONE = 0,
+		MESH_LOAD_FLAG_USE_INDEX = 1,
 	};
 
 	virtual ~Mesh();
@@ -36,7 +42,7 @@ public:
 
 		@return true if file was loaded successfully
 	*/
-	virtual bool LoadFromFile(const char* fileName) = 0;
+	virtual bool LoadFromFile(const char* fileName, MeshLoadFlag loadFlag) = 0;
 
 	// WARNING: Multiple meshes can initilize the same shape.
 	// It is the programmer's responsibility to only initialize 1 of each mesh shape and use it multiple times instead.

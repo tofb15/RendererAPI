@@ -171,7 +171,10 @@ private:
 	std::string m_sceneFolderPath;
 	std::string m_currentSceneName = "";
 
-	int m_selectedObject = 0;
+	
+	std::vector<int> m_selectedObjects;
+	//int m_selectedObject = 0;
+
 	FileSystem::Directory m_foundScenes;
 	FileSystem::Directory m_foundBluePrints;
 	FileSystem::Directory m_foundMeshes;
@@ -194,7 +197,8 @@ private:
 	bool m_def_NO_NORMAL_MAP = false;
 	bool m_def_NO_SHADOWS = false;
 	bool m_def_NO_SHADING = false;
-	bool m_def_CLOSEST_HIT_ALPHA_TEST = false;
+	bool m_def_CLOSEST_HIT_ALPHA_TEST_1 = false;
+	bool m_def_CLOSEST_HIT_ALPHA_TEST_2 = false;
 	bool m_def_TRACE_NON_OPAQUE_SEPARATELY = false;
 	bool m_def_RAY_GEN_ALPHA_TEST = false;
 	bool m_def_DEBUG_RECURSION_DEPTH = false;
@@ -211,7 +215,18 @@ private:
 	unsigned int m_currentTestSceneIndex = 0;
 	unsigned int m_nWarmUpFrames = 500;
 
-	std::vector<std::vector<ShaderDefine>> m_shaderDefineTestCases;
+	struct ShaderSettings
+	{
+		std::string name;
+		std::vector<ShaderDefine> shaderDefines;
+	};
+
+	std::vector<ShaderSettings> m_shaderSettings;
 	unsigned int m_currentShaderDefineTestCase;
+
+	void GenerateGnuPlotScript(std::filesystem::path scriptPath, std::filesystem::path dataPath);
+	void GenerateGnuPlotScript_full(std::filesystem::path scriptPath, std::filesystem::path dataPath);
+	void GenerateGnuPlotScript_perScene(std::filesystem::path scriptPath, std::filesystem::path dataPath);
+	void GenerateGnuPlotScript_perShader(std::filesystem::path scriptPath, std::filesystem::path dataPath);
 #endif // DO_TESTING
 };

@@ -189,7 +189,10 @@ D3D12VertexBuffer * D3D12API::MakeVertexBuffer()
 	return MY_NEW D3D12VertexBuffer(this);
 }
 
-
+D3D12VertexBuffer* D3D12API::MakeVertexBuffer(const D3D12VertexBuffer& buffer)
+{
+	return MY_NEW D3D12VertexBuffer(buffer);
+}
 
 ID3D12Device5 * D3D12API::GetDevice() const
 {

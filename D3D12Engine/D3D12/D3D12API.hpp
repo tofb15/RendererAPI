@@ -34,6 +34,7 @@ public:
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
 	virtual ShaderManager * MakeShaderManager() override;
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
+	virtual D3D12VertexBuffer * MakeVertexBuffer(const D3D12VertexBuffer& buffer);
 	virtual Renderer* MakeRenderer(const RendererType rendererType) override;
 
 	/*

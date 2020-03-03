@@ -85,11 +85,14 @@ HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult, std::wstrin
 							IDxcBlobEncoding* pPrintBlob16 = nullptr;
 							m_library->GetBlobAsUtf16(pPrintBlob, &pPrintBlob16);
 
+#ifdef _DEBUG
+							MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
+#endif // _DEBUG
 							if (errorMessage) {
 
 								OutputDebugStringW((LPCWSTR)pPrintBlob16->GetBufferPointer());
 								*errorMessage = (LPCWSTR)pPrintBlob16->GetBufferPointer();
-							//MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
+
 							}
 
 							pPrintBlob->Release();

@@ -8,8 +8,9 @@ class D3D12VertexBuffer
 {
 public:
 	D3D12VertexBuffer(D3D12API* renderer);
-	virtual ~D3D12VertexBuffer();
+	D3D12VertexBuffer(const D3D12VertexBuffer& buffer);
 
+	virtual ~D3D12VertexBuffer();
 	bool Initialize(int nElements, int elementSize, void* data);
 
 	ID3D12Resource1* GetResource();
