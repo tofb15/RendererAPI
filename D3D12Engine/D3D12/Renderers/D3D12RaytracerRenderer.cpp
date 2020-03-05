@@ -9,10 +9,14 @@
 #include "../../External/IMGUI/imgui.h"
 #include "../../External/IMGUI/imgui_impl_win32.h"
 #include "../../External/IMGUI/imgui_impl_dx12.h"
+#include "../External/LodePNG/lodepng.h"
+
+#include "../External/D3DX12/d3dx12.h"
 
 #include <d3d12.h>
 #include <comdef.h>
 #include <iostream>
+#include <Filesystem>
 
 D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12)
 {
@@ -242,10 +246,97 @@ float D3D12RaytracerRenderer::GetSetting(std::string setting)
 	}
 }
 
-#ifdef DO_TESTING
-double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues)
+bool D3D12RaytracerRenderer::SaveLastFrame(std::string file)
 {
-	return m_dxrBase->GetGPU_Timers(nValues);
+	//Wait for the current frame to finnish rendering.
+	m_d3d12->WaitForGPU_ALL();
+
+	//Get the previus buffer Index
+	uint bufferIndex = m_d3d12->GetGPUBufferIndex();
+	bufferIndex = (bufferIndex + NUM_GPU_BUFFERS - 1) % NUM_GPU_BUFFERS;
+
+	ID3D12Resource* readBackRes;
+	m_commandAllocators[bufferIndex]->Reset();
+	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
+	cmdlist->Reset(m_commandAllocators[bufferIndex], nullptr);
+
+	const UINT64 bufferSize = GetRequiredIntermediateSize(m_outputTextures[bufferIndex], 0, 1);
+
+	D3D12_HEAP_PROPERTIES prop;
+	prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	prop.CreationNodeMask = 1;
+	prop.VisibleNodeMask = 1;
+	prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	prop.Type = D3D12_HEAP_TYPE_READBACK;
+
+	D3D12_RESOURCE_DESC resDesc;
+	resDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resDesc.Format = DXGI_FORMAT_UNKNOWN;
+	resDesc.Alignment = 0;
+	resDesc.Width = bufferSize;
+	resDesc.Height = 1;
+	resDesc.DepthOrArraySize = 1;
+	resDesc.MipLevels = 1;
+	resDesc.SampleDesc.Count = 1;
+	resDesc.SampleDesc.Quality = 0;
+	resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	HRESULT hr;
+	hr = m_d3d12->GetDevice()->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&readBackRes));
+
+	D3D12_TEXTURE_COPY_LOCATION copyLocDest;
+	D3D12_TEXTURE_COPY_LOCATION copyLocSource;
+
+	copyLocDest.PlacedFootprint.Footprint.Depth = 1;
+	copyLocDest.PlacedFootprint.Footprint.Width = m_outputDim.x;
+	copyLocDest.PlacedFootprint.Footprint.Height = m_outputDim.y;
+	copyLocDest.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	copyLocDest.PlacedFootprint.Footprint.RowPitch = m_outputDim.x * 4;
+	copyLocDest.PlacedFootprint.Offset = 0;
+	copyLocDest.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	copyLocDest.pResource = readBackRes;
+
+	copyLocSource.pResource = m_outputTextures[bufferIndex];
+	copyLocSource.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	copyLocSource.SubresourceIndex = 0;
+
+
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
+	cmdlist->CopyTextureRegion(&copyLocDest, 0,0,0, &copyLocSource, nullptr);
+	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
+
+	hr = cmdlist->Close();
+	if (FAILED(hr)) {
+		int i = 0;
+	}
+	ID3D12CommandList* listsToExecute[1] = { cmdlist };
+	m_d3d12->GetDirectCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
+
+	m_d3d12->SignalFence();
+	m_d3d12->WaitForGPU_ALL();
+
+	std::vector<unsigned char> imageData;
+	imageData.resize(bufferSize);
+
+	void* mappedData;
+	readBackRes->Map(0, nullptr, &mappedData);	
+	memcpy(imageData.data(), mappedData, bufferSize);
+	readBackRes->Unmap(0, nullptr);
+
+	std::filesystem::create_directories(std::filesystem::path(file).parent_path());
+	unsigned error = lodepng::encode(file, imageData, m_outputDim.x, m_outputDim.y);
+	//unsigned error = lodepng::encode(file, imageData, m_outputDim.x, m_outputDim.y);
+
+	readBackRes->Release();
+
+	return true;
+}
+
+#ifdef DO_TESTING
+double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue)
+{
+	return m_dxrBase->GetGPU_Timers(nValues, firstValue);
 }
 #endif // DO_TESTING
 

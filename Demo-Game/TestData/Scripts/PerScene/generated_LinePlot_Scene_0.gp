@@ -2,9 +2,8 @@
 ###!!!Any changes made to this file may be overwritten automatically!!!
 
 reset
-set title "" font ", 16"
 set xlabel "Frame Number"
-set ylabel "Frame Draw Time (ms)"
+set ylabel "Dispatch Time (ms)"
 set format x "%.f frame"
 set format y "%.3f ms"
 set grid ytics mytics  # draw lines for each ytics and mytics
@@ -12,21 +11,12 @@ set mytics 0.1         # set the spacing for the mytics
 set grid
 set key horizontal noinvert left
 set yrange [0:10]
-set yrange [0:10]
+set yrange [0:]
+set title "Dispatch Times for scene: Scene0" font ", 16"
 plot \
-"../../Data/Scene0#0.data" using 1 w lines lc 0t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#1.data" using 1 w lines lc 1t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#2.data" using 1 w lines lc 2t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#3.data" using 1 w lines lc 3t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#4.data" using 1 w lines lc 4t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#5.data" using 1 w lines lc 5t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#6.data" using 1 w lines lc 6t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#7.data" using 1 w lines lc 7t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#8.data" using 1 w lines lc 8t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#9.data" using 1 w lines lc 9t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#10.data" using 1 w lines lc 10t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#11.data" using 1 w lines lc 11t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#12.data" using 1 w lines lc 12t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#13.data" using 1 w lines lc 13t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#14.data" using 1 w lines lc 14t "shader-MY-VER-SIMPLE",\
-"../../Data/Scene0#15.data" using 1 w lines lc 15t "shader-MY-VER-SIMPLE",\
+"../../Data/Scene0#0.data" using 1 w lines lc 0 t "shader-Minimal-NS",\
+"../../Data/Scene0#1.data" using 1 w lines lc 1 t "shader-DICE-NS",\
+"../../Data/Scene0#2.data" using 1 w lines lc 2 t "shader-RayGen-NS",\
+"../../Data/Scene0#3.data" using 1 w lines lc 3 t "shader-Close1-NS",\
+"../../Data/Scene0#4.data" using 1 w lines lc 4 t "shader-Close2-NS",\
+"../../Data/Scene0#5.data" using 1 w lines lc 5 t "shader-RayGen-Debug",\

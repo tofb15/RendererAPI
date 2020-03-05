@@ -2,30 +2,20 @@
 ###!!!Any changes made to this file may be overwritten automatically!!!
 
 reset
-set xlabel "Test Case"
-set ylabel "Frame Draw Time (ms)"
+set xlabel "Shader Name"
+set ylabel "Dispatch Time (ms)"
 set boxwidth 0.05
 set style data histogram
 set style histogram cluster
 set style boxplot nooutliers
-set xtics (" MY-VER-SIMPLE" 0.000000," DICE-SIMPLE" 0.100000," RayGen-SIMPLE" 0.200000," Close1-SIMPLE" 0.300000," Close2-SIMPLE" 0.400000," MY-VER-NO-SHADOW" 0.500000," DICE-NO-SHADOW" 0.600000," RayGen-No-SHADOW" 0.700000," Close1-No-SHADOW" 0.800000," Close2-No-SHADOW" 0.900000," MY-VER" 1.000000," DICE" 1.100000," RayGen" 1.200000," Close1" 1.300000," Close2" 1.400000," RayGen-Debug" 1.500000)
-set xrange [-0.1:1.600000]
-set yrange [:4]
-set title "Scene 2" font ", 16"
+set xtics (" Minimal-NS" 0.000000," DICE-NS" 0.100000," RayGen-NS" 0.200000," Close1-NS" 0.300000," Close2-NS" 0.400000," RayGen-Debug" 0.500000)
+set xrange [-0.1:0.600000]
+set yrange [0:]
+set title "Dispatch Times for scene: Scene2" font ", 16"
 plot \
-"../../Data/Scene4#0.data" using (0.000000):1:xticlabels(1) w boxplot t "MY-VER-SIMPLE",\
-"../../Data/Scene4#1.data" using (0.100000):1:xticlabels(1) w boxplot t "DICE-SIMPLE",\
-"../../Data/Scene4#2.data" using (0.200000):1:xticlabels(1) w boxplot t "RayGen-SIMPLE",\
-"../../Data/Scene4#3.data" using (0.300000):1:xticlabels(1) w boxplot t "Close1-SIMPLE",\
-"../../Data/Scene4#4.data" using (0.400000):1:xticlabels(1) w boxplot t "Close2-SIMPLE",\
-"../../Data/Scene4#5.data" using (0.500000):1:xticlabels(1) w boxplot t "MY-VER-NO-SHADOW",\
-"../../Data/Scene4#6.data" using (0.600000):1:xticlabels(1) w boxplot t "DICE-NO-SHADOW",\
-"../../Data/Scene4#7.data" using (0.700000):1:xticlabels(1) w boxplot t "RayGen-No-SHADOW",\
-"../../Data/Scene4#8.data" using (0.800000):1:xticlabels(1) w boxplot t "Close1-No-SHADOW",\
-"../../Data/Scene4#9.data" using (0.900000):1:xticlabels(1) w boxplot t "Close2-No-SHADOW",\
-"../../Data/Scene4#10.data" using (1.000000):1:xticlabels(1) w boxplot t "MY-VER",\
-"../../Data/Scene4#11.data" using (1.100000):1:xticlabels(1) w boxplot t "DICE",\
-"../../Data/Scene4#12.data" using (1.200000):1:xticlabels(1) w boxplot t "RayGen",\
-"../../Data/Scene4#13.data" using (1.300000):1:xticlabels(1) w boxplot t "Close1",\
-"../../Data/Scene4#14.data" using (1.400000):1:xticlabels(1) w boxplot t "Close2",\
-"../../Data/Scene4#15.data" using (1.500000):1:xticlabels(1) w boxplot t "RayGen-Debug",\
+"../../Data/Scene2#0.data" using (0.000000):1:xticlabels(1) w boxplot t "Minimal-NS",\
+"../../Data/Scene2#1.data" using (0.100000):1:xticlabels(1) w boxplot t "DICE-NS",\
+"../../Data/Scene2#2.data" using (0.200000):1:xticlabels(1) w boxplot t "RayGen-NS",\
+"../../Data/Scene2#3.data" using (0.300000):1:xticlabels(1) w boxplot t "Close1-NS",\
+"../../Data/Scene2#4.data" using (0.400000):1:xticlabels(1) w boxplot t "Close2-NS",\
+"../../Data/Scene2#5.data" using (0.500000):1:xticlabels(1) w boxplot t "RayGen-Debug",\

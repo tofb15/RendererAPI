@@ -66,6 +66,7 @@ public:
 	unsigned __int64 SignalFence();
 	void WaitForGPU_ALL();
 	void WaitForGPU_BUFFERS(int index);
+	void WaitForFenceValue(unsigned __int64 value);
 
 private:	
 	bool InitializeDirect3DDevice(); //1.

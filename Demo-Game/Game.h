@@ -154,6 +154,7 @@ public:
 	*/
 	void RenderGUI() override;
 
+	void MirrorScene(int lvl = 1);
 private:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;
@@ -166,7 +167,11 @@ private:
 	//std::vector<RenderState*>	m_renderStates; //Used for raster
 	std::vector<Camera*>		m_cameras;
 	std::vector<Object*>		m_objects;
+	std::vector<Object*>		m_objects_mirrored;
 	std::vector<std::string>    m_unSavedBlueprints;
+
+	bool m_mirrorScene = false;
+	int m_mirrorLevel = 1;
 
 	std::string m_sceneFolderPath;
 	std::string m_currentSceneName = "";

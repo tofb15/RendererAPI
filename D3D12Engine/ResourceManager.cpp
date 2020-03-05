@@ -4,6 +4,8 @@
 #include "Mesh.hpp"
 #include "Texture.hpp"
 #include <filesystem>
+#include <thread>
+#include <chrono>
 
 ResourceManager* s_instance = nullptr;
 
@@ -297,13 +299,12 @@ bool ResourceManager::DoesFileExist(std::string s)
 }
 
 void ResourceManager::WaitUntilResourcesIsLoaded() {
-	//for (auto& e : m_textures)
-	//{
-	//	while (e.second->is)
-	//	{
-
-	//	}
-	//}
+	for (auto& e : m_textures)
+	{
+		while (!e.second->IsLoaded()) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+	}
 }
 
 

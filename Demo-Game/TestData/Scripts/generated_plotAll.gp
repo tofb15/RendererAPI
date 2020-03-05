@@ -12,9 +12,8 @@ set grid ytics mytics  # draw lines for each ytics and mytics
 set mytics 0.1         # set the spacing for the mytics
 set grid
 set key horizontal noinvert left
-set yrange [0:10]
+set yrange [0:]
 plot \
-for[i=1:16]    file using i+0       w lines lc i t columnheader,\
-for[i=1:16]    file using i+16      w lines lc i t columnheader,\
-for[i=1:16]    file using i+32      w lines lc i t columnheader,\
-for[i=1:16]    file using i+48      w lines lc i t columnheader,\
+for[i=1:6]     file using i+0       w lines lc i t columnheader,\
+for[i=1:6]     file using i+6       w lines lc i t columnheader,\
+for[i=1:6]     file using i+12      w lines lc i t columnheader,\

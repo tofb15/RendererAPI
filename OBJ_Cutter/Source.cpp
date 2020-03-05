@@ -191,8 +191,8 @@ int main() {
 	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/T_WF_TreeBirch_foliage1_NNTS.png");
 	std::string mat = "debrisclusterdata_M_WF_TreeBirch_01_foliage";
 	
-	std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest/Cut/temp1/";
-	std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest/Cut/temp2/";
+	std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
+	std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
 
 	std::filesystem::create_directories(inPath);
 	std::filesystem::create_directories(outPath);

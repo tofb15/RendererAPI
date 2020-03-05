@@ -61,7 +61,7 @@ public:
 		
 		@return an array countaining all the timer values. It's size will be given in @param nValues
 	*/
-	virtual double* GetGPU_Timers(int& nValues);
+	virtual double* GetGPU_Timers(int& nValues, int& firstValue);
 #endif // DO_TESTING
 
 private:

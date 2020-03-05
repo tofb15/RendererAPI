@@ -2,18 +2,16 @@
 ###!!!Any changes made to this file may be overwritten automatically!!!
 
 reset
-file="../../Data/data.MergedData"
-set title "" font ", 16"
 set xlabel "Frame Number"
-set ylabel "Frame Draw Time (ms)"
+set ylabel "Dispatch Time (ms)"
 set format x "%.f frame"
 set format y "%.3f ms"
 set grid ytics mytics  # draw lines for each ytics and mytics
 set mytics 0.1         # set the spacing for the mytics
 set grid
 set key horizontal noinvert left
+set title "Dispatch Times for shader: Minimal-NS" font ", 16"
 plot \
-file using 1         w lines lc 0t "shader-0",\
-file using 17        w lines lc 0t "shader-0",\
-file using 33        w lines lc 0t "shader-0",\
-file using 49        w lines lc 0t "shader-0",\
+"../../Data/Scene0#0.data" using 1 w lines lc 0 t "Scene0",\
+"../../Data/Scene1#0.data" using 1 w lines lc 1 t "Scene1",\
+"../../Data/Scene2#0.data" using 1 w lines lc 2 t "Scene2",\

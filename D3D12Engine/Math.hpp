@@ -70,9 +70,13 @@ typedef union Float3
 	Float3() { x = y = z = 0; }
 	Float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
-	Float3 operator+(Float3 other) const { return Float3(x + other.x, y + other.y, z + other.z); }
+	Float3 operator+(const Float3& other) const { return Float3(x + other.x, y + other.y, z + other.z); }
+	void operator+=(const Float3& other) { x += other.x; y += other.y; z += other.z; }
 	Float3 operator-(Float3 other) const { return Float3(x - other.x, y - other.y, z - other.z); };
+	void operator-=(const Float3& other) { x -= other.x; y -= other.y; z -= other.z; }
 	Float3 operator*(float other) const { return Float3(x * other, y * other, z * other); };
+	void operator*=(float other) { x *= other; y *= other; z *= other; }
+	void operator*=(const Float3& other) { x *= other.x; y *= other.y; z *= other.z; }
 	Float3 operator/(float other) const { float a = 1.0f / other; return Float3(x * a, y * a, z * a); };
 	void operator/=(float other) { *this = *this / other; };
 	void operator=(const Float3& other) { x = other.x; y = other.y; z = other.z;};

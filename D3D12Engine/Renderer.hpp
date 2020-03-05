@@ -62,15 +62,15 @@ public:
 		@param window the window to present the scene to
 		@See Frame()
 	*/
-	virtual void Present(Window* window, GUI* gui = nullptr) = 0;
-	virtual void ClearFrame() = 0;
-	virtual void Refresh(std::vector<ShaderDefine>* defines = nullptr) {};
-	virtual void SetLightSources(const std::vector<LightSource>& lights) = 0;
-	
-	virtual void SetSetting(std::string setting, float value) {};
+	virtual void  Present(Window* window, GUI* gui = nullptr) = 0;
+	virtual void  ClearFrame() = 0;
+	virtual void  Refresh(std::vector<ShaderDefine>* defines = nullptr) {};
+	virtual void  SetLightSources(const std::vector<LightSource>& lights) = 0;
+	virtual void  SetSetting(std::string setting, float value) {};
 	virtual float GetSetting(std::string setting) { return 0; };
+	virtual bool  SaveLastFrame(std::string file) { return false; };
 #ifdef DO_TESTING
-	virtual double* GetGPU_Timers(int& nValues) { nValues = 0; return nullptr; };
+	virtual double* GetGPU_Timers(int& nValues, int& firstValue) { nValues = 0; return nullptr; };
 #endif // DO_TESTING
 
 protected:

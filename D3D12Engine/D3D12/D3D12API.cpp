@@ -265,11 +265,16 @@ void D3D12API::WaitForGPU_ALL()
 
 void D3D12API::WaitForGPU_BUFFERS(int index)
 {
+	WaitForFenceValue(m_FenceValues_GPU_BUFFERS[index]);
+}
+
+void D3D12API::WaitForFenceValue(unsigned __int64 value)
+{
 	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < m_FenceValues_GPU_BUFFERS[index])
+	if (m_Fence->GetCompletedValue() < value)
 	{
 		//m_numWaits++;
-		m_Fence->SetEventOnCompletion(m_FenceValues_GPU_BUFFERS[index], m_EventHandle);
+		m_Fence->SetEventOnCompletion(value, m_EventHandle);
 		WaitForSingleObject(m_EventHandle, INFINITE);
 	}
 }

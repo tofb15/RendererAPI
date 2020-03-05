@@ -42,6 +42,7 @@ public:
 	virtual void UpdatePixel(Int2 pos, const unsigned char* data, int size) = 0;
 	virtual void ApplyChanges() = 0;
 	virtual unsigned short GetIndex();
+	virtual bool IsLoaded() = 0;
 	unsigned GetFlags() const;
 
 protected:

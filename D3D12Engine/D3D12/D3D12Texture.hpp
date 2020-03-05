@@ -21,7 +21,7 @@ public:
 
 	// Inherited via Texture
 	virtual bool LoadFromFile(const char* fileName, unsigned flags) override;
-	bool IsLoaded();
+	bool IsLoaded() override;
 	int GetTextureIndex() const;
 	void UpdatePixel(Int2 pos, const unsigned char* data, int size) override;
 	void ApplyChanges() override;

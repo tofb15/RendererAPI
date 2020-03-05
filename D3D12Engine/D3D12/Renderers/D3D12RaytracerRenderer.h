@@ -29,11 +29,12 @@ private:
 	virtual void Refresh(std::vector<ShaderDefine>* defines) override;
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
 	
-	virtual void SetSetting(std::string setting, float value) override;
+	virtual void  SetSetting(std::string setting, float value) override;
 	virtual float GetSetting(std::string setting) override;
+	virtual bool  SaveLastFrame(std::string file) override;
 
 #ifdef DO_TESTING
-	virtual double* GetGPU_Timers(int& nValues) override;
+	virtual double* GetGPU_Timers(int& nValues, int& firstValue) override;
 #endif // DO_TESTING
 
 private:

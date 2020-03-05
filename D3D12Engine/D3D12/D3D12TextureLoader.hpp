@@ -73,7 +73,7 @@ private:
 	ID3D12Resource* m_uploadResource = nullptr;
 	UINT m_uploadResource_Size = 0;
 
-	D3D12API*				m_renderer;
+	D3D12API*				m_d3d12;
 	ID3D12CommandQueue*			m_commandQueue = nullptr;
 	ID3D12CommandAllocator*		m_commandAllocator = nullptr;
 	ID3D12GraphicsCommandList3*	m_commandList = nullptr;

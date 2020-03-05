@@ -269,8 +269,6 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	//return;
 
 	float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
-	float3 lightDir = -normalize(HitWorldPosition() - CB_SceneData.pLight.position);
-	float lightDist = length(HitWorldPosition() - CB_SceneData.pLight.position);
 
 	uint primitiveID = PrimitiveIndex();
 	uint verticesPerPrimitive = 3;
@@ -368,9 +366,11 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 #endif //NO_NORMAL_MAP
 
 	float lightMul = 1;
+	float3 lightDir = -normalize(HitWorldPosition() - CB_SceneData.pLight.position);
 
 #ifndef NO_SHADOWS
 	//Shadow
+	float lightDist = length(HitWorldPosition() - CB_SceneData.pLight.position);
 	RayDesc shadowRay;
 	float t = dot(-WorldRayDirection(), normalInWorldSpace);
 	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
@@ -408,7 +408,15 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 
 [shader("miss")]
 void miss(inout RayPayload payload) {
-	payload.color = float4(0.3f, 0.3f, 0.9f, 1.0f);
+	//float3 dir = WorldRayDirection();
+	//if (dir.y < 0) {
+	//	//ground
+	//	payload.color = float4(0.6f, 0.39f, 0.10f, 1.0f);
+	//}
+	//else {
+		//Sky
+		payload.color = float4(0.3f, 0.3f, 0.9f, 1.0f);
+	//}
 	payload.hitT = RAY_T_MAX;
 }
 

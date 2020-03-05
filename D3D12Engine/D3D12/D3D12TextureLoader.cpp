@@ -6,8 +6,9 @@
 #include "D3D12Texture.hpp"
 #include <chrono>
 #include "External/LodePNG/lodepng.h"
+#include "DXR/D3D12Utils.h"
 
-D3D12TextureLoader::D3D12TextureLoader(D3D12API * renderer) : m_renderer(renderer)
+D3D12TextureLoader::D3D12TextureLoader(D3D12API * renderer) : m_d3d12(renderer)
 {
 
 }
@@ -39,13 +40,13 @@ D3D12TextureLoader::~D3D12TextureLoader()
 
 bool D3D12TextureLoader::Initialize()
 {
-	m_CBV_SRV_UAV_DescriptorSize = m_renderer->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_CBV_SRV_UAV_DescriptorSize = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	HRESULT hr;
 	//Describe and create the command queue.
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	cqd.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-	hr = m_renderer->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_commandQueue));
+	hr = m_d3d12->GetDevice()->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_commandQueue));
 	if (FAILED(hr))
 	{
 		return false;
@@ -53,14 +54,14 @@ bool D3D12TextureLoader::Initialize()
 
 	//Create command allocator. The command allocator object corresponds
 	//to the underlying allocations in which GPU commands are stored.
-	hr = m_renderer->GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_commandAllocator));
+	hr = m_d3d12->GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&m_commandAllocator));
 	if (FAILED(hr))
 	{
 		return false;
 	}
 
 	//Create command list.
-	hr = m_renderer->GetDevice()->CreateCommandList(
+	hr = m_d3d12->GetDevice()->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_COPY,
 		m_commandAllocator,
@@ -73,7 +74,7 @@ bool D3D12TextureLoader::Initialize()
 
 	m_commandList->Close();
 
-	hr = m_renderer->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+	hr = m_d3d12->GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 	if (FAILED(hr))
 	{
 		return false;
@@ -97,11 +98,11 @@ void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 	
 	if (!texture->IsLoaded()) {
 		m_texturesToLoadToRAM.push_back(texture);
-		m_cv_ram_not_empty.notify_one();//Wake up the RAM loader thread
+		m_cv_ram_not_empty.notify_one();//Wake up the RAM loader thread (D3D12TextureLoader::RAMUploaderDoWork)
 	}
 	else {
 		m_texturesToLoadToGPU.push_back(texture);
-		m_cv_gpu_not_empty.notify_one();//Wake up the GPU loader thread
+		m_cv_gpu_not_empty.notify_one();//Wake up the GPU loader thread (D3D12TextureLoader::GPUUploaderDoWork)
 	}
 		
 	if (!m_atLeastOneTextureIsLoaded) {
@@ -240,7 +241,7 @@ void D3D12TextureLoader::GPUUploaderDoWork()
 		if (!reuseResource) {
 			heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;			//D3D12_HEAP_TYPE_UPLOAD did not work here!
 
-			hr = m_renderer->GetDevice()->CreateCommittedResource(
+			hr = m_d3d12->GetDevice()->CreateCommittedResource(
 				&heapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&resourceDesc,
@@ -287,7 +288,7 @@ void D3D12TextureLoader::GPUUploaderDoWork()
 			uploadResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 			uploadResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-			hr = m_renderer->GetDevice()->CreateCommittedResource(
+			hr = m_d3d12->GetDevice()->CreateCommittedResource(
 				&heapProperties,
 				D3D12_HEAP_FLAG_NONE,
 				&uploadResourceDesc,
@@ -331,7 +332,7 @@ void D3D12TextureLoader::GPUUploaderDoWork()
 
 			D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
 			cdh.ptr += localHeapIndex * m_CBV_SRV_UAV_DescriptorSize;
-			m_renderer->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+			m_d3d12->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
 		}
 
 #pragma endregion
@@ -423,7 +424,7 @@ bool D3D12TextureLoader::AddDescriptorHeap()
 	heapDescriptorDesc.NumDescriptors = MAX_SRVs_PER_DESCRIPTOR_HEAP;
 	heapDescriptorDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	heapDescriptorDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	hr = m_renderer->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&descriptorHeap));
+	hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&heapDescriptorDesc, IID_PPV_ARGS(&descriptorHeap));
 	if (FAILED(hr))
 		return false;
 
