@@ -6,7 +6,7 @@
 #include "..\D3D12Window.hpp"
 #include "..\D3D12Texture.hpp"
 #include "..\D3D12Technique.hpp"
-#include"..\Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
+#include "..\Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12)
 {
@@ -57,9 +57,13 @@ void DXRBase::SetOutputResources(ID3D12Resource** output, Int2 dim)
 
 void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList)
 {
-	UINT gpuBuffer = m_d3d12->GetGPUBufferIndex();
+	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
+	m_nOpaque = 0;
+	m_nAlpha = 0;
+	m_opaque.clear();
+	m_alpha.clear();
 
-	for (auto& e : m_BLAS_buffers[gpuBuffer])
+	for (auto& e : m_BLAS_buffers[bufferIndex])
 	{
 		e.second.items.clear();
 		if (e.first->hasChanged) {
@@ -74,28 +78,37 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 		}
 	}
 
-	if (m_forceBLASRebuild[gpuBuffer]) {
-		m_forceBLASRebuild[gpuBuffer] = false;
+	if (m_forceBLASRebuild[bufferIndex]) {
+		m_forceBLASRebuild[bufferIndex] = false;
 		//Destroy all BLASs
-		for (auto it = m_BLAS_buffers[gpuBuffer].begin(); it != m_BLAS_buffers[gpuBuffer].end();)
+		for (auto it = m_BLAS_buffers[bufferIndex].begin(); it != m_BLAS_buffers[bufferIndex].end();)
 		{
 			it->second.as.Release();
-			it = m_BLAS_buffers[gpuBuffer].erase(it);
+			it = m_BLAS_buffers[bufferIndex].erase(it);
 		}
 	}
 
 	//Build/Update BLAS
 	for (auto& e : items)
 	{
+		if (e.blueprint->allGeometryIsOpaque) {
+			m_nOpaque++;
+			m_opaque.insert(e.blueprint);
+		}
+		else {
+			m_nAlpha++;
+			m_alpha.insert(e.blueprint);
+		}
+
 		//BLAS_ID id = static_cast<D3D12Mesh*>(e.blueprint->mesh)->GetID();
-		auto search = m_BLAS_buffers[gpuBuffer].find(e.blueprint);
-		if (search == m_BLAS_buffers[gpuBuffer].end()) {
+		auto search = m_BLAS_buffers[bufferIndex].find(e.blueprint);
+		if (search == m_BLAS_buffers[bufferIndex].end()) {
 			CreateBLAS(e, 0, cmdList);
 		}
 		else {
 			if (search->second.needsRebuild) {
 				search->second.as.Release();
-				m_BLAS_buffers[gpuBuffer].erase(search);
+				m_BLAS_buffers[bufferIndex].erase(search);
 				CreateBLAS(e, 0, cmdList);
 			}
 			else {
@@ -107,11 +120,11 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 
 	m_hitGroupShaderRecordsNeededThisFrame = 0;
 	//Destroy unused BLASs
-	for (auto it = m_BLAS_buffers[gpuBuffer].begin(); it != m_BLAS_buffers[gpuBuffer].end();)
+	for (auto it = m_BLAS_buffers[bufferIndex].begin(); it != m_BLAS_buffers[bufferIndex].end();)
 	{
 		if (it->second.items.empty()) {
 			it->second.as.Release();
-			it = m_BLAS_buffers[gpuBuffer].erase(it);
+			it = m_BLAS_buffers[bufferIndex].erase(it);
 		}
 		else {
 			m_hitGroupShaderRecordsNeededThisFrame += it->second.nGeometries;
@@ -120,7 +133,10 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 	}
 
 	//Build/Update TLAS
-	CreateTLAS(items.size(), cmdList);
+	m_blasStartIndex = 0;
+	CreateTLAS(m_TLAS_buffers_opaque[bufferIndex], m_opaque, m_nOpaque, cmdList);
+	CreateTLAS(m_TLAS_buffers_alpha[bufferIndex], m_alpha, m_nAlpha, cmdList);
+
 	UpdateDescriptorHeap(cmdList);
 	//Update Shader Table
 	UpdateShaderTable();
@@ -186,8 +202,9 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	desc.Depth = 1;
 
 	cmdList->SetComputeRootSignature(m_globalRootSignature);
-	cmdList->SetComputeRootShaderResourceView(0, m_TLAS_buffers[bufferIndex].result->GetGPUVirtualAddress());
-	cmdList->SetComputeRootConstantBufferView(1, m_cb_scene->GetGPUVirtualAddress());
+	cmdList->SetComputeRootShaderResourceView(0, m_TLAS_buffers_opaque[bufferIndex].result->GetGPUVirtualAddress());
+	cmdList->SetComputeRootShaderResourceView(1, m_TLAS_buffers_alpha[bufferIndex].result->GetGPUVirtualAddress());
+	cmdList->SetComputeRootConstantBufferView(2, m_cb_scene->GetGPUVirtualAddress());
 
 	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	cmdList->SetPipelineState1(m_rtxPipelineState);
@@ -298,13 +315,12 @@ bool DXRBase::InitializeConstanBuffers()
 	return true;
 }
 
-void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList)
+void DXRBase::CreateTLAS(AccelerationStructureBuffers& tlas, std::unordered_set<Blueprint*>& blueprints, unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList)
 {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();	
-	AccelerationStructureBuffers& tlas = m_TLAS_buffers[bufferIndex];
+	//AccelerationStructureBuffers& tlas = m_TLAS_buffers[bufferIndex];
 	tlas.Release(); //TODO: reuse TLAS insteed of destroying it.
-	
-	
+		
 	//=======Allocate GPU memory for Instance Data========
 	tlas.instanceDesc = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * max(numInstanceDescriptors, 1U), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12Utils::sUploadHeapProperties);
 	tlas.instanceDesc->SetName(L"TLAS_INSTANCE_DESC");
@@ -313,10 +329,11 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc;
 	tlas.instanceDesc->Map(0, nullptr, (void**)&pInstanceDesc);
 	DirectX::XMMATRIX mat;
-	UINT blasStartIndex = 0;
-	for (auto& blas : m_BLAS_buffers[bufferIndex])
+	for (auto& bp : blueprints)
 	{
-		auto& instances = blas.second.items;
+		BottomLayerData& blasData = m_BLAS_buffers[bufferIndex][bp];
+
+		auto& instances = blasData.items;
 		int instanceID = 0;
 		for (auto& instance : instances)
 		{
@@ -324,9 +341,9 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			
 			pInstanceDesc->InstanceID = instanceID;
 			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
-			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex;
-			pInstanceDesc->Flags = (blas.first->allGeometryIsOpaque || !m_allowAnyhitshaders) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
-			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
+			pInstanceDesc->InstanceContributionToHitGroupIndex = m_blasStartIndex;
+			pInstanceDesc->Flags = (bp->allGeometryIsOpaque || !m_allowAnyhitshaders) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
+			pInstanceDesc->AccelerationStructure = blasData.as.result->GetGPUVirtualAddress();
 
 			// Construct and copy matrix data
 			Float3& pos = instance.transform.pos;
@@ -350,7 +367,7 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 			pInstanceDesc++;
 		}
 
-		blasStartIndex += blas.second.nGeometries * DXRShaderCommon::N_RAY_TYPES;
+		m_blasStartIndex += blasData.nGeometries * DXRShaderCommon::N_RAY_TYPES;
 	}
 	tlas.instanceDesc->Unmap(0, nullptr);
 
@@ -497,9 +514,10 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_gen[bufferIndex] = generationTable.Build(m_d3d12->GetDevice());
 
 	//===Update Miss Table===
-	DXRUtils::ShaderTableBuilder missTable(2, m_rtxPipelineState);
+	DXRUtils::ShaderTableBuilder missTable(3, m_rtxPipelineState);
 	missTable.AddShader(m_shader_missName);
 	missTable.AddShader(m_shader_shadowMissName);
+	missTable.AddShader(m_shader_emptyMissName);
 	m_shaderTable_miss[bufferIndex].Release();
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
@@ -508,22 +526,24 @@ void DXRBase::UpdateShaderTable()
 
 	UINT blasIndex = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
-	for (auto& blas : m_BLAS_buffers[bufferIndex])
+	auto processBlueprint = [&](Blueprint* bp)
 	{
-		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(blas.first->mesh);
+		BottomLayerData& blasData = m_BLAS_buffers[bufferIndex][bp];
+
+		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(bp->mesh);
 		std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = mesh->GetSubObjects();
 		uint i = 0;
 		for (auto& e : objects)
 		{
-			UINT64 vb_pos =    e.second[Mesh::VERTEX_BUFFER_FLAG_POSITION        ]->GetResource()->GetGPUVirtualAddress();
-			UINT64 vb_norm =   e.second[Mesh::VERTEX_BUFFER_FLAG_NORMAL          ]->GetResource()->GetGPUVirtualAddress();
-			UINT64 vb_uv =     e.second[Mesh::VERTEX_BUFFER_FLAG_UV              ]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_pos = e.second[Mesh::VERTEX_BUFFER_FLAG_POSITION]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_norm = e.second[Mesh::VERTEX_BUFFER_FLAG_NORMAL]->GetResource()->GetGPUVirtualAddress();
+			UINT64 vb_uv = e.second[Mesh::VERTEX_BUFFER_FLAG_UV]->GetResource()->GetGPUVirtualAddress();
 			UINT64 vb_tan_Bi = e.second[Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL]->GetResource()->GetGPUVirtualAddress();
 
 			//===Add Shader(group) Identifier===
 			//TODO: identify which geometry need none opaque
-			
-			hitGroupTable.AddShader((blas.first->alphaTested[i]) ? m_group_alphaTest : m_group1);
+
+			hitGroupTable.AddShader((bp->alphaTested[i]) ? m_group_alphaTest : m_group1);
 			//if (m_allowAnyhitshaders) {
 			//}
 			//else {
@@ -543,16 +563,16 @@ void DXRBase::UpdateShaderTable()
 			texture_gdh.ptr += m_descriptorSize;
 
 			//===ShadowRayHit Shader===
-			if (blas.first->alphaTested[i] && m_allowAnyhitshaders) {
+			if (bp->alphaTested[i] && m_allowAnyhitshaders) {
 				//Alphatest geometry shadow hit shader
 				texture_gdh.ptr -= m_descriptorSize * 2;
 				hitGroupTable.AddShader(m_group_alphaTest_shadow);
 
 				//===Add vertexbuffer descriptors===
-				hitGroupTable.AddDescriptor(vb_pos,		blasIndex + 1);
-				hitGroupTable.AddDescriptor(vb_norm,	blasIndex + 1);
-				hitGroupTable.AddDescriptor(vb_uv,		blasIndex + 1);
-				hitGroupTable.AddDescriptor(vb_tan_Bi,	blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_pos, blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_norm, blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_uv, blasIndex + 1);
+				hitGroupTable.AddDescriptor(vb_tan_Bi, blasIndex + 1);
 
 				//===Add texture descriptors===
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
@@ -567,10 +587,20 @@ void DXRBase::UpdateShaderTable()
 
 			blasIndex += DXRShaderCommon::N_RAY_TYPES;
 			i++;
-			if (i == blas.second.nGeometries) {
+			if (i == blasData.nGeometries) {
 				break;
 			}
 		}
+	};
+
+	for (auto& bp : m_opaque)
+	{
+		processBlueprint(bp);
+	}
+
+	for (auto& bp : m_alpha)
+	{
+		processBlueprint(bp);
 	}
 
 	m_shaderTable_hitgroup[bufferIndex].Release();
@@ -583,19 +613,31 @@ void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
 	m_unused_handle_start_this_frame = m_unreserved_handle_start[bufferIndex];
 	m_srv_mesh_textures_handle_start = m_unused_handle_start_this_frame;
 	D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu; 
-	for (auto& e : m_BLAS_buffers[bufferIndex])
+
+	auto processBlueprint = [&](Blueprint * bp)
 	{
-		UINT nTextures = e.first->textures.size();
-		for (size_t i = 0; i < e.second.nGeometries; i++)
+		UINT nTextures = bp->textures.size();
+		UINT nGeometries = m_BLAS_buffers[bufferIndex][bp].nGeometries;
+		for (size_t i = 0; i < nGeometries; i++)
 		{
-			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[i * 2]));
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(bp->textures[i * 2]));
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
 
-			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[i * 2 + 1]));
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(bp->textures[i * 2 + 1]));
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
 		}
+	};
+
+	for (auto& bp : m_opaque)
+	{
+		processBlueprint(bp);
+	}
+
+	for (auto& bp : m_alpha)
+	{
+		processBlueprint(bp);
 	}
 }
 
@@ -633,7 +675,7 @@ bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 #endif // DO_TESTING
 
 
-	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_emptyMissName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group1, m_shader_closestHitName);
 	psoBuilder.AddHitGroup(m_group_alphaTest, m_shader_closestHitAlphaTestName, (m_allowAnyhitshaders) ? m_shader_anyHitName : nullptr);
 	psoBuilder.AddHitGroup(m_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
@@ -642,6 +684,7 @@ bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 	psoBuilder.AddSignatureToShaders({ m_group1 },          m_localRootSignature_hitGroups.Get());
 	psoBuilder.AddSignatureToShaders({ m_group_alphaTest }, m_localRootSignature_hitGroups.Get());
 	psoBuilder.AddSignatureToShaders({ m_shader_missName },       m_localRootSignature_miss.Get());
+	psoBuilder.AddSignatureToShaders({ m_shader_emptyMissName },       m_localRootSignature_miss.Get());
 	psoBuilder.AddSignatureToShaders({ m_shader_shadowMissName},  m_localRootSignature_empty.Get());
 	psoBuilder.AddSignatureToShaders({ m_group_alphaTest_shadow }, m_localRootSignature_hitGroups.Get());
 
@@ -754,7 +797,8 @@ double DXRBase::ExtractGPUTimer()
 bool DXRBase::CreateDXRGlobalRootSignature()
 {
 	m_globalRootSignature = D3D12Utils::RootSignature(L"dxrGlobalRoot");
-	m_globalRootSignature.AddSRV("AccelerationStructure", 0);
+	m_globalRootSignature.AddSRV("AccelerationStructure_Opaque", 0);
+	m_globalRootSignature.AddSRV("AccelerationStructure_Alpha", 0, 1);
 	m_globalRootSignature.AddCBV("SceneCBuffer", 0);
 	//m_globalRootSignature.AddSRV("AccelerationStructure", 0);
 	m_globalRootSignature.AddStaticSampler();

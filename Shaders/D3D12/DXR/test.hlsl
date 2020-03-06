@@ -87,6 +87,7 @@ inline void generateCameraRay2(uint2 index, out float3 origin, out float3 direct
 
 [shader("raygeneration")]
 void rayGen() {
+	//return;
 	uint2 launchIndex = DispatchRaysIndex().xy;
 
 	RayDesc ray;
@@ -97,34 +98,14 @@ void rayGen() {
 	ray.TMin = 0.00001;
 	ray.TMax = RAY_T_MAX;
 
-	//outputTexture[launchIndex] = float4(0,0,0,0);
-	//for (int r = 0; r < 1; r++) {
 		RayPayload payload;
 		payload.recursionDepth = 0;
 		payload.hitT = 0;
-//#ifdef TRACE_NON_OPAQUE_SEPARATELY
-//		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-//
-//		RayPayload payload_non_opaque;
-//		payload_non_opaque.recursionDepth = 0;
-//		payload_non_opaque.hitT = 0;
-//
-//		ray.TMax = payload.hitT;
-//		TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload_non_opaque);
-//
-//		if (payload_non_opaque.hitT < RAY_T_MAX) {
-//			outputTexture[launchIndex] = payload_non_opaque.color;
-//		}
-//		else {
-//			outputTexture[launchIndex] = payload.color;
-//		}
-//#else // TRACE_NON_OPAQUE_SEPARATELY
 #ifdef RAY_GEN_ALPHA_TEST
 #ifdef TRACE_NON_OPAQUE_SEPARATELY
 		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
 #endif //TRACE_NON_OPAQUE_SEPARATELY
 		uint i = 1;
-		//float3 c = payload.color.xyz;
 		do {
 			i++;
 			ray.TMin = payload.hitT + 0.001f;
@@ -141,7 +122,9 @@ void rayGen() {
 		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
 #ifdef TRACE_NON_OPAQUE_SEPARATELY
 		ray.TMax = payload.hitT;
-		TraceRay(gAS_alpha, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+		//payload.recursionDepth = 0;
+		payload.hitT = 0;
+		TraceRay(gAS_alpha, 0, 0xFF, 0, N_RAY_TYPES, 2, ray, payload);
 #endif // TRACE_NON_OPAQUE_SEPARATELY
 #endif // RAY_GEN_ALPHA_TEST
 
@@ -164,11 +147,10 @@ void rayGen() {
 #else
 		outputTexture[launchIndex] = payload.color;
 #endif
-//#endif // !TRACE_NON_OPAQUE_SEPARATELY
 
-		uint lc = WaveGetLaneCount();
-		uint li = WaveGetLaneIndex();
-		float t3 = li / (float)lc;
+		//uint lc = WaveGetLaneCount();
+		//uint li = WaveGetLaneIndex();
+		//float t3 = li / (float)lc;
 		//t3 = 1 - pow(1 - t3, 2);
 		//float t3 = WaveIsFirstLane();
 		//float t3 = WaveActiveAllTrue(true);
@@ -463,6 +445,11 @@ void miss(inout RayPayload payload) {
 		payload.color = float4(0.3f, 0.3f, 0.9f, 1.0f);
 	//}
 	payload.hitT = RAY_T_MAX;
+}
+
+[shader("miss")]
+void miss_empty(inout RayPayload payload) {
+	
 }
 
 [shader("miss")]

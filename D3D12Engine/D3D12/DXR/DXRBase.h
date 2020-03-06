@@ -15,6 +15,7 @@
 #include <vector>
 #include <Windows.h>
 #include <unordered_map>
+#include <unordered_set>
 
 typedef void* _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS;
 typedef unsigned int BLAS_ID;
@@ -65,24 +66,35 @@ public:
 #endif // DO_TESTING
 
 private:
+	/*
+		Used for both TLAS and BLAS
+	*/
 	struct AccelerationStructureBuffers {
 		ID3D12Resource* scratch = nullptr;
 		ID3D12Resource* result = nullptr;
-		ID3D12Resource* instanceDesc = nullptr;    // Used only for top-level AS
+		ID3D12Resource* instanceDesc = nullptr;    // Used only for TLAS
 		bool allowUpdate = false;
 		void Release();
 	};
 
+	/*Per Instance data*/
 	struct PerInstance {
 		Transform transform;
 	};
 
+	/*
+		Custom data describing the bottom layer geometries.
+	*/
 	struct BottomLayerData {
 		bool needsRebuild = false;
 		AccelerationStructureBuffers as;
 		//number of geometries(meshes) inside the BLAS
 		uint nGeometries;
-		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[MAX_NUM_GEOMETRIES_IN_BLAS];
+		D3D12_GPU_VIRTUAL_ADDRESS geometryBuffers[MAX_NUM_GEOMETRIES_IN_BLAS];			
+		/*
+			Temporary data describeing each instance using this BLAS.
+			This will be used to create all instances in the TLAS
+		*/
 		std::vector<PerInstance> items;
 
 		BottomLayerData& operator =(const BottomLayerData& other) {
@@ -104,7 +116,7 @@ private:
 	bool InitializeConstanBuffers();
 
 	// Acceleration structures
-	void CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
+	void CreateTLAS(AccelerationStructureBuffers& tlas, std::unordered_set<Blueprint*>& blueprints, unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
 	void CreateBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
 	void UpdateShaderTable();
 
@@ -148,7 +160,15 @@ private:
 	D3D12API* m_d3d12;
 	Int2 m_outputDim;
 
-	AccelerationStructureBuffers m_TLAS_buffers[NUM_GPU_BUFFERS];
+	AccelerationStructureBuffers m_TLAS_buffers_opaque[NUM_GPU_BUFFERS];
+	AccelerationStructureBuffers m_TLAS_buffers_alpha[NUM_GPU_BUFFERS];
+	std::unordered_set<Blueprint*> m_opaque;
+	std::unordered_set<Blueprint*> m_alpha;
+	int m_nOpaque = 0;
+	int m_nAlpha = 0;
+	UINT m_blasStartIndex = 0;
+
+
 	std::unordered_map<Blueprint*, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
 
 	D3D12Utils::RootSignature m_globalRootSignature;
@@ -189,7 +209,7 @@ private:
 	const WCHAR* m_shader_closestHitAlphaTestName = L"closestHitAlphaTest";
 	const WCHAR* m_shader_anyHitName = L"anyHitAlphaTest";
 	const WCHAR* m_shader_missName = L"miss";
-
+	const WCHAR* m_shader_emptyMissName = L"miss_empty";
 	const WCHAR* m_shader_shadowMissName = L"shadow_GeometryMiss";
 
 	//==Shader Group Names==
