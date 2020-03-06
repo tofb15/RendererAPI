@@ -88,9 +88,9 @@ public:
 		Other assets loaded indirectly and asynchronously with this function, like textures,
 		may fail to load even though it returns true.
 	*/
-	bool PreLoadScene(std::filesystem::path path, Asset_Types assets_to_load_flag = Asset_Type_Any);
-	bool LoadScene(std::filesystem::path path, bool clearOld = true);
-	bool LoadScene(std::string name, bool clearOld = true);
+	bool PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag = Asset_Type_Any);
+	bool LoadScene(const std::filesystem::path& path, bool clearOld = true);
+	bool LoadScene(const std::string& name, bool clearOld = true);
 	/*
 		Calls ClearScene() and sets up basic scene elements.
 	*/
@@ -107,7 +107,7 @@ public:
 		Triggers the renderer to recompile shaders with the current shader defines and settings
 	*/
 	void ReloadShaders();
-	void ReloadShaders(std::vector<ShaderDefine>& defines);
+	void ReloadShaders(const std::vector<ShaderDefine>& defines);
 
 	//===========ImGui Rendering============
 	/**
@@ -207,6 +207,8 @@ private:
 	bool m_def_TRACE_NON_OPAQUE_SEPARATELY = false;
 	bool m_def_RAY_GEN_ALPHA_TEST = false;
 	bool m_def_DEBUG_RECURSION_DEPTH = false;
+	bool m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY = false;
+	bool m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY = false;
 	bool m_def_DEBUG_DEPTH = false;
 	int m_def_DEBUG_DEPTH_EXP = 100;
 	bool m_reloadShaders = false;
@@ -229,9 +231,9 @@ private:
 	std::vector<ShaderSettings> m_shaderSettings;
 	unsigned int m_currentShaderDefineTestCase;
 
-	void GenerateGnuPlotScript(std::filesystem::path scriptPath, std::filesystem::path dataPath);
-	void GenerateGnuPlotScript_full(std::filesystem::path scriptPath, std::filesystem::path dataPath);
-	void GenerateGnuPlotScript_perScene(std::filesystem::path scriptPath, std::filesystem::path dataPath);
-	void GenerateGnuPlotScript_perShader(std::filesystem::path scriptPath, std::filesystem::path dataPath);
+	void GenerateGnuPlotScript(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
+	void GenerateGnuPlotScript_full(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
+	void GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
+	void GenerateGnuPlotScript_perShader(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
 #endif // DO_TESTING
 };

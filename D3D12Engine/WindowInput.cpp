@@ -63,7 +63,7 @@ void WindowInput::SetKeyPressed(char key, bool isPressed)
 		m_isKeysPressed[key] = isPressed;
 }
 
-void WindowInput::SetMouseMovement(Int2 mouseMovement)
+void WindowInput::SetMouseMovement(const Int2& mouseMovement)
 {
 	m_mouseMovement = mouseMovement;
 }

@@ -46,7 +46,7 @@ public:
 
 	void UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights);
 	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
-	void ReloadShaders(std::vector<ShaderDefine>* defines);
+	void ReloadShaders(const std::vector<ShaderDefine>* defines);
 
 	//Settings
 	void SetAllowAnyHitShader(bool b);
@@ -118,7 +118,7 @@ private:
 	bool CreateHitGroupLocalRootSignature();
 	bool CreateMissLocalRootSignature();
 	bool CreateEmptyLocalRootSignature();
-	bool CreateRaytracingPSO(std::vector<ShaderDefine>* defines);
+	bool CreateRaytracingPSO(const std::vector<ShaderDefine>* defines);
 	bool CreateDescriptorHeap();
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
@@ -193,9 +193,9 @@ private:
 	const WCHAR* m_shader_shadowMissName = L"shadow_GeometryMiss";
 
 	//==Shader Group Names==
-	const WCHAR* m_group_group1 = L"hitGroup";
-	const WCHAR* m_group_group_alphaTest = L"hitGroup_alphaTest";
-	const WCHAR* m_group_group_alphaTest_shadow = L"hitGroup_alphaTest_shadow";
+	const WCHAR* m_group1 = L"hitGroup";
+	const WCHAR* m_group_alphaTest = L"hitGroup_alphaTest";
+	const WCHAR* m_group_alphaTest_shadow = L"hitGroup_alphaTest_shadow";
 
 	//Settings
 	bool m_allowAnyhitshaders = true;

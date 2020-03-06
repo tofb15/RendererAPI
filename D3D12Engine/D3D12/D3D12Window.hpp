@@ -17,7 +17,7 @@ public:
 	/*
 		Set the dimensions for the window.
 	*/
-	virtual void SetDimensions(Int2 dimensions) override;
+	virtual void SetDimensions(const Int2& dimensions) override;
 	/*
 		Set the dimensions for the window.
 	*/
@@ -25,7 +25,7 @@ public:
 	/*
 		Set the position of the window.
 	*/
-	virtual void SetPosition(Int2 position) override;
+	virtual void SetPosition(const Int2& position) override;
 	/*
 		Set the position of the window.
 	*/
@@ -64,7 +64,7 @@ public:
 		@see GetCurrentBackBufferIndex()
 	*/
 	void SetRenderTarget(ID3D12GraphicsCommandList3*	commandList);
-	HWND				GetHWND();
+	HWND GetHWND();
 
 	/*
 		@Return a pointer to the Swap Chain Interface

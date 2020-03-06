@@ -23,7 +23,7 @@ D3D12ShaderManager::~D3D12ShaderManager()
 	}
 }
 
-Shader D3D12ShaderManager::CompileShader(ShaderDescription sd)
+Shader D3D12ShaderManager::CompileShader(const ShaderDescription& sd)
 {
 	std::vector<ID3DBlob*> &shaderVector = m_shader_blobs[sd.type];
 	
@@ -97,7 +97,7 @@ std::string D3D12ShaderManager::GetVertexDefines(int index) const
 	return m_vertexDefines[index];
 }
 
-ID3DBlob * D3D12ShaderManager::GetShaderBlob(Shader shader)
+ID3DBlob * D3D12ShaderManager::GetShaderBlob(const Shader& shader)
 {
 	return m_shader_blobs[shader.type][shader.handle];
 }

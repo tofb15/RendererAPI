@@ -15,11 +15,11 @@ public:
 	virtual ~D3D12ShaderManager();
 
 	// Inherited via ShaderManager
-	virtual Shader CompileShader(ShaderDescription sd) override;
+	virtual Shader CompileShader(const ShaderDescription& sd) override;
 	//virtual int CreateShaderProgram(Shader VS, Shader GS, Shader PS) override;
 
 	std::string GetVertexDefines(int index) const;
-	ID3DBlob* GetShaderBlob(Shader shader);
+	ID3DBlob* GetShaderBlob(const Shader& shader);
 protected:
 
 	std::map<ShaderType, std::vector<ID3DBlob*>> m_shader_blobs;

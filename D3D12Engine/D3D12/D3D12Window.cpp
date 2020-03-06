@@ -112,7 +112,7 @@ D3D12Window::~D3D12Window()
 	m_SwapChain4->Release();
 }
 
-void D3D12Window::SetDimensions(Int2 dimensions)
+void D3D12Window::SetDimensions(const Int2& dimensions)
 {
 	SetDimensions(dimensions.x, dimensions.y);
 }
@@ -132,7 +132,7 @@ void D3D12Window::SetDimensions(int w, int h)
 	//if (mWnd != NULL)
 }
 
-void D3D12Window::SetPosition(Int2 position)
+void D3D12Window::SetPosition(const Int2& position)
 {
 }
 

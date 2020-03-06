@@ -23,7 +23,7 @@ public:
 	virtual bool LoadFromFile(const char* fileName, unsigned flags) override;
 	bool IsLoaded() override;
 	int GetTextureIndex() const;
-	void UpdatePixel(Int2 pos, const unsigned char* data, int size) override;
+	void UpdatePixel(const Int2& pos, const unsigned char* data, int size) override;
 	void ApplyChanges() override;
 
 	std::vector<unsigned char>& GetData_addr();

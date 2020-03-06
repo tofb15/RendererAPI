@@ -63,7 +63,7 @@ public:
 	//virtual void SetTechnique(Technique*);
 	const char* GetMaterialName() const;
 	std::string GetName() const;
-	void SetName(std::string name);
+	void SetName(const std::string& name);
 
 	virtual int GetNumberOfSubMeshes() = 0;
 	virtual std::string GetSubMesheName(int i) = 0;

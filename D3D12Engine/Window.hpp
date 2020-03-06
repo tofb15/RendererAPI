@@ -18,9 +18,9 @@ public:
 	Int2 GetDimensions() const;
 	Int2 GetPosition() const;
 
-	virtual void SetDimensions(Int2 dimensions) = 0;
+	virtual void SetDimensions(const Int2& dimensions) = 0;
 	virtual void SetDimensions(int w, int h) = 0;
-	virtual void SetPosition(Int2 position) = 0;
+	virtual void SetPosition(const Int2& position) = 0;
 	virtual void SetPosition(int x, int y) = 0;
 	/*
 		Change the title of the window

@@ -53,7 +53,7 @@ int D3D12Texture::GetTextureIndex() const
 	return m_GPU_Loader_index;
 }
 
-void D3D12Texture::UpdatePixel(Int2 pos, const unsigned char * data, int size)
+void D3D12Texture::UpdatePixel(const Int2& pos, const unsigned char * data, int size)
 {
 	if (m_Flags & Texture_Load_Flags::TEXTURE_USAGE_CPU_FLAG) {
 		std::memcpy(&m_Image_CPU[m_BytesPerPixel * (pos.y*m_Width + pos.x)], data, size);

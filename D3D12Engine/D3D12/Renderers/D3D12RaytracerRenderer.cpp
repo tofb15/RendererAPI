@@ -134,7 +134,7 @@ void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index)
 	}
 }
 
-void D3D12RaytracerRenderer::Submit(SubmissionItem item, Camera* camera, unsigned char layer)
+void D3D12RaytracerRenderer::Submit(const SubmissionItem& item, Camera* camera, unsigned char layer)
 {
 	m_renderItems.emplace_back(item);
 }
@@ -222,7 +222,7 @@ void D3D12RaytracerRenderer::ClearFrame()
 
 }
 
-void D3D12RaytracerRenderer::Refresh(std::vector<ShaderDefine>* defines)
+void D3D12RaytracerRenderer::Refresh(const std::vector<ShaderDefine>* defines)
 {
 	m_dxrBase->ReloadShaders(defines);
 }
@@ -232,21 +232,21 @@ void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lig
 	m_lights = lights;
 }
 
-void D3D12RaytracerRenderer::SetSetting(std::string setting, float value)
+void D3D12RaytracerRenderer::SetSetting(const std::string& setting, float value)
 {
 	if (setting == "anyhit") {
 		m_dxrBase->SetAllowAnyHitShader(value > 0);
 	}
 }
 
-float D3D12RaytracerRenderer::GetSetting(std::string setting)
+float D3D12RaytracerRenderer::GetSetting(const std::string& setting)
 {
 	if (setting == "anyhit") {
 		return 0;
 	}
 }
 
-bool D3D12RaytracerRenderer::SaveLastFrame(std::string file)
+bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 {
 	//Wait for the current frame to finnish rendering.
 	m_d3d12->WaitForGPU_ALL();

@@ -38,7 +38,7 @@ public:
 		@param item, an item to be rendered
 		@param camera the camera which will be used for rendering
 	*/
-	virtual void			Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) = 0;
+	virtual void			Submit(const SubmissionItem& item, Camera* camera = nullptr, unsigned char layer = 0) = 0;
 
 	/*
 		Clear previously submitted work
@@ -64,11 +64,11 @@ public:
 	*/
 	virtual void  Present(Window* window, GUI* gui = nullptr) = 0;
 	virtual void  ClearFrame() = 0;
-	virtual void  Refresh(std::vector<ShaderDefine>* defines = nullptr) {};
+	virtual void  Refresh(const std::vector<ShaderDefine>* defines = nullptr) {};
 	virtual void  SetLightSources(const std::vector<LightSource>& lights) = 0;
-	virtual void  SetSetting(std::string setting, float value) {};
-	virtual float GetSetting(std::string setting) { return 0; };
-	virtual bool  SaveLastFrame(std::string file) { return false; };
+	virtual void  SetSetting(const std::string& setting, float value) {};
+	virtual float GetSetting(const std::string& setting) { return 0; };
+	virtual bool  SaveLastFrame(const std::string& file) { return false; };
 #ifdef DO_TESTING
 	virtual double* GetGPU_Timers(int& nValues, int& firstValue) { nValues = 0; return nullptr; };
 #endif // DO_TESTING

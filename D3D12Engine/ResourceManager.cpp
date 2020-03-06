@@ -45,7 +45,7 @@ bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpD
 	return true;
 }
 
-bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, std::string bpName)
+bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, const std::string& bpName)
 {
 	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName + ".bp";
 	std::ofstream out(fName);
@@ -77,11 +77,11 @@ ResourceManager::~ResourceManager()
 	for (auto& e : m_textures)  {if (e.second) {delete e.second;}}
 }
 
-void ResourceManager::SetAssetPath(std::string s) {
+void ResourceManager::SetAssetPath(const std::string& s) {
 	m_assetPath = s;
 }
 
-Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
+Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name)
 {
 	Blueprint* bp = MY_NEW Blueprint;
 	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name + ".bp";
@@ -125,7 +125,7 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(std::string name)
 	return bp;
 }
 
-Mesh* ResourceManager::GetMesh(std::string name)
+Mesh* ResourceManager::GetMesh(const std::string& name)
 {
 	Mesh* mesh = nullptr;
 	std::string fName = m_assetPath + MESH_FOLDER_NAME + name;
@@ -160,7 +160,7 @@ std::string ResourceManager::GetMeshName(Mesh* mesh) {
 	return std::string();
 }
 
-Texture* ResourceManager::GetTexture(std::string name)
+Texture* ResourceManager::GetTexture(const std::string& name)
 {
 	Texture* texture = nullptr;
 	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
@@ -192,11 +192,11 @@ std::string ResourceManager::GetTextureName(Texture* texture) {
 	return std::string();
 }
 
-bool ResourceManager::IsBlueprintLoaded(std::string name){
+bool ResourceManager::IsBlueprintLoaded(const std::string& name){
 	return m_blueprints.find(name) != m_blueprints.end();
 }
 
-Blueprint* ResourceManager::GetBlueprint(std::string name)
+Blueprint* ResourceManager::GetBlueprint(const std::string& name)
 {
 	Blueprint* bp = nullptr;
 	auto search = m_blueprints.find(name);
@@ -213,7 +213,7 @@ Blueprint* ResourceManager::GetBlueprint(std::string name)
 	return bp;
 }
 
-bool ResourceManager::PreLoadBlueprintFromFile(std::string path, Asset_Types assets_to_load)
+bool ResourceManager::PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load)
 {
 	bool allGood = true;
 	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + path + ".bp";
@@ -257,7 +257,7 @@ bool ResourceManager::PreLoadBlueprintFromFile(std::string path, Asset_Types ass
 	return allGood;
 }
 
-bool ResourceManager::PreLoadBlueprint(std::string name, Asset_Types assets_to_load)
+bool ResourceManager::PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load)
 {
 	auto search = m_blueprints.find(name);
 	if (search == m_blueprints.end()) {
@@ -267,7 +267,7 @@ bool ResourceManager::PreLoadBlueprint(std::string name, Asset_Types assets_to_l
 	return true;
 }
 
-Blueprint* ResourceManager::CreateBlueprint(std::string name) {
+Blueprint* ResourceManager::CreateBlueprint(const std::string& name) {
 	Blueprint* bp = nullptr;
 	auto search = m_blueprints.find(name);
 	if (search == m_blueprints.end()) {
@@ -293,7 +293,7 @@ std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
 	return m_blueprints;
 }
 
-bool ResourceManager::DoesFileExist(std::string s)
+bool ResourceManager::DoesFileExist(const std::string& s)
 {
 	return std::filesystem::exists(s);
 }

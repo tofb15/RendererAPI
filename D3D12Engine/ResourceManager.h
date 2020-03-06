@@ -51,27 +51,27 @@ class ResourceManager
 public:
 	static ResourceManager* GetInstance(RenderAPI* api);
 	static bool SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions);
-	bool SaveBlueprintToFile(Blueprint* bp, std::string bpName);
+	bool SaveBlueprintToFile(Blueprint* bp, const std::string& bpName);
 
 	~ResourceManager();
 
-	void SetAssetPath(std::string s);
-	Blueprint* LoadBlueprintFromFile(std::string path);
-	Blueprint* GetBlueprint(std::string name);
-	bool PreLoadBlueprintFromFile(std::string path, Asset_Types assets_to_load);
-	bool PreLoadBlueprint(std::string name, Asset_Types assets_to_load = Asset_Type_Any);
+	void SetAssetPath(const std::string& s);
+	Blueprint* LoadBlueprintFromFile(const std::string& path);
+	Blueprint* GetBlueprint(const std::string& name);
+	bool PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load);
+	bool PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load = Asset_Type_Any);
 
-	Blueprint* CreateBlueprint(std::string name);
-	Mesh* GetMesh(std::string name);
-	Texture* GetTexture(std::string name);
+	Blueprint* CreateBlueprint(const std::string& name);
+	Mesh* GetMesh(const std::string& name);
+	Texture* GetTexture(const std::string& name);
 
 	std::string GetMeshName(Mesh* mesh);
 	std::string GetTextureName(Texture* texture);
 	std::string GetBlueprintName(Blueprint* bp);
-	bool IsBlueprintLoaded(std::string name);
+	bool IsBlueprintLoaded(const std::string& name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
-	bool DoesFileExist(std::string s);
+	bool DoesFileExist(const std::string& s);
 	
 	void WaitUntilResourcesIsLoaded();
 public:

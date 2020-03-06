@@ -95,7 +95,7 @@ public:
 	void SetMouseKeyDown(char key, bool isDown);
 
 	void SetKeyPressed(char key, bool isPressed);
-	void SetMouseMovement(Int2 mouseMovement);
+	void SetMouseMovement(const Int2& mouseMovement);
 	void SetMouseWheelMovement(int mouseWheelMovement);
 
 	bool IsKeyDown(char key)	const;

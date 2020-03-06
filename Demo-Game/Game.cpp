@@ -105,8 +105,8 @@ int Game::Initialize()
 
 	m_currentTestSceneIndex = 0;
 	m_currentShaderDefineTestCase = 0;
-	GenerateGnuPlotScript("TestData/Scripts", "TestData/Data");
-	return -1;
+	//GenerateGnuPlotScript("TestData/Scripts", "TestData/Data");
+	//return -1;
 	for (auto e : m_TestScenes.files)
 	{
 		//Preload all Textures from all Scenes
@@ -858,7 +858,7 @@ void Game::RenderObjectEditor()
 			if (ImGui::Button("Random X-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * 100 - 50;
+					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * 40 - 20;
 				}
 			}
 
@@ -867,7 +867,7 @@ void Game::RenderObjectEditor()
 			if (ImGui::Button("Random Y-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * 100 - 50;
+					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * 40 - 20;
 				}
 			}
 
@@ -876,7 +876,7 @@ void Game::RenderObjectEditor()
 			if (ImGui::Button("Random Z-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * 100 - 50;
+					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * 40 - 20;
 				}
 			}
 		}
@@ -1243,6 +1243,20 @@ void Game::RenderSettingWindow() {
 				if (ImGui::Checkbox("DEBUG_RECURSION_DEPTH", &m_def_DEBUG_RECURSION_DEPTH)) {
 					m_reloadShaders = true;
 				}
+				ImGui::SameLine();
+				if (ImGui::Checkbox("MISS_ONLY", &m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY)) {
+					if (m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY) {
+						m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY = false;
+					}
+					m_reloadShaders = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::Checkbox("HIT_ONLY", &m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY)) {
+					if (m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY) {
+						m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY = false;
+					}
+					m_reloadShaders = true;
+				}
 
 				if (ImGui::Checkbox("DEBUG_DEPTH", &m_def_DEBUG_DEPTH)) {
 					m_reloadShaders = true;
@@ -1389,7 +1403,7 @@ void Game::MirrorScene(int lvl)
 }
 
 #ifdef DO_TESTING
-void Game::GenerateGnuPlotScript(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+void Game::GenerateGnuPlotScript(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath)
 {
 	//scriptPath = scriptPath.lexically_normal();
 	//dataPath = dataPath.lexically_normal();
@@ -1398,7 +1412,7 @@ void Game::GenerateGnuPlotScript(std::filesystem::path scriptPath, std::filesyst
 	GenerateGnuPlotScript_perScene(scriptPath.string()  + "/PerScene", dataPath);
 	GenerateGnuPlotScript_perShader(scriptPath.string() + "/PerShader", dataPath);
 }
-void Game::GenerateGnuPlotScript_full(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+void Game::GenerateGnuPlotScript_full(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath)
 {
 	std::filesystem::create_directories(scriptPath);
 	std::string dataLexPath = dataPath.lexically_relative(scriptPath).string();
@@ -1448,7 +1462,7 @@ void Game::GenerateGnuPlotScript_full(std::filesystem::path scriptPath, std::fil
 
 
 }
-void Game::GenerateGnuPlotScript_perScene(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+void Game::GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath)
 {
 	std::filesystem::create_directories(scriptPath);
 
@@ -1539,7 +1553,7 @@ void Game::GenerateGnuPlotScript_perScene(std::filesystem::path scriptPath, std:
 		oFile.close();
 	}
 }
-void Game::GenerateGnuPlotScript_perShader(std::filesystem::path scriptPath, std::filesystem::path dataPath)
+void Game::GenerateGnuPlotScript_perShader(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath)
 {
 	std::filesystem::create_directories(scriptPath);
 
@@ -1718,7 +1732,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	return true;
 }
 
-bool Game::PreLoadScene(std::filesystem::path path, Asset_Types assets_to_load_flag)
+bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag)
 {
 	std::ifstream inFile(path);
 
@@ -1761,7 +1775,7 @@ bool Game::PreLoadScene(std::filesystem::path path, Asset_Types assets_to_load_f
 	return allGood;
 }
 
-bool Game::LoadScene(std::filesystem::path path, bool clearOld) {
+bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 	if (clearOld) {
 		ClearScene();
 	}
@@ -1853,7 +1867,7 @@ bool Game::LoadScene(std::filesystem::path path, bool clearOld) {
 	return true;
 }
 
-bool Game::LoadScene(std::string name, bool clearOld) {
+bool Game::LoadScene(const std::string& name, bool clearOld) {
 	std::filesystem::path scenePath;
 	scenePath = (m_sceneFolderPath + name + ".scene");
 	m_currentSceneName = name;
@@ -1947,6 +1961,14 @@ void Game::ReloadShaders() {
 
 	if (m_def_DEBUG_RECURSION_DEPTH) {
 		defines.push_back({ L"DEBUG_RECURSION_DEPTH" });
+		
+		if (m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY) {
+			defines.push_back({ L"DEBUG_RECURSION_DEPTH_MISS_ONLY" });
+		}
+
+		if (m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY) {
+			defines.push_back({ L"DEBUG_RECURSION_DEPTH_HIT_ONLY" });
+		}
 	}
 
 	if (m_def_DEBUG_DEPTH) {
@@ -1957,7 +1979,7 @@ void Game::ReloadShaders() {
 	m_renderer->Refresh(&defines);
 }
 
-void Game::ReloadShaders(std::vector<ShaderDefine>& defines)
+void Game::ReloadShaders(const std::vector<ShaderDefine>& defines)
 {
 	m_renderer->Refresh(&defines);
 }

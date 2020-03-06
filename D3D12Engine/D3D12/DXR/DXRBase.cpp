@@ -207,7 +207,7 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 #endif // DO_TESTING
 }
 
-void DXRBase::ReloadShaders(std::vector<ShaderDefine>* defines)
+void DXRBase::ReloadShaders(const std::vector<ShaderDefine>* defines)
 {
 	m_d3d12->WaitForGPU_ALL();
 	// Recompile hlsl
@@ -523,11 +523,11 @@ void DXRBase::UpdateShaderTable()
 			//===Add Shader(group) Identifier===
 			//TODO: identify which geometry need none opaque
 			
-			hitGroupTable.AddShader((blas.first->alphaTested[i]) ? m_group_group_alphaTest : m_group_group1);
+			hitGroupTable.AddShader((blas.first->alphaTested[i]) ? m_group_alphaTest : m_group1);
 			//if (m_allowAnyhitshaders) {
 			//}
 			//else {
-			//	hitGroupTable.AddShader(m_group_group1);
+			//	hitGroupTable.AddShader(m_group1);
 			//}
 
 			//===Add vertexbuffer descriptors===
@@ -546,7 +546,7 @@ void DXRBase::UpdateShaderTable()
 			if (blas.first->alphaTested[i] && m_allowAnyhitshaders) {
 				//Alphatest geometry shadow hit shader
 				texture_gdh.ptr -= m_descriptorSize * 2;
-				hitGroupTable.AddShader(m_group_group_alphaTest_shadow);
+				hitGroupTable.AddShader(m_group_alphaTest_shadow);
 
 				//===Add vertexbuffer descriptors===
 				hitGroupTable.AddDescriptor(vb_pos,		blasIndex + 1);
@@ -603,7 +603,7 @@ void DXRBase::createInitialShaderResources(bool remake)
 {
 }
 
-bool DXRBase::CreateRaytracingPSO(std::vector<ShaderDefine>* _defines)
+bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 {
 	if (m_rtxPipelineState) {
 		m_rtxPipelineState->Release();
@@ -634,16 +634,16 @@ bool DXRBase::CreateRaytracingPSO(std::vector<ShaderDefine>* _defines)
 
 
 	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
-	psoBuilder.AddHitGroup(m_group_group1, m_shader_closestHitName);
-	psoBuilder.AddHitGroup(m_group_group_alphaTest, m_shader_closestHitAlphaTestName, (m_allowAnyhitshaders) ? m_shader_anyHitName : nullptr);
-	psoBuilder.AddHitGroup(m_group_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
+	psoBuilder.AddHitGroup(m_group1, m_shader_closestHitName);
+	psoBuilder.AddHitGroup(m_group_alphaTest, m_shader_closestHitAlphaTestName, (m_allowAnyhitshaders) ? m_shader_anyHitName : nullptr);
+	psoBuilder.AddHitGroup(m_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
 
 	psoBuilder.AddSignatureToShaders({ m_shader_rayGenName },     m_localRootSignature_rayGen.Get());
-	psoBuilder.AddSignatureToShaders({ m_group_group1 },          m_localRootSignature_hitGroups.Get());
-	psoBuilder.AddSignatureToShaders({ m_group_group_alphaTest }, m_localRootSignature_hitGroups.Get());
+	psoBuilder.AddSignatureToShaders({ m_group1 },          m_localRootSignature_hitGroups.Get());
+	psoBuilder.AddSignatureToShaders({ m_group_alphaTest }, m_localRootSignature_hitGroups.Get());
 	psoBuilder.AddSignatureToShaders({ m_shader_missName },       m_localRootSignature_miss.Get());
 	psoBuilder.AddSignatureToShaders({ m_shader_shadowMissName},  m_localRootSignature_empty.Get());
-	psoBuilder.AddSignatureToShaders({ m_group_group_alphaTest_shadow }, m_localRootSignature_hitGroups.Get());
+	psoBuilder.AddSignatureToShaders({ m_group_alphaTest_shadow }, m_localRootSignature_hitGroups.Get());
 
 	psoBuilder.SetMaxPayloadSize(payloadSize);
 	psoBuilder.SetMaxAttributeSize(sizeof(float) * 4);

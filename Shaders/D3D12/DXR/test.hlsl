@@ -20,7 +20,9 @@ float3 HitWorldPosition()
 }
 
 //===Global Signature===
-RaytracingAccelerationStructure gAS : register(t0);
+RaytracingAccelerationStructure gAS : register(t0, space0);
+RaytracingAccelerationStructure gAS_alpha : register(t0, space1);
+
 ConstantBuffer<SceneCBuffer> CB_SceneData : register(b0, space0);
 sampler samp : register(s0);
 
@@ -100,41 +102,54 @@ void rayGen() {
 		RayPayload payload;
 		payload.recursionDepth = 0;
 		payload.hitT = 0;
-#ifdef TRACE_NON_OPAQUE_SEPARATELY
-		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-
-		RayPayload payload_non_opaque;
-		payload_non_opaque.recursionDepth = 0;
-		payload_non_opaque.hitT = 0;
-
-		ray.TMax = payload.hitT;
-		TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload_non_opaque);
-
-		if (payload_non_opaque.hitT < RAY_T_MAX) {
-			outputTexture[launchIndex] = payload_non_opaque.color;
-		}
-		else {
-			outputTexture[launchIndex] = payload.color;
-		}
-#else // TRACE_NON_OPAQUE_SEPARATELY
-		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+//#ifdef TRACE_NON_OPAQUE_SEPARATELY
+//		TraceRay(gAS, RAY_FLAG_CULL_NON_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+//
+//		RayPayload payload_non_opaque;
+//		payload_non_opaque.recursionDepth = 0;
+//		payload_non_opaque.hitT = 0;
+//
+//		ray.TMax = payload.hitT;
+//		TraceRay(gAS, RAY_FLAG_CULL_OPAQUE, 0xFF, 0, N_RAY_TYPES, 0, ray, payload_non_opaque);
+//
+//		if (payload_non_opaque.hitT < RAY_T_MAX) {
+//			outputTexture[launchIndex] = payload_non_opaque.color;
+//		}
+//		else {
+//			outputTexture[launchIndex] = payload.color;
+//		}
+//#else // TRACE_NON_OPAQUE_SEPARATELY
 #ifdef RAY_GEN_ALPHA_TEST
+#ifdef TRACE_NON_OPAQUE_SEPARATELY
+		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+#endif //TRACE_NON_OPAQUE_SEPARATELY
 		uint i = 1;
 		//float3 c = payload.color.xyz;
-		while (payload.color.a < 0.5) {
+		do {
 			i++;
 			ray.TMin = payload.hitT + 0.001f;
 			payload.hitT = 0.0f;
 			payload.recursionDepth = 0;
+#ifdef TRACE_NON_OPAQUE_SEPARATELY
+			TraceRay(gAS_alpha, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+#else // TRACE_NON_OPAQUE_SEPARATELY
 			TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
-			//c += (payload.color.xyz);
-		}
+#endif // TRACE_NON_OPAQUE_SEPARATELY
+		} while (payload.color.a < 0.5);
 		payload.recursionDepth = i;
+#else // RAY_GEN_ALPHA_TEST
+		TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+#ifdef TRACE_NON_OPAQUE_SEPARATELY
+		ray.TMax = payload.hitT;
+		TraceRay(gAS_alpha, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+#endif // TRACE_NON_OPAQUE_SEPARATELY
 #endif // RAY_GEN_ALPHA_TEST
 
 #ifdef DEBUG_RECURSION_DEPTH
-		float t = payload.recursionDepth / 15.f;
-		outputTexture[launchIndex] = float4(t, t, t, 1);
+		float max = 0;
+		float t1 = saturate(((float)payload.recursionDepth - max) / (15.f- max));
+		//t1 = payload.recursionDepth > 20;
+		outputTexture[launchIndex] = float4(t1, t1, t1, 1);
 //#ifdef RAY_GEN_ALPHA_TEST
 //		outputTexture[launchIndex] = float4(saturate(c), 1.0f);
 //#endif
@@ -144,13 +159,25 @@ void rayGen() {
 #define DEBUG_DEPTH_EXP 100
 #endif
 
-		float t = 1 - pow(1 - (payload.hitT / RAY_T_MAX), DEBUG_DEPTH_EXP);
-		outputTexture[launchIndex] = float4(t, t, t, 1);
+		float t2 = 1 - pow(1 - (payload.hitT / RAY_T_MAX), DEBUG_DEPTH_EXP);
+		outputTexture[launchIndex] = float4(t2, t2, t2, 1);
 #else
 		outputTexture[launchIndex] = payload.color;
 #endif
-#endif // !TRACE_NON_OPAQUE_SEPARATELY
+//#endif // !TRACE_NON_OPAQUE_SEPARATELY
 
+		uint lc = WaveGetLaneCount();
+		uint li = WaveGetLaneIndex();
+		float t3 = li / (float)lc;
+		//t3 = 1 - pow(1 - t3, 2);
+		//float t3 = WaveIsFirstLane();
+		//float t3 = WaveActiveAllTrue(true);
+		//float t3 = WaveActiveAllTrue(true);
+		//uint3 dim = DispatchRaysDimensions();
+		//float t3 = WaveReadLaneFirst(launchIndex.x + dim.x * launchIndex.y) / (dim.x * dim.z);
+		//outputTexture[launchIndex] = float4(t3, t3, t3, 1);
+		//t3 = li % lc < 6;
+		//outputTexture[launchIndex] *= float4(t3, t3, t3, 1);
 	//}
 
 	//outputTexture[launchIndex] = saturate(outputTexture[launchIndex]);
@@ -212,43 +239,58 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 	normalInWorldSpace = mul(normalize(bumpMapColor.xyz * 2.f - 1.f), tbn);
 #endif //NO_NORMAL_MAP
+	float lightNormalAngle = saturate(dot(lightDir, normalInWorldSpace));
 
+	float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0);
+
+	//float t = dot(-WorldRayDirection(), normalInWorldSpace);
+	//payload.color = float4(t,t,t,1);
+	//return;
+#ifndef NO_SHADOWS
 	float lightMul = 1;
 
-#ifndef NO_SHADOWS
-	//Shadow
-	RayDesc shadowRay;
-	float t = dot(-WorldRayDirection(), normalInWorldSpace);
-	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
-	//if (t >= 0) {
-	//	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
-	//}
-	//else {
-	//	shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
-	//}
-	//payload.color = float4((t + 1) * 0.5, 0, 0, 1.0f);
+	//float t = lightNormalAngle;
+	//payload.color = float4(t,t,t,1);
 	//return;
+	if (lightNormalAngle > 0) {
+		//Shadow
+		RayDesc shadowRay;
+		shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
+		//if (t >= 0) {
+		//	shadowRay.Origin = HitWorldPosition() + normalInWorldSpace * 0.001f;
+		//}
+		//else {
+		//	shadowRay.Origin = HitWorldPosition() - normalInWorldSpace * 0.001f;
+		//}
+		//payload.color = float4((t + 1) * 0.5, 0, 0, 1.0f);
+		//return;
 
-	shadowRay.Direction = lightDir;
-	shadowRay.TMin = 0.00001;
-	shadowRay.TMax = lightDist;
+		shadowRay.Direction = lightDir;
+		shadowRay.TMin = 0.00001;
+		shadowRay.TMax = lightDist;
 
-	RayPayload_shadow shadowPayload;
-	shadowPayload.inShadow = 1;
-	TraceRay(gAS, g_SHADOW_RAY_FLAGS, 0xFF, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
+		RayPayload_shadow shadowPayload;
+		shadowPayload.inShadow = 1;
+		TraceRay(gAS, g_SHADOW_RAY_FLAGS, 0xFF, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
 
-	if (shadowPayload.inShadow)
-	{
-		lightMul = 0.1;
+		if (shadowPayload.inShadow)
+		{
+			lightMul = 0.2;
+			//albedo = payload.color;
+		}
 	}
+	else {
+
+	}
+
+	albedo *= lightMul;
 #endif //NO_SHADOWS
 
-	float4 albedo = sys_texAlbedo.SampleLevel(samp, uv, 0) * lightMul;
 #ifndef NO_SHADING
-	payload.color = float4(albedo.xyz * saturate(dot(lightDir, normalInWorldSpace)), 1);
-#else
-	payload.color = float4(albedo.xyz, 1);
+	albedo *= lightNormalAngle;
 #endif //NO_LIGHT
+
+	payload.color = float4(albedo.xyz, 1);
 
 }
 
@@ -287,6 +329,9 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
 	float4 bumpMapColor = sys_texNormMap.SampleLevel(samp, uv, 0);
 
+	//float t_ = dot(-WorldRayDirection(), normalInWorldSpace);
+	//payload.color = float4(t_, t_, t_, 1);
+	//return;
 #ifdef CLOSEST_HIT_ALPHA_TEST_1
 	if (bumpMapColor.a < 0.5f)
 	{
@@ -431,6 +476,10 @@ void shadow_GeometryMiss(inout RayPayload_shadow payload)
 [shader("anyhit")]
 void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
 {
+#if defined(DEBUG_RECURSION_DEPTH) && !defined(DEBUG_RECURSION_DEPTH_MISS_ONLY) && !defined(DEBUG_RECURSION_DEPTH_HIT_ONLY)
+	payload.recursionDepth++;
+#endif
+	//payload.color = float4(1,0,0,1);
 	float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
 	uint primitiveID = PrimitiveIndex();
 	uint verticesPerPrimitive = 3;
@@ -440,12 +489,23 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	//===Calculate UV Coordinates===
 	float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]);
 	uv.y = -uv.y;
-
+	//if (RayTCurrent() > payload.color.a) {
+	//	payload.color.a = RayTCurrent();
+	//}
+	//payload.recursionDepth = payload.color.a / 20;
 	float4 normal = sys_texNormMap.SampleLevel(samp, uv, 0);
 	if (normal.a < 0.5f)
 	{
+#if defined(DEBUG_RECURSION_DEPTH) && defined(DEBUG_RECURSION_DEPTH_MISS_ONLY)
+		payload.recursionDepth++;
+#endif
 		IgnoreHit();
 	}
+#if defined(DEBUG_RECURSION_DEPTH) && defined(DEBUG_RECURSION_DEPTH_HIT_ONLY)
+	else {
+		payload.recursionDepth++;
+	}
+#endif
 }
 /***************************************************************************************/
 

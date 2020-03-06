@@ -33,7 +33,7 @@ public:
 	/*
 		@return Shader index, -1 if the shader could not compile
 	*/
-	virtual Shader CompileShader(ShaderDescription sd) = 0;
+	virtual Shader CompileShader(const ShaderDescription& sd) = 0;
 
 	/*
 		@return Program index, -1 if the program could not be created

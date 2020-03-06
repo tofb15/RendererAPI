@@ -25,7 +25,7 @@ public:
 
 	virtual void ClearFrame() override;
 	virtual void ClearSubmissions() override;
-	virtual void Submit(SubmissionItem item, Camera* c = nullptr, unsigned char layer = 0) override;
+	virtual void Submit(const SubmissionItem& item, Camera* c = nullptr, unsigned char layer = 0) override;
 
 	virtual void Frame(Window* window, Camera* c) override;
 	virtual void Present(Window* w, GUI* gui = nullptr) override;

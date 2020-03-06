@@ -21,7 +21,7 @@ std::string Mesh::GetName() const {
 	return m_name;
 }
 
-void Mesh::SetName(std::string name) {
+void Mesh::SetName(const std::string&  name) {
 	m_name = name;
 }
 

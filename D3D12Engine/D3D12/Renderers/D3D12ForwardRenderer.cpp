@@ -102,7 +102,7 @@ void D3D12ForwardRenderer::ClearSubmissions()
 	}
 }
 
-void D3D12ForwardRenderer::Submit(SubmissionItem item, Camera* c, unsigned char layer)
+void D3D12ForwardRenderer::Submit(const SubmissionItem& item, Camera* c, unsigned char layer)
 {
 	D3D12Camera* camera = static_cast<D3D12Camera*>(c);
 
