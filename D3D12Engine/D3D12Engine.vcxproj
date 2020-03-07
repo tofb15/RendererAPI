@@ -166,6 +166,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="D3D12\Renderers\D3D12ForwardRenderer.cpp" />
+    <ClCompile Include="D3D12\Renderers\D3D12GBufferRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
     <ClCompile Include="External\IMGUI\imgui.cpp" />
@@ -237,6 +238,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="D3D12\Renderers\D3D12ForwardRenderer.h" />
+    <ClInclude Include="D3D12\Renderers\D3D12GBufferRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="External\IMGUI\imconfig.h" />
