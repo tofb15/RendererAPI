@@ -327,6 +327,7 @@ void DXRBase::CreateTLAS(AccelerationStructureBuffers& tlas, std::unordered_set<
 
 	//=======Describe the instances========
 	D3D12_RAYTRACING_INSTANCE_DESC* pInstanceDesc;
+	D3D12_RAYTRACING_INSTANCE_DESC tempInstance;
 	tlas.instanceDesc->Map(0, nullptr, (void**)&pInstanceDesc);
 	DirectX::XMMATRIX mat;
 	for (auto& bp : blueprints)
@@ -335,15 +336,16 @@ void DXRBase::CreateTLAS(AccelerationStructureBuffers& tlas, std::unordered_set<
 
 		auto& instances = blasData.items;
 		int instanceID = 0;
+		
 		for (auto& instance : instances)
 		{
 			//blas.first->techniques[ins];
 			
-			pInstanceDesc->InstanceID = instanceID;
-			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
-			pInstanceDesc->InstanceContributionToHitGroupIndex = m_blasStartIndex;
-			pInstanceDesc->Flags = (bp->allGeometryIsOpaque || !m_allowAnyhitshaders) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
-			pInstanceDesc->AccelerationStructure = blasData.as.result->GetGPUVirtualAddress();
+			tempInstance.InstanceID = instanceID;
+			tempInstance.InstanceMask = 0x1; //Todo: make this changable
+			tempInstance.InstanceContributionToHitGroupIndex = m_blasStartIndex;
+			tempInstance.Flags = (bp->allGeometryIsOpaque || !m_allowAnyhitshaders) ? D3D12_RAYTRACING_INSTANCE_FLAG_NONE : D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
+			tempInstance.AccelerationStructure = blasData.as.result->GetGPUVirtualAddress();
 
 			// Construct and copy matrix data
 			Float3& pos = instance.transform.pos;
@@ -360,8 +362,8 @@ void DXRBase::CreateTLAS(AccelerationStructureBuffers& tlas, std::unordered_set<
 			//mat.r[1].m128_f32[1] *= scal.y;
 			//mat.r[2].m128_f32[2] *= scal.z;
 
-			DirectX::XMStoreFloat3x4((DirectX::XMFLOAT3X4*)pInstanceDesc->Transform, mat);
-
+			DirectX::XMStoreFloat3x4((DirectX::XMFLOAT3X4*)tempInstance.Transform, mat);
+			*pInstanceDesc = tempInstance;
 			//memcpy(&instance_desc.Transform, &mat, sizeof(instance_desc.Transform));
 			instanceID++;
 			pInstanceDesc++;
