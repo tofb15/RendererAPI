@@ -464,6 +464,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Terrain.cpp" />
+    <ClCompile Include="Utills\CodeParser.cpp" />
     <ClCompile Include="Utills\FileSystem.cpp" />
     <ClCompile Include="Utills\RegularExpressions.cpp" />
     <ClCompile Include="WindowInput.cpp" />

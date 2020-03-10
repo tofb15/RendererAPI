@@ -165,6 +165,9 @@
     <ClCompile Include="Utills\RegularExpressions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Utills\CodeParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Texture.hpp">

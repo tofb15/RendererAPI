@@ -6,18 +6,41 @@ namespace RegularExp {
 
 	class Expression {
 	public:
-		virtual int Check(char*& current, char* end) const = 0;
+		virtual int Check(char*& current, void* tree = nullptr) const = 0;
+	};
+
+	/*
+		Detect any single character from a specified character Set.
+	*/
+	class CharacterSelect : virtual public Expression {
+	public:
+		CharacterSelect(const char* characterSet);
+		~CharacterSelect() {};
+
+		virtual int Check(char*& current, void* tree) const override;
+	private:
+		const char* m_characterSet;
+	};
+
+	/*
+		Detect any single character that is not contained in a specified character Set.
+	*/
+	class AnyExept : public CharacterSelect {
+	public:
+		AnyExept(const char* characterSet);
+		~AnyExept() {};
+		virtual int Check(char*& current, void* tree) const override;
 	};
 
 	/*
 		Wildcard, detects any one character as a pattern
 	*/
-	class Any : public Expression {
+	class Any : public AnyExept {
 	public:
-		Any() {};
+		Any();
 		~Any() {};
 
-		virtual int Check(char*& current, char* end) const override;
+		//virtual int Check(char*& current, void* tree) const override;
 	};
 
 	/*
@@ -29,12 +52,12 @@ namespace RegularExp {
 		Example: Star_Min_Max(exp, 5, -1) -> exp must be found atleast 5 times
 		Example: Star_Min_Max(exp, 5, 5)  -> exp must be found exactly 5 times
 	*/
-	class Star_Min_Max : public Expression {
+	class Star_Min_Max : virtual public Expression {
 	public:
 		Star_Min_Max(const Expression& exp, unsigned int min = 0, unsigned int max = -1);
 		~Star_Min_Max() {};
 
-		virtual int Check(char*& current, char* end) const override;
+		virtual int Check(char*& current, void* tree) const override;
 	private:
 		const Expression& m_exp;
 		const unsigned int m_min;
@@ -64,12 +87,12 @@ namespace RegularExp {
 		Only one Expressions must be true for a pattern to be found, Expressions are evaluated from left to right.
 		The evaluation is stopped as soon as one pattern is found.
 	*/
-	class OR : public Expression {
+	class OR : virtual public Expression {
 	public:
 		OR(const std::initializer_list<const Expression*> args);
 		~OR() {};
 
-		virtual int Check(char*& current, char* end) const override;
+		virtual int Check(char*& current, void* tree) const override;
 	private:
 		const std::vector<const Expression*> m_args;
 	};
@@ -78,44 +101,31 @@ namespace RegularExp {
 		Detect a pattern constructed of multiple Expressions.
 		All Expressions specifed must be true from left to right for a pattern to be found.
 	*/
-	class AND : public Expression {
+	class AND : virtual public Expression {
 	public:
 		AND(const std::initializer_list<const Expression*> args);
 		~AND() {};
 
-		virtual int Check(char*& current, char* end) const override;
+		virtual int Check(char*& current, void* tree) const override;
 	private:
 		const std::vector<const Expression*> m_args;
 	};
 
-	/*
-		Detect any single character from a specified character Set.
-	*/
-	class CharacterSelect : public Expression {
-	public:
-		CharacterSelect(const char* characterSet);
-		~CharacterSelect() {};
-
-		virtual int Check(char*& current, char* end) const override;
-	private:
-		const char* m_characterSet;
-	};
 
 	/*
 		Detect any specific term.
 		The whole term will need to be found.
 	*/
-	class Term : public Expression {
+	class Term : virtual public Expression {
 	public:
 		Term(const char* term);
 		~Term() {};
-		virtual int Check(char*& current, char* end) const override;
+		virtual int Check(char*& current, void* tree) const override;
 	private:
 		const char* m_term;
 	};
 
 	/////////////////
-
 	/*
 		Detect Any Token.
 	*/
@@ -124,6 +134,7 @@ namespace RegularExp {
 		Detect [b or B]
 	*/
 	const RegularExp::CharacterSelect g_bB("bB");
+
 	/*
 		Detect [x or X]
 	*/
@@ -151,7 +162,7 @@ namespace RegularExp {
 	/*
 		Detect any single Lower Letter in the range [a-z]
 	*/
-	const RegularExp::CharacterSelect g_LetterLower("abcdefghijklmnopqrstqvwxyz");
+	const RegularExp::CharacterSelect g_LetterLower("abcdefghijklmnopqrstuvwxyz");
 	/*
 		Detect any single Letter in the range [a-z] or [A-Z]
 	*/

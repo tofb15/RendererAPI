@@ -1,10 +1,11 @@
 #include "../D3D12Engine/Utills/FileSystem.h"
 #include "../D3D12Engine/Utills/RegularExpressions.h"
+#include "../D3D12Engine/Utills/CodeParser.h"
 
 #include <iostream>
 #include <fstream>
 #include <string>
-
+//0
 bool RemoveMultilineComment(std::string& line, std::ifstream& in) {
 	char nextChar;
 	int i;
@@ -87,8 +88,65 @@ bool ParseShader(std::filesystem::path file) {
 	return true;
 }
 
+void ReadSource(std::string& s) {
+	std::ifstream t("Source.cpp");
+	if (!t.is_open()) {
+		return;
+	}
+
+	t.seekg(0, std::ios::end);
+	size_t size = t.tellg();
+	s.resize(size);
+	t.seekg(0);
+	t.read(&s[0], size);
+}
+
+void printDepth(int depth) {
+	for (size_t i = 0; i < depth; i++)
+	{
+		std::cout << "   ";
+	}
+}
+
+void printTree(CodeParse::ParseTreeNode* root, int depth = 0) {
+	int childSkip = 0;
+	switch (root->type)
+	{
+	//case CodeParse::ParseTreeNodeType_Root:
+	//	printDepth(depth);
+	//	std::cout << "Root" << std::endl;
+	//	break;
+	//case CodeParse::ParseTreeNodeType_Function:
+	//	printDepth(depth);
+	//	std::cout << "Function - ret: " << root->subnodes[0]->subnodes[0]->value << root->subnodes[0]->value;
+	//	std::cout << " name: " << root->subnodes[1]->value << std::endl;
+	//	childSkip = 2;
+	//	break;
+	//case CodeParse::ParseTreeNodeType_Variable:
+	//	break;
+	//case CodeParse::ParseTreeNodeType_DataType:
+	//	break;
+	//case CodeParse::ParseTreeNodeType_Scope:
+	//	break;
+	default:
+		printDepth(depth);
+		std::cout << CodeParse::ParseTreeNodeType_string[root->type] << " - " << root->value << std::endl;
+		break;
+	}
+
+	int n = 0;
+	for (auto& e : root->subnodes)
+	{
+		if (n++ < childSkip) { continue; }
+		printTree(e, depth + 1);
+	}
+}
+
 void RegTest() {
-	std::string text = "0b100110123A4g9F1a2f03abc";
+	//std::string text = "int MinFunc(test* a, int&&&&* b2, hej hej)";
+	std::string text = "#include \"test.h\"";
+	ReadSource(text);
+
 	char* start = &text.front();
 	char* end = &text.back() + 1;
 
@@ -96,10 +154,16 @@ void RegTest() {
 	RegularExp::Star s(a);
 	RegularExp::Term term("0b100110123");
 
-	int i = RegularExp::g_BinaryNumberFormated.Check(start, end);
+	CodeParse::Function func;
+	CodeParse::ParseTreeNode root = {CodeParse::ParseTreeNodeType_Root};
+	int i = CodeParse::pars_code_cpp.Check(start, &root);
+	std::string parsedCode = text.substr(0, i) + "\0";
 	if (i > 0) {
-		std::cout << text.substr(0, i);
+		std::cout << parsedCode;
 	}
+	std::cout << "======================" << std::endl;
+	std::cout << "======================" << std::endl;
+	printTree(&root);
 
 	i = 0;
 }
