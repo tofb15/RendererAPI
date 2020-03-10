@@ -7,13 +7,11 @@ RegularExp::Star reg_accepted_seperator_star(reg_seperator_token);
 RegularExp::CharacterSelect reg_pointer("*&");
 RegularExp::Star reg_pointer_star(reg_pointer);
 
-RegularExp::NumberPositive reg_posNum;
 RegularExp::CharacterSelect reg_name_special_tokens("_");
-RegularExp::Letter reg_letter;
 
-RegularExp::OR reg_name_part1({&reg_letter, &reg_name_special_tokens});
-RegularExp::OR reg_name_part2({&reg_name_part1, &reg_posNum});
-RegularExp::Star reg_name_part2_star(reg_posNum);
+RegularExp::OR reg_name_part1({&RegularExp::g_letter, &reg_name_special_tokens});
+RegularExp::OR reg_name_part2({&reg_name_part1, &RegularExp::g_numberPositive});
+RegularExp::Star reg_name_part2_star(RegularExp::g_numberPositive);
 
 RegularExp::AND reg_name_whole({&reg_name_part1, &reg_name_part2_star});
 
