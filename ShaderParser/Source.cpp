@@ -88,12 +88,15 @@ bool ParseShader(std::filesystem::path file) {
 }
 
 void RegTest() {
-	std::string text = "1203abc";
+	std::string text = "0b100110123A4g9F1a2f03abc";
 	char* start = &text.front();
-	char* end = &text.back();
+	char* end = &text.back() + 1;
 
-	RegularExp::DigitNonZero d;
-	int i = d.Check(start, end);
+	RegularExp::Any a;
+	RegularExp::Star s(a);
+	RegularExp::Term term("0b100110123");
+
+	int i = RegularExp::g_BinaryNumberFormated.Check(start, end);
 	if (i > 0) {
 		std::cout << text.substr(0, i);
 	}
