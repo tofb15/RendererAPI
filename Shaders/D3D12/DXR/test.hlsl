@@ -316,8 +316,7 @@ void closestHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectio
 	//return;
 #ifdef CLOSEST_HIT_ALPHA_TEST_1
 	if (bumpMapColor.a < 0.5f)
-	{
-		
+	{	
 		RayDesc ray;
 		ray.Direction = WorldRayDirection();
 		ray.Origin    = WorldRayOrigin();

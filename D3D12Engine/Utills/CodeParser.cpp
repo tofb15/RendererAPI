@@ -31,11 +31,15 @@ int CodeParse::Function::Check(char*& current, ParseTreeNode* parrentNode) const
 	myNode->type = ParseTreeNodeType_Function;
 
 	if (pars_dataType.Check(current, myNode) >= 0) {
-		if (reg_accepted_seperator.Check(current, myNode) >= 0) {
+		if (reg_seperator_atleastOne.Check(current, myNode) >= 0) {
 			if (pars_name.Check(current, myNode) >= 0) {
 				if (reg_func_params.Check(current, myNode) >= 0) {
-					parrentNode->subnodes.push_back(myNode);
-					return current - start;
+					if (reg_seperator_star.Check(current, myNode) >= 0) {
+						if (pars_scope.Check(current, myNode) >= 0) {
+							parrentNode->subnodes.push_back(myNode);
+							return current - start;
+						}
+					}
 				}
 			}
 		}
@@ -52,7 +56,7 @@ int CodeParse::Parameter::Check(char*& current, ParseTreeNode* parrentNode) cons
 	ParseTreeNode* myNode = new ParseTreeNode;
 	myNode->type = ParseTreeNodeType_Variable;
 
-	if (pars_dataType.Check(current, myNode) >= 0 && reg_accepted_seperator.Check(current, myNode) >= 0) {
+	if (pars_dataType.Check(current, myNode) >= 0 && reg_seperator_atleastOne.Check(current, myNode) >= 0) {
 		if (pars_name.Check(current, myNode) >= 0) {
 			parrentNode->subnodes.push_back(myNode);
 			return current - start;

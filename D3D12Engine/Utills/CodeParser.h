@@ -24,7 +24,7 @@ namespace CodeParse {
 		"Variable",
 		"DataType",
 		"Name"    ,
-		"Scope,"  ,
+		"Scope"   ,
 	};
 
 	struct ParseTreeNode
@@ -120,9 +120,9 @@ namespace CodeParse {
 
 	/*Special Characters*/
 	const RegularExp::CharacterSelect reg_seperator_token(" \t");
-	const RegularExp::StarAtleastOne  reg_accepted_seperator(reg_seperator_token);
+	const RegularExp::StarAtleastOne  reg_seperator_atleastOne(reg_seperator_token);
 	const RegularExp::CharacterSelect reg_newline_token("\n");
-	const RegularExp::Star            reg_accepted_seperator_star(reg_seperator_token);
+	const RegularExp::Star            reg_seperator_star(reg_seperator_token);
 	const RegularExp::CharacterSelect reg_dot(".");
 
 	/*String*/
@@ -171,21 +171,21 @@ namespace CodeParse {
 	const RegularExp::AND reg_inc1({&reg_inc1_start, &reg_string, &reg_inc1_end});
 	const RegularExp::AND reg_inc2({&reg_inc2_startEnd, &reg_full_Path, &reg_inc2_startEnd });
 	const RegularExp::OR  reg_include_select({ &reg_inc1, &reg_inc2 });
-	const RegularExp::AND reg_include({ &reg_includeTerm, &reg_accepted_seperator_star, &reg_include_select});
+	const RegularExp::AND reg_include({ &reg_includeTerm, &reg_seperator_atleastOne, &reg_include_select});
 	
 	/*Functions*/
 	const RegularExp::CharacterSelect reg_function_start("(");
 	const RegularExp::CharacterSelect reg_function_end(")");
 	const RegularExp::CharacterSelect reg_func_par_var_sep(",");
-	const RegularExp::AND  reg_commaSeperated({ &reg_accepted_seperator_star, &reg_func_par_var_sep, &reg_accepted_seperator_star });
+	const RegularExp::AND  reg_commaSeperated({ &reg_seperator_star, &reg_func_par_var_sep, &reg_seperator_star });
 	const RegularExp::AND  reg_func_params_var_sep({&reg_commaSeperated, &pars_param });
 	const RegularExp::Star reg_func_params_vars_sep_star(reg_func_params_var_sep);
 	const RegularExp::AND  reg_func_params_vars_all({ &pars_param, &reg_func_params_vars_sep_star});
 	const RegularExp::Star_Min_Max reg_func_params_vars_any(reg_func_params_vars_all, 0, 1);
-	const RegularExp::AND  reg_func_params({&reg_function_start, &reg_accepted_seperator_star, &reg_func_params_vars_any, &reg_accepted_seperator_star, &reg_function_end });
+	const RegularExp::AND  reg_func_params({&reg_function_start, &reg_seperator_star, &reg_func_params_vars_any, &reg_seperator_star, &reg_function_end });
 	
 	//Code
-	const RegularExp::OR reg_code_cpp_Start({&reg_newline_token, &pars_function, &pars_scope, &reg_include, &RegularExp::g_any});
+	const RegularExp::OR reg_code_cpp_Start({&reg_newline_token, &pars_function, &reg_include, &RegularExp::g_any});
 	const RegularExp::Star reg_code_cpp_Start_Star(reg_code_cpp_Start);
 }
 

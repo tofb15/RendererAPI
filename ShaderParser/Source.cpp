@@ -101,14 +101,23 @@ void ReadSource(std::string& s) {
 	t.read(&s[0], size);
 }
 
-void printDepth(int depth) {
-	for (size_t i = 0; i < depth; i++)
+void printDepth(int depth, std::vector<bool> b) {
+	for (int i = 1; i < depth; i++)
 	{
-		std::cout << "   ";
+		if (!b[i]) {
+			std::cout << "    ";
+		}
+		else {
+			std::cout << "|   ";
+		}
+	}
+	
+	if (depth > 0) {
+		std::cout << "|---";
 	}
 }
 
-void printTree(CodeParse::ParseTreeNode* root, int depth = 0) {
+void printTree(CodeParse::ParseTreeNode* root, std::vector<bool>& b, int depth = 0) {
 	int childSkip = 0;
 	switch (root->type)
 	{
@@ -129,17 +138,21 @@ void printTree(CodeParse::ParseTreeNode* root, int depth = 0) {
 	//case CodeParse::ParseTreeNodeType_Scope:
 	//	break;
 	default:
-		printDepth(depth);
-		std::cout << CodeParse::ParseTreeNodeType_string[root->type] << " - " << root->value << std::endl;
+		printDepth(depth, b);
+		std::cout << CodeParse::ParseTreeNodeType_string[root->type] << " " << root->value << std::endl;
 		break;
 	}
 
 	int n = 0;
+	int s = root->subnodes.size();
+	b.emplace_back();
 	for (auto& e : root->subnodes)
 	{
 		if (n++ < childSkip) { continue; }
-		printTree(e, depth + 1);
+		b.back() = ( n != s);
+		printTree(e, b, depth + 1);
 	}
+	b.erase(b.begin() + b.size() - 1);
 }
 
 void RegTest() {
@@ -159,11 +172,12 @@ void RegTest() {
 	int i = CodeParse::pars_code_cpp.Check(start, &root);
 	std::string parsedCode = text.substr(0, i) + "\0";
 	if (i > 0) {
-		std::cout << parsedCode;
+		std::cout << parsedCode << std::endl;
 	}
 	std::cout << "======================" << std::endl;
 	std::cout << "======================" << std::endl;
-	printTree(&root);
+	std::vector<bool> b = {false};
+	printTree(&root, b);
 
 	i = 0;
 }
