@@ -81,17 +81,19 @@ int Game::Initialize()
 #ifdef DO_TESTING
 	
 	m_shaderSettings = {
+		//{"RGBA",           {{L"FOUR_CHANNEL"}}},
+		{"R",              {{L"ONE_CHANNEL"}}},
 		//{"Minimal-SIMPLE",           {{L"SIMPLE_HIT"}}},
 		//{"DICE-SIMPLE",              {{L"SIMPLE_HIT"},               {L"DICE_ANYHIT"}}},
 		//{"RayGen-SIMPLE",            {{L"SIMPLE_HIT"},               {L"RAY_GEN_ALPHA_TEST"}}},
 		//{"Close1-SIMPLE",            {{L"SIMPLE_HIT"},               {L"CLOSEST_HIT_ALPHA_TEST_1"}}},
 		//{"Close2-SIMPLE",            {{L"SIMPLE_HIT"},               {L"CLOSEST_HIT_ALPHA_TEST_2"}}},
 		
-		{"Minimal-NS",                 {{L"NO_SHADOWS"}} },
-		{"DICE-NS",                    {{L"DICE_ANYHIT"},              {L"NO_SHADOWS"}}},
-		{"RayGen-NS",                  {{L"RAY_GEN_ALPHA_TEST"},       {L"NO_SHADOWS"}}},
-		{"Close1-NS",                  {{L"CLOSEST_HIT_ALPHA_TEST_1"}, {L"NO_SHADOWS"}}},
-		{"Close2-NS",                  {{L"CLOSEST_HIT_ALPHA_TEST_2"}, {L"NO_SHADOWS"}}},
+		//{"Minimal-NS",                 {{L"NO_SHADOWS"}} },
+		//{"DICE-NS",                    {{L"DICE_ANYHIT"},              {L"NO_SHADOWS"}}},
+		//{"RayGen-NS",                  {{L"RAY_GEN_ALPHA_TEST"},       {L"NO_SHADOWS"}}},
+		//{"Close1-NS",                  {{L"CLOSEST_HIT_ALPHA_TEST_1"}, {L"NO_SHADOWS"}}},
+		//{"Close2-NS",                  {{L"CLOSEST_HIT_ALPHA_TEST_2"}, {L"NO_SHADOWS"}}},
 		
 		//{"Minimal",                  {}},
 		//{"DICE",                     {{L"DICE_ANYHIT"}}},
@@ -100,7 +102,7 @@ int Game::Initialize()
 		//{"Close2",                   {{L"CLOSEST_HIT_ALPHA_TEST_2"}}},
 	    
 		//DEBUG
-		{"RayGen-Debug",             {{L"RAY_GEN_ALPHA_TEST"}, {L"DEBUG_RECURSION_DEPTH"}}},
+		//{"RayGen-Debug",             {{L"RAY_GEN_ALPHA_TEST"}, {L"DEBUG_RECURSION_DEPTH"}}},
 	};
 
 	m_currentTestSceneIndex = 0;
@@ -217,6 +219,8 @@ bool Game::InitializeBlueprints()
 	if (m_rm->GetBlueprint("enemy_flying") == nullptr) { return false; }
 #endif
 #endif // PRELOAD_RESOURCES
+
+	Texture* tex = m_rm->GetTexture("R");
 
 	return true;
 }
@@ -489,8 +493,8 @@ void Game::ProcessLocalInput(double dt)
 		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
 		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
-
 }
+
 void Game::RenderWindows()
 {
 	if (m_reloadShaders) {
@@ -1925,7 +1929,7 @@ void Game::RefreshSceneList() {
 	FileSystem::ListDirectory(m_foundScenes, m_sceneFolderPath, { ".scene" });
 	FileSystem::ListDirectory(m_foundBluePrints, "../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
 	FileSystem::ListDirectory(m_foundMeshes, "../../Exported_Assets/" + std::string(MESH_FOLDER_NAME), { ".obj" });
-	FileSystem::ListDirectory(m_foundTextures, "../../Exported_Assets/" + std::string(TEXTURE_FODLER_NAME), { ".png" });
+	FileSystem::ListDirectory(m_foundTextures, "../../Exported_Assets/" + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
 }
 void Game::ReloadShaders() {
 	m_reloadShaders = false;

@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BlueprintEditor", "Blueprin
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OBJ_Cutter", "OBJ_Cutter\OBJ_Cutter.vcxproj", "{8AD30C35-7662-4FC4-8250-C46AB8B311CB}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageChannelExtracter", "ImageChannelExtracter\ImageChannelExtracter.vcxproj", "{633B92BB-5A7F-4D89-8427-D53977BB2D22}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -171,6 +173,26 @@ Global
 		{8AD30C35-7662-4FC4-8250-C46AB8B311CB}.Release|x64.Build.0 = Release|x64
 		{8AD30C35-7662-4FC4-8250-C46AB8B311CB}.Release|x86.ActiveCfg = Release|Win32
 		{8AD30C35-7662-4FC4-8250-C46AB8B311CB}.Release|x86.Build.0 = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Debug|x64.ActiveCfg = Debug|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Debug|x64.Build.0 = Debug|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Debug|x86.ActiveCfg = Debug|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Debug|x86.Build.0 = Debug|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_Debug|x64.ActiveCfg = Debug|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_Debug|x64.Build.0 = Debug|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_Debug|x86.ActiveCfg = Debug|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_Debug|x86.Build.0 = Debug|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_NoGUI|x64.ActiveCfg = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_NoGUI|x64.Build.0 = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_NoGUI|x86.ActiveCfg = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance_NoGUI|x86.Build.0 = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance|x64.ActiveCfg = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance|x64.Build.0 = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance|x86.ActiveCfg = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Performance|x86.Build.0 = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Release|x64.ActiveCfg = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Release|x64.Build.0 = Release|x64
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Release|x86.ActiveCfg = Release|Win32
+		{633B92BB-5A7F-4D89-8427-D53977BB2D22}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

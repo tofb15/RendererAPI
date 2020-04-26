@@ -391,6 +391,7 @@
     <ClCompile Include="D3D12\DXR\DXILShaderCompiler.cpp" />
     <ClCompile Include="D3D12\DXR\DXRBase.cpp" />
     <ClCompile Include="D3D12\DXR\DXRUtils.cpp" />
+    <ClCompile Include="D3D12\External\DDS\DDSTextureLoader12.cpp" />
     <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
     <ClCompile Include="D3D12\FullScreenPass.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -446,6 +447,7 @@
     <ClCompile Include="External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Light\LightSource.cpp" />
     <ClCompile Include="Loaders\OBJ_Loader.cpp" />
+    <ClCompile Include="Loaders\SimpleTexture.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -494,6 +496,7 @@
     <ClInclude Include="D3D12\DXR\DXRBase.h" />
     <ClInclude Include="D3D12\DXR\DXRUtils.h" />
     <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
+    <ClInclude Include="D3D12\External\DDS\DDSTextureLoader12.h" />
     <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
     <ClInclude Include="D3D12\GlobalSettings.hpp" />
     <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
@@ -544,6 +547,7 @@
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
+    <ClInclude Include="Loaders\SimpleTexture.h" />
     <ClInclude Include="Utills\Utills.h" />
     <ClInclude Include="External\IMGUI\imconfig.h" />
     <ClInclude Include="External\IMGUI\imgui.h" />

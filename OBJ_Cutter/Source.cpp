@@ -94,11 +94,15 @@ struct Texture {
 };
 
 unsigned char GetAlpha(const Float2& uv, const Texture& texture) {
-	int x = uv.u * texture.w;
-	int y = (1 - uv.v) * texture.h;
+	int x = uv.u * (texture.w - 1);
+	int y = (1 - uv.v) * (texture.h - 1);
 
 	x %= texture.w;
 	y %= texture.h;
+
+	if(x < 140){
+		int i = 0;
+	}
 
 	return texture.data[(x + y * texture.w) * 4 + 3];
 }
@@ -108,7 +112,7 @@ Float2 Barrypolation(Float3 barry, Float2 in1, Float2 in2, Float2 in3)
 	return in1 * barry.x + in2 * barry.y + in3 * barry.z;
 }
 
-bool checkVertex(const Float2* v_uv, const Texture& texture) {
+bool checkTriangle(const Float2* v_uv, const Texture& texture) {
 	for (size_t i2 = 0; i2 < 3; i2++)
 	{
 		if (GetAlpha(v_uv[i2], texture) > 100) {
@@ -116,22 +120,34 @@ bool checkVertex(const Float2* v_uv, const Texture& texture) {
 		}
 	}
 
-	if (GetAlpha(Barrypolation(Float3(0.5, 0, 0), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+
+	//if (GetAlpha(Barrypolation(Float3(0.5, 0, 0), {0,0}, { 1, 0 }, { 0, 1}), texture) > 100) {
+	//	return true;
+	//}
+
+	if (GetAlpha(Barrypolation(Float3(0.5, 0.5, 0), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
 		return true;
 	}
-	if (GetAlpha(Barrypolation(Float3(0, 0.5, 0), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+	if (GetAlpha(Barrypolation(Float3(0, 0.5, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
 		return true;
 	}
-	if (GetAlpha(Barrypolation(Float3(0, 0, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+	if (GetAlpha(Barrypolation(Float3(0.5, 0, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
 		return true;
 	}
 
 	Float3 Barrycoords;
+	float sum;
 	for (size_t i = 0; i < 10; i++)
 	{
 		Barrycoords.x = rand() / (float)RAND_MAX;
 		Barrycoords.y = rand() / (float)RAND_MAX;
+		sum = Barrycoords.x + Barrycoords.y;
+		if (sum > 1) {
+			Barrycoords.x = 1 - Barrycoords.x;
+			Barrycoords.y = 1 - Barrycoords.y;
+		}
 		Barrycoords.z = 1 - (Barrycoords.x + Barrycoords.y);
+		sum = Barrycoords.x + Barrycoords.y + Barrycoords.z;
 		if (GetAlpha(Barrypolation(Barrycoords, v_uv[0], v_uv[1], v_uv[2]), texture) > 128) {
 			return true;
 		}
@@ -157,7 +173,10 @@ int Cut(const Texture& texture, std::vector<Float3>& pos, std::vector<Float3>& n
 
 	while (i < size)
 	{
-		if (checkVertex(u, texture)) {
+		//for (size_t vi = 0; vi < 3; vi++) {
+		//	u[vi].v = 1 - u[vi].v;
+		//}
+		if (checkTriangle(u, texture)) {
 			for (size_t i2 = 0; i2 < 3; i2++)
 			{
 				result_p.push_back(v[i2]);
@@ -188,11 +207,14 @@ int main() {
 	LOADER::FLOAT2_BUFFER uv_data;
 
 	Texture texture;
-	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/T_WF_TreeBirch_foliage1_NNTS.png");
-	std::string mat = "debrisclusterdata_M_WF_TreeBirch_01_foliage";
+	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/ForestTree_NA_RGBA.png");
+	std::string mat = "wf_foresttree_large_02_billboard_tirailleur_foliage_MAT";
 	
-	std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
-	std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
+	//std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
+	//std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
+
+	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-large/";
+	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-large/Cut/";
 
 	std::filesystem::create_directories(inPath);
 	std::filesystem::create_directories(outPath);

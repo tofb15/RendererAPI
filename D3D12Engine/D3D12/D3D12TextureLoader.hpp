@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <thread>
 #include <mutex>
+#include <filesystem>
 
 class D3D12Texture;
 class D3D12API;

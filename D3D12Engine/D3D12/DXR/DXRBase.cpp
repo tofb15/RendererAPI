@@ -633,7 +633,7 @@ bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 #endif // DO_TESTING
 
 
-	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/test.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
+	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/final.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
 	psoBuilder.AddHitGroup(m_group1, m_shader_closestHitName);
 	psoBuilder.AddHitGroup(m_group_alphaTest, m_shader_closestHitAlphaTestName, (m_allowAnyhitshaders) ? m_shader_anyHitName : nullptr);
 	psoBuilder.AddHitGroup(m_group_alphaTest_shadow, nullptr, m_shader_anyHitName);
