@@ -1388,7 +1388,7 @@ void Game::MirrorScene(int lvl)
 				m->blueprint = o->blueprint;
 				m->transform = o->transform;
 				m->transform.scale *= Float3(fx, 1, fz); //only work for 3x3
-				m->transform.pos *= Float3(fx, 0, fz);
+				m->transform.pos *= Float3(fx, 1, fz);
 				m->transform.pos += Float3(dx * x, 0, dz * z);
 				
 				n_mirrored++;
