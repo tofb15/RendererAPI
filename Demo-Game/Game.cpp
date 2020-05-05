@@ -81,8 +81,24 @@ int Game::Initialize()
 #ifdef DO_TESTING
 	
 	m_shaderSettings = {
-		//{"RGBA",           {{L"FOUR_CHANNEL"}}},
-		{"R",              {{L"ONE_CHANNEL"}}},
+		{"Samples-1",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"1"}}},
+		//{"Samples-2",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"2"}}},
+		//{"Samples-3",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"3"}}},
+		//{"Samples-4",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"4"}}},
+		//{"Samples-5",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"5"}}},
+		//{"Samples-6",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"6"}}},
+		//{"Samples-7",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"7"}}},
+		//{"Samples-8",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"8"}}},
+
+		//{"Samples-1",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"1"}}},
+		//{"Samples-2",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"2"}}},
+		//{"Samples-3",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"3"}}},
+		//{"Samples-4",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"4"}}},
+		//{"Samples-5",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"5"}}},
+		//{"Samples-6",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"6"}}},
+		//{"Samples-7",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"7"}}},
+		//{"Samples-8",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"8"}}},
+		//{"R",              {{L"ONE_CHANNEL"}}},
 		//{"Minimal-SIMPLE",           {{L"SIMPLE_HIT"}}},
 		//{"DICE-SIMPLE",              {{L"SIMPLE_HIT"},               {L"DICE_ANYHIT"}}},
 		//{"RayGen-SIMPLE",            {{L"SIMPLE_HIT"},               {L"RAY_GEN_ALPHA_TEST"}}},
@@ -117,6 +133,14 @@ int Game::Initialize()
 	}
 	m_rm->WaitUntilResourcesIsLoaded();
 #endif // DO_TESTING
+
+	//AplhaTestNoise
+	for (size_t i = 0; i < 7; i++) {
+		m_AlphaTestNoiseTextures[i] = m_rm->GetTextureCopy("Final/RGBA/NoiseTexture_RGBA.png", "NoiseAlpha" + std::to_string(i));
+	}
+	m_renderer->SetSetting("NoiseAlphaMaps", m_AlphaTestNoiseTextures);
+	//m_renderer->SetSetting("nAlphaMaps", 1);
+
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -220,7 +244,7 @@ bool Game::InitializeBlueprints()
 #endif
 #endif // PRELOAD_RESOURCES
 
-	Texture* tex = m_rm->GetTexture("R");
+	//Texture* tex = m_rm->GetTexture("R");
 
 	return true;
 }
@@ -268,49 +292,11 @@ void Game::InitializeObjects()
 #endif // AT_OFFICE
 
 }
+
 void Game::InitializeHeightMap() {
-	//ShaderDescription sd_terrain = {};
-	//sd_terrain.defines = "";
-	//sd_terrain.name = "VertexShader_Terrain";
-	//sd_terrain.type = ShaderType::VS;
-	//Shader vs_terrain = m_sm->CompileShader(sd_terrain);
-	//if (vs_terrain.type == ShaderType::UNKNOWN)
-	//	return;
-
-	//sd_terrain.defines = "";
-	//sd_terrain.name = "GS_Shader_Terrain";
-	//sd_terrain.type = ShaderType::GS;
-	//Shader gs_terrain = m_sm->CompileShader(sd_terrain);
-	//if (gs_terrain.type == ShaderType::UNKNOWN)
-	//	return;
-
-	//sd_terrain.defines = "#define NORMAL\n";
-	//sd_terrain.name = "FragmentShader";
-	//sd_terrain.type = ShaderType::FS;
-	//Shader ps_terrain = m_sm->CompileShader(sd_terrain);
-	//if (ps_terrain.type == ShaderType::UNKNOWN)
-	//	return;
-
-	//ShaderProgram sp_terrain;
-	//sp_terrain.VS = vs_terrain;
-	//sp_terrain.GS = gs_terrain;
-	//sp_terrain.FS = ps_terrain;
-
-	//Technique* tech_terrain = m_renderAPI->MakeTechnique(m_renderStates[0], &sp_terrain, m_sm);
-	//m_techniques.push_back(tech_terrain);
-
-	//Texture* tex = m_renderAPI->MakeTexture();
-	//tex->LoadFromFile("../assets/Textures/map3.png", Texture::TEXTURE_USAGE_CPU_FLAG);
-	//m_textures.push_back(tex);
-
-	//m_terrain = m_renderAPI->MakeTerrain();
-	//m_terrain->InitializeHeightMap(tex, 100);
-
-	//m_terrainBlueprint.mesh = m_terrain->GetMesh();
-	//m_meshes.push_back(m_terrainBlueprint.mesh);
-
-	//m_terrainBlueprint.technique = tech_terrain;
+	
 }
+
 void Game::InitializeCameras()
 {
 	Int2 dim = m_windows[0]->GetDimensions();
@@ -547,17 +533,18 @@ void Game::RenderWindows()
 		m_nFrames = 0;
 		
 		if (m_currentSceneName != "") {
-			
+			std::string testName = m_currentSceneName.substr(0, m_currentSceneName.find_last_of(".")) + "_" + m_shaderSettings[m_currentShaderDefineTestCase].name;
 			int nValues;
 			int firstValue;
 			double* timerValues = m_renderer->GetGPU_Timers(nValues, firstValue);
 			double average = 0;
 			std::filesystem::create_directories("TestData/Data");
 
-			std::string fileName = m_currentSceneName.substr(0, m_currentSceneName.find_last_of("."));
-			fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
+			//std::string fileName = m_currentSceneName.substr(0, m_currentSceneName.find_last_of("."));
+			std::string fileName = testName;
+			//fileName += "#" + std::to_string(m_currentShaderDefineTestCase);
 			std::ofstream outF("TestData/Data/" + fileName + ".data");
-			outF << m_shaderSettings[m_currentShaderDefineTestCase].name << "\n";
+			outF << testName << "\n";
 
 			int index;
 			for (int i = 0; i < nValues; i++)
@@ -566,9 +553,10 @@ void Game::RenderWindows()
 				outF << timerValues[index] << "\n";
 				average += timerValues[index];
 			}
-			outF.close();
 			average /= nValues;
 			std::cout << "Average: " << average << "\n";
+			//outF << average << "\n";
+			outF.close();
 			
 			m_currentShaderDefineTestCase++;
 			if (m_currentShaderDefineTestCase >= m_shaderSettings.size()) {
@@ -701,6 +689,10 @@ void Game::RenderObjectEditor()
 		}
 	}
 
+	if (ImGui::Button("Apply Mirror Permanent")) {
+		MirrorScenePermanent();
+	}
+
 	ImGui::Columns(3);
 	ImGui::Text("Available Blueprints");
 	ImGui::NextColumn();
@@ -809,8 +801,20 @@ void Game::RenderObjectEditor()
 
 		if (m_selectedObjects.size() == 1) {
 			int& selectedObject = m_selectedObjects.front();
-	
+
 			if (selectedObject < m_objects.size()) {
+				if (ImGui::Button("Select All Identical")) {
+					Object* selected = m_objects[m_selectedObjects.front()];
+					m_selectedObjects.clear();
+					int index = 0;
+					for (auto i : m_objects) {
+						if (i->blueprint == selected->blueprint) {
+							m_selectedObjects.push_back(index);
+						}
+						index++;
+					}
+				}
+
 				ImGui::DragFloat3("Pos", (float*)& m_objects[selectedObject]->transform.pos, 0.1, -100, 100);
 				ImGui::DragFloat3("Rot", (float*)& m_objects[selectedObject]->transform.rotation, 0.1, -100, 100);
 				ImGui::DragFloat3("Scale", (float*)& m_objects[selectedObject]->transform.scale, 0.1, -100, 100);
@@ -859,10 +863,12 @@ void Game::RenderObjectEditor()
 				}
 			}
 
+			ImGui::DragFloat("Max random spread", &maxRandomPos, 1,0,10000);
+
 			if (ImGui::Button("Random X-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * 40 - 20;
+					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos/2;
 				}
 			}
 
@@ -871,7 +877,7 @@ void Game::RenderObjectEditor()
 			if (ImGui::Button("Random Y-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * 40 - 20;
+					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
 				}
 			}
 
@@ -880,7 +886,7 @@ void Game::RenderObjectEditor()
 			if (ImGui::Button("Random Z-Pos")) {
 				for (auto i : m_selectedObjects)
 				{
-					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * 40 - 20;
+					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
 				}
 			}
 		}
@@ -1390,7 +1396,6 @@ void Game::MirrorScene(int lvl)
 				m->transform.scale *= Float3(fx, 1, fz); //only work for 3x3
 				m->transform.pos *= Float3(fx, 1, fz);
 				m->transform.pos += Float3(dx * x, 0, dz * z);
-				
 				n_mirrored++;
 			}
 		}
@@ -1404,6 +1409,16 @@ void Game::MirrorScene(int lvl)
 	//	m_objects_mirrored.erase(m_objects_mirrored.end());
 	//}
 	
+}
+
+void Game::MirrorScenePermanent() {
+	m_objects.reserve(m_objects.size() + m_objects_mirrored.size());
+	m_objects.insert(m_objects.end(), m_objects_mirrored.begin(), m_objects_mirrored.end());
+
+	m_mirrorLevel = 1;
+	m_mirrorLevel = false;
+	m_objects_mirrored.clear();
+	m_objects_mirrored.shrink_to_fit();
 }
 
 #ifdef DO_TESTING
@@ -1494,20 +1509,23 @@ void Game::GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPat
 	size_t s = m_shaderSettings.size();
 	for (size_t i = 0; i < m_TestScenes.files.size(); i++)
 	{
-		std::ofstream oFile(scriptPath.string() + "/generated_LinePlot_Scene_" + std::to_string(i) + ".gp");
+		std::string sceneName = m_TestScenes.files[i].path.stem().string();
+		std::ofstream oFile(scriptPath.string() + "/LinePlot_Scene_" + sceneName + ".gp");
 		oFile << common;
-		oFile << "set title \"Dispatch Times for scene: " + m_TestScenes.files[i].path.stem().string() + "\" font \", 16\"\n";
+		oFile << "set title \"Dispatch Times for scene: " + sceneName + "\" font \", 16\"\n";
 		oFile << "plot \\\n";
 		std::string line;
 		for (size_t j = 0; j < s; j++)
 		{
 			line = "";
-			line += "\"" + dataLexPath + "/" + m_TestScenes.files[i].path.stem().string() + "#" + std::to_string(j) + ".data\"" + " using " + std::to_string(1);
+			std::string shaderName = m_shaderSettings[i].name;
+			std::string dataFile = sceneName + "_" + shaderName;
+			line += "\"" + dataLexPath + "/" + dataFile + ".data\"" + " using " + std::to_string(1);
 			while (line.length() < 20)
 			{
 				line += " ";
 			}
-			line += " w lines lc "+ std::to_string(j) + " t \"shader-" + m_shaderSettings[j].name + "\",\\\n";
+			line += " w lines lc "+ std::to_string(j) + " t \"" + shaderName + "\",\\\n";
 			oFile << line;
 		}
 		oFile.close();
@@ -1541,17 +1559,20 @@ void Game::GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPat
 
 	for (size_t j = 0; j < m_TestScenes.files.size(); j++)
 	{
-		std::ofstream oFile(scriptPath.string() + "/generated_BoxPlot_Scene_" + std::to_string(j) + ".gp");
+		std::string sceneName = m_TestScenes.files[j].path.stem().string();
+		std::ofstream oFile(scriptPath.string() + "/BoxPlot_Scene_" + sceneName + ".gp");
 		oFile << common;
-		oFile << "set title \"Dispatch Times for scene: " + m_TestScenes.files[j].path.stem().string() + "\" font \", 16\"\n";
+		oFile << "set title \"Dispatch Times for scene: " + sceneName + "\" font \", 16\"\n";
 		oFile << "plot \\\n";
 		std::string line;
 		for (size_t i = 0; i < s; i++)
 		{
+			std::string shaderName = m_shaderSettings[i].name;
+			std::string dataFile = sceneName + "_" + shaderName;
 			line = "";
-			line += "\"" + dataLexPath + "/" + m_TestScenes.files[j].path.stem().string() + "#" + std::to_string(i) + ".data\"" + " using (" + std::to_string(0.1 * i) + "):" + std::to_string(1) + ":xticlabels(1)";
+			line += "\"" + dataLexPath + "/" + dataFile + ".data\"" + " using (" + std::to_string(0.1 * i) + "):" + std::to_string(1) + ":xticlabels(1)";
 			//line += "file using (" + std::to_string(0.1 * i) + "):" + std::to_string(i + j * s + 1) + ":xticlabels(1)";
-			line += " w boxplot t \"" + m_shaderSettings[i].name + "\",\\\n";
+			line += " w boxplot t \"" + shaderName + "\",\\\n";
 			oFile << line;
 		}
 		oFile.close();
@@ -1584,21 +1605,24 @@ void Game::GenerateGnuPlotScript_perShader(const std::filesystem::path& scriptPa
 	//Plot per Shader
 	for (size_t j = 0; j < s; j++)
 	{
-		std::ofstream oFile(scriptPath.string() + "/generated_LinePlot_Shader_" + std::to_string(j) + ".gp");
+		std::string shaderName = m_shaderSettings[j].name;
+		std::ofstream oFile(scriptPath.string() + "/LinePlot_Shader_" + shaderName + ".gp");
 		oFile << common;
-		oFile << "set title \"Dispatch Times for shader: " + m_shaderSettings[j].name + "\" font \", 16\"\n";
+		oFile << "set title \"Dispatch Times for shader: " + shaderName + "\" font \", 16\"\n";
 		oFile << "plot \\\n";
 		std::string line;
 		for (size_t i = 0; i < m_TestScenes.files.size(); i++)
 		{
+			std::string sceneName = m_TestScenes.files[i].path.stem().string();
+			std::string dataFile = sceneName + "_" + shaderName;
 			line = "";
 			//line += "file using " + std::to_string(i * s + j + 1);
-			line += "\"" + dataLexPath + "/" + m_TestScenes.files[i].path.stem().string() + "#" + std::to_string(j) + ".data\"" + " using " + std::to_string(1);
+			line += "\"" + dataLexPath + "/" + dataFile + ".data\"" + " using " + std::to_string(1);
 			while (line.length() < 20)
 			{
 				line += " ";
 			}
-			line += " w lines lc " + std::to_string(i) + " t \"" + m_TestScenes.files[i].path.stem().string() + "\",\\\n";
+			line += " w lines lc " + std::to_string(i) + " t \"" + sceneName + "\",\\\n";
 			oFile << line;
 		}
 		oFile.close();
@@ -1631,21 +1655,23 @@ void Game::GenerateGnuPlotScript_perShader(const std::filesystem::path& scriptPa
 
 	for (size_t j = 0; j < s; j++)
 	{
-		std::ofstream oFile(scriptPath.string() + "/generated_BoxPlot_Shader_" + std::to_string(j) + ".gp");
+		std::string shaderName = m_shaderSettings[j].name;
+		std::ofstream oFile(scriptPath.string() + "/BoxPlot_Shader_" + shaderName + ".gp");
 		oFile << common;
-		oFile << "set title \"Dispatch Times for shader: " + m_shaderSettings[j].name + "\" font \", 16\"\n";
+		oFile << "set title \"Dispatch Times for shader: " + shaderName + "\" font \", 16\"\n";
 		oFile << "plot \\\n";
 		std::string line;
 		for (size_t i = 0; i < m_TestScenes.files.size(); i++)
 		{
+			std::string sceneName = m_TestScenes.files[i].path.stem().string();
+			std::string dataFile = sceneName + "_" + shaderName;
 			line = "";
 			//line += "file using (" + std::to_string(0.1 * i) + "):" + std::to_string(i * s + j + 1) 
 				+ ":xticlabels(1)";
 			//line += " w boxplot t \"Scene-" + std::to_string(i) + "\",\\\n";
-
-			line += "\"" + dataLexPath + "/" + m_TestScenes.files[i].path.stem().string() + "#" + std::to_string(j) + ".data\"" + " using (" + std::to_string(0.1 * i) + "):" + std::to_string(1) + ":xticlabels(1)";
+			line += "\"" + dataLexPath + "/" + dataFile + ".data\"" + " using (" + std::to_string(0.1 * i) + "):" + std::to_string(1) + ":xticlabels(1)";
 			//line += "file using (" + std::to_string(0.1 * i) + "):" + std::to_string(i + j * s + 1) + ":xticlabels(1)";
-			line += " w boxplot t \"" + m_TestScenes.files[i].path.stem().string() + "\",\\\n";
+			line += " w boxplot t \"" + sceneName + "\",\\\n";
 			oFile << line;
 		}
 		oFile.close();

@@ -67,6 +67,7 @@ public:
 	virtual void  Refresh(const std::vector<ShaderDefine>* defines = nullptr) {};
 	virtual void  SetLightSources(const std::vector<LightSource>& lights) = 0;
 	virtual void  SetSetting(const std::string& setting, float value) {};
+	virtual void  SetSetting(const std::string& setting, void* value) {};
 	virtual float GetSetting(const std::string& setting) { return 0; };
 	virtual bool  SaveLastFrame(const std::string& file) { return false; };
 #ifdef DO_TESTING

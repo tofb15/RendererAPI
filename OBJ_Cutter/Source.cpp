@@ -207,14 +207,14 @@ int main() {
 	LOADER::FLOAT2_BUFFER uv_data;
 
 	Texture texture;
-	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/ForestTree_NA_RGBA.png");
-	std::string mat = "wf_foresttree_large_02_billboard_tirailleur_foliage_MAT";
+	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/TreeBirch_NA_RGBA.png");
+	std::string mat = "debrisclusterdata_M_WF_TreeBirch_01_foliage";
 	
 	//std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
 	//std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
 
-	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-large/";
-	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-large/Cut/";
+	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-100K-remake/";
+	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-100K-remake/Cut/";
 
 	std::filesystem::create_directories(inPath);
 	std::filesystem::create_directories(outPath);

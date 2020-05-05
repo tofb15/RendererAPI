@@ -5,6 +5,9 @@ static const uint g_SHADOW_RAY_FLAGS = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
 static const float RAY_T_MAX = 2000.0f;
 
 //#define ONE_CHANNEL
+#ifndef N_ALPHA_MAPS
+#define N_ALPHA_MAPS 1
+#endif
 
 // Barycentric interpolation
 float2 barrypolation(float3 barry, float2 in1, float2 in2, float2 in3) {
@@ -40,9 +43,9 @@ StructuredBuffer<TanBinorm> vertices_tan_bi : register(t1, space3);
 
 Texture2D<float4> sys_texAlbedo : register(t2, space0);
 #ifdef ONE_CHANNEL
-Texture2D<float1> sys_texAlphaTest : register(t2, space1);
+Texture2D<float1> sys_texAlphaMap[] : register(t3, space0);
 #else
-Texture2D<float4> sys_texAlphaTest : register(t2, space1);
+Texture2D<float4> sys_texAlphaMap[] : register(t3, space0);
 #endif
 // Generate a ray in world space for a camera pixel corresponding to an index from the dispatched 2D grid.
 inline void generateCameraRay(uint2 index, out float3 origin, out float3 direction) {
@@ -249,15 +252,22 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]);
 	uv.y = -uv.y;
 	
+	//int N_ALPHA_MAPS = 1;
+	float alpha = 0;
+	float scaler = 1;
+	float2 scaledUV = uv;
+
+	for (int i = 0; i < N_ALPHA_MAPS; i++) {
 #ifdef ONE_CHANNEL
-	float alpha = sys_texAlphaTest.SampleLevel(samp, uv, 0);
+		alpha += sys_texAlphaMap[i].SampleLevel(samp, scaledUV, 0) / scaler;
+#else
+		alpha += sys_texAlphaMap[i].SampleLevel(samp, scaledUV, 0).a / scaler;
+#endif
+		scaler *= -15;
+		scaledUV *= 50;
+	}
+
 	if (alpha < 0.5f) {
 		IgnoreHit();
 	}
-#else
-	float4 alpha = sys_texAlphaTest.SampleLevel(samp, uv, 0);
-	if (alpha.a < 0.5f) {
-		IgnoreHit();
-	}
-#endif
 }

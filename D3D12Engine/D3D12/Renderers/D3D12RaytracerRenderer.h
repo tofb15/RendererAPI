@@ -30,6 +30,7 @@ private:
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
 	
 	virtual void  SetSetting(const std::string& setting, float value) override;
+	virtual void  SetSetting(const std::string& setting, void* value) override;
 	virtual float GetSetting(const std::string& setting) override;
 	virtual bool  SaveLastFrame(const std::string& file) override;
 

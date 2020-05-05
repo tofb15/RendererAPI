@@ -182,6 +182,26 @@ Texture* ResourceManager::GetTexture(const std::string& name)
 	return texture;
 }
 
+Texture* ResourceManager::GetTextureCopy(const std::string& name, const std::string& copyName) {
+	Texture* texture = nullptr;
+	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
+
+	auto search = m_textures.find(copyName);
+	if (search == m_textures.end()) {
+		if (!DoesFileExist(fName)) {
+			return nullptr;
+		}
+
+		texture = m_api->MakeTexture();
+		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
+		m_textures[copyName] = texture;
+	} else {
+		texture = m_textures[copyName];
+	}
+
+	return texture;
+}
+
 std::string ResourceManager::GetTextureName(Texture* texture) {
 	for (auto& e : m_textures)
 	{

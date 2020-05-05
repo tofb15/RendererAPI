@@ -16,21 +16,12 @@
 #include <Windows.h>
 #include <unordered_map>
 
+class D3D12Texture;
+
 typedef void* _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS;
 typedef unsigned int BLAS_ID;
 constexpr UINT NUM_DESCRIPTORS_PER_GPU_BUFFER = 5000;
 constexpr UINT NUM_DESCRIPTORS_TOTAL = NUM_DESCRIPTORS_PER_GPU_BUFFER * NUM_GPU_BUFFERS;
-
-
-//#include "../DX12API.h"
-//#include "DXRUtils.h"
-//#include "../DX12Utils.h"
-//#include "Sail/api/Renderer.h"
-//#include "../shader/DX12ConstantBuffer.h"
-//#include "../shader/DX12StructuredBuffer.h"
-//#include "API/DX12/resources/DX12RenderableTexture.h"
-// Include defines shared with dxr shaders
-//#include "Sail/../../SPLASH/res/shaders/dxr/Common_hlsl_cpp.hlsl"
 
 //TODO: allow dynamic value
 constexpr int MAX_NUM_GEOMETRIES_IN_BLAS = 20;
@@ -50,7 +41,8 @@ public:
 
 	//Settings
 	void SetAllowAnyHitShader(bool b);
-
+	void SetNAlphaMaps(int value);
+	void SetNoiseAlphaMaps(D3D12Texture** noiseAlphaMaps);
 #ifdef DO_TESTING
 	/*
 		Returns the stored GPU timers.
@@ -199,5 +191,8 @@ private:
 
 	//Settings
 	bool m_allowAnyhitshaders = true;
+	int m_nAlphaMaps = 1;
+	D3D12Texture** m_noiseAlphaMaps;
+
 	bool m_forceBLASRebuild[NUM_GPU_BUFFERS] = { false };
 };

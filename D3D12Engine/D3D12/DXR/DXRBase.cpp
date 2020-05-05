@@ -225,6 +225,14 @@ void DXRBase::SetAllowAnyHitShader(bool b)
 	m_allowAnyhitshaders = b;
 }
 
+void DXRBase::SetNAlphaMaps(int value) {
+	m_nAlphaMaps = value;
+}
+
+void DXRBase::SetNoiseAlphaMaps(D3D12Texture** noiseAlphaMaps) {
+	m_noiseAlphaMaps = noiseAlphaMaps;
+}
+
 bool DXRBase::InitializeRootSignatures()
 {
 	if (!CreateDXRGlobalRootSignature()) {
@@ -504,7 +512,7 @@ void DXRBase::UpdateShaderTable()
 	m_shaderTable_miss[bufferIndex] = missTable.Build(m_d3d12->GetDevice());
 
 	//===Update HitGroup Table===
-	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame * DXRShaderCommon::N_RAY_TYPES, m_rtxPipelineState, 64);
+	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame * DXRShaderCommon::N_RAY_TYPES, m_rtxPipelineState, 128);
 
 	UINT blasIndex = 0;
 	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
@@ -539,13 +547,16 @@ void DXRBase::UpdateShaderTable()
 			//===Add texture descriptors===
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
 			texture_gdh.ptr += m_descriptorSize;
-			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-			texture_gdh.ptr += m_descriptorSize;
+
+			for (int i = 0; i < 8; i++) {
+				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+				texture_gdh.ptr += m_descriptorSize;
+			}
 
 			//===ShadowRayHit Shader===
 			if (blas.first->alphaTested[i] && m_allowAnyhitshaders) {
 				//Alphatest geometry shadow hit shader
-				texture_gdh.ptr -= m_descriptorSize * 2;
+				texture_gdh.ptr -= m_descriptorSize * 9;
 				hitGroupTable.AddShader(m_group_alphaTest_shadow);
 
 				//===Add vertexbuffer descriptors===
@@ -557,8 +568,10 @@ void DXRBase::UpdateShaderTable()
 				//===Add texture descriptors===
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
 				texture_gdh.ptr += m_descriptorSize;
-				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
-				texture_gdh.ptr += m_descriptorSize;
+				for (int i = 0; i < 8; i++) {
+					hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
+					texture_gdh.ptr += m_descriptorSize;
+				}
 			}
 			else {
 				//Opaque geometry dont need a shadow hit shader
@@ -595,6 +608,14 @@ void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList)
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->textures[i * 2 + 1]));
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
+
+			for (size_t j = 0; j < 7; j++) {
+				//TODO remove this if case.
+				//Add noise alpha maps. This is just done for performance testing and should be removed in the future.
+				texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(m_noiseAlphaMaps[j]);
+				m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				m_unused_handle_start_this_frame += m_descriptorSize;
+			}
 		}
 	}
 }
@@ -624,6 +645,7 @@ bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 			if (e.define == L"RAY_GEN_ALPHA_TEST" || e.define == L"CLOSEST_HIT_ALPHA_TEST_1" || e.define == L"CLOSEST_HIT_ALPHA_TEST_2") {
 				allowAnyhit = false;
 			}
+
 			defines.push_back({ e.define.c_str(), e.value.c_str() });
 		}
 	}
@@ -786,7 +808,7 @@ bool DXRBase::CreateHitGroupLocalRootSignature()
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_UV", 1, 2);
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_TAN_BI", 1, 3);
 	m_localRootSignature_hitGroups.AddDescriptorTable("AlbedoColor", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-	m_localRootSignature_hitGroups.AddDescriptorTable("Normalmap", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1);
+	m_localRootSignature_hitGroups.AddDescriptorTable("AlphaMapTextures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, -1);
 	//m_localRootSignature_hitGroups.AddSRV("IndexBuffer", 1, 1);
 	//m_localRootSignature_hitGroups.AddCBV("MeshCBuffer", 1, 0);
 	//m_localRootSignature_hitGroups.AddDescriptorTable("Textures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 3); // Textures (t0, t1, t2)

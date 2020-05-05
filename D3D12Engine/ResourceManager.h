@@ -64,6 +64,11 @@ public:
 	Blueprint* CreateBlueprint(const std::string& name);
 	Mesh* GetMesh(const std::string& name);
 	Texture* GetTexture(const std::string& name);
+	/*
+		Uses "name" to locate the texture on disk and loads it with the name specified in "copyName".
+		If a texture is already loaded with the name specified by "copyName" that texture will be returned inseed.
+	*/
+	Texture* GetTextureCopy(const std::string& name, const std::string& copyName);
 
 	std::string GetMeshName(Mesh* mesh);
 	std::string GetTextureName(Texture* texture);

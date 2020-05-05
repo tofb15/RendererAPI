@@ -155,6 +155,7 @@ public:
 	void RenderGUI() override;
 
 	void MirrorScene(int lvl = 1);
+	void MirrorScenePermanent();
 private:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;
@@ -198,6 +199,8 @@ private:
 	bool m_allowAnyhitShaders = true;
 	float m_time_lightAnim = 0.0;
 
+	float maxRandomPos = 100;
+
 	//Shader Defines
 	bool m_def_NO_NORMAL_MAP = false;
 	bool m_def_NO_SHADOWS = false;
@@ -215,6 +218,8 @@ private:
 
 	//Scene Load Settings	
 	bool m_loadSettingkeepKamera = false;
+
+	Texture* m_AlphaTestNoiseTextures[7];
 
 #ifdef DO_TESTING
 	FileSystem::Directory m_TestScenes;
