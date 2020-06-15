@@ -63,6 +63,8 @@ inline void generateCameraRay(uint2 index, out float3 origin, out float3 directi
 	direction = normalize(world.xyz - origin);
 }
 
+//#define DEBUG_RECURSION_DEPTH
+
 [shader("raygeneration")]
 void rayGen() {
 	//return;
@@ -82,6 +84,12 @@ void rayGen() {
 	TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
 
 	outputTexture[launchIndex] = payload.color;
+
+#ifdef DEBUG_RECURSION_DEPTH
+	float max = 0;
+	float t1 = saturate(((float)payload.recursionDepth - max) / (15.f - max));
+	outputTexture[launchIndex] = float4(t1, t1, t1, 1);
+#endif
 }
 
 [shader("closesthit")]
@@ -240,7 +248,9 @@ void shadow_GeometryMiss(inout RayPayload_shadow payload) {
 
 [shader("anyhit")]
 void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
-	//payload.recursionDepth++;
+#ifdef DEBUG_RECURSION_DEPTH
+	payload.recursionDepth++;
+#endif
 
 	float3 barycentrics = float3(1.0 - attribs.barycentrics.x - attribs.barycentrics.y, attribs.barycentrics.x, attribs.barycentrics.y);
 	uint primitiveID = PrimitiveIndex();
@@ -252,7 +262,6 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]);
 	uv.y = -uv.y;
 	
-	//int N_ALPHA_MAPS = 1;
 	float alpha = 0;
 	float scaler = 1;
 	float2 scaledUV = uv;
@@ -264,7 +273,7 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 		alpha += sys_texAlphaMap[i].SampleLevel(samp, scaledUV, 0).a / scaler;
 #endif
 		scaler *= -15;
-		scaledUV *= 50;
+		scaledUV *= 5;
 	}
 
 	if (alpha < 0.5f) {

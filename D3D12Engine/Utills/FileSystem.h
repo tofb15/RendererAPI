@@ -14,6 +14,23 @@ namespace FileSystem {
 	{
 		std::vector<Directory> directories;
 		std::vector<File> files;
+
+		std::vector<File> GetAllFoundListedFiles() {
+			std::vector<File> list;
+			Directory* dir = this;
+			for (File& f : files) {
+				list.push_back(f);
+			}
+
+			for (Directory dir : directories) {
+				std::vector<File> sublist = dir.GetAllFoundListedFiles();
+				list.reserve(list.size() + sublist.size());
+				list.insert(list.end(), sublist.begin(), sublist.end());
+			}
+
+			return list;
+		};
+
 		/*
 			Clears all sub directories and files from memory.
 		*/

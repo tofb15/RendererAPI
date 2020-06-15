@@ -1518,7 +1518,7 @@ void Game::GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPat
 		for (size_t j = 0; j < s; j++)
 		{
 			line = "";
-			std::string shaderName = m_shaderSettings[i].name;
+			std::string shaderName = m_shaderSettings[j].name;
 			std::string dataFile = sceneName + "_" + shaderName;
 			line += "\"" + dataLexPath + "/" + dataFile + ".data\"" + " using " + std::to_string(1);
 			while (line.length() < 20)

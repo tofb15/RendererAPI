@@ -137,7 +137,7 @@ bool checkTriangle(const Float2* v_uv, const Texture& texture) {
 
 	Float3 Barrycoords;
 	float sum;
-	for (size_t i = 0; i < 10; i++)
+	for (size_t i = 0; i < 100; i++)
 	{
 		Barrycoords.x = rand() / (float)RAND_MAX;
 		Barrycoords.y = rand() / (float)RAND_MAX;
@@ -207,14 +207,18 @@ int main() {
 	LOADER::FLOAT2_BUFFER uv_data;
 
 	Texture texture;
-	lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/TreeBirch_NA_RGBA.png");
-	std::string mat = "debrisclusterdata_M_WF_TreeBirch_01_foliage";
+	lodepng::decode(texture.data, texture.w, texture.h, "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/Leaf.png");
+	std::string mat = "Material_Leaf";
+	//lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/ForestTree_C_RGBA.png");
+	//std::string mat = "wf_foresttree_large_02_billboard_tirailleur_foliage_MAT";
 	
 	//std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
 	//std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
 
-	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-100K-remake/";
-	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/tree-100K-remake/Cut/";
+	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/sub/";
+	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/cut/";
+	//std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/nonAlpha-Remake/LargeTree/";
+	//std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/nonAlpha-Remake/LargeTree/Cut/";
 
 	std::filesystem::create_directories(inPath);
 	std::filesystem::create_directories(outPath);
