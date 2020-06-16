@@ -44,9 +44,6 @@ public:
 	*/
 	virtual bool LoadFromFile(const char* fileName, MeshLoadFlag loadFlag) = 0;
 
-	// WARNING: Multiple meshes can initilize the same shape.
-	// It is the programmer's responsibility to only initialize 1 of each mesh shape and use it multiple times instead.
-
 	/*
 		Initialize mesh from with the model of a cube. This function will fill all model vertex data into buffers. To load the Material and textures,
 		@see Texture
@@ -60,7 +57,6 @@ public:
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) = 0;
 
 	unsigned GetVertexBufferFlags() const;
-	//virtual void SetTechnique(Technique*);
 	const char* GetMaterialName() const;
 	std::string GetName() const;
 	void SetName(const std::string& name);
@@ -74,7 +70,5 @@ protected:
 	unsigned m_VertexBufferFlags;
 private:
 	std::string m_name;
-	bool m_IsCreated;	// vertexbuffers.size() > 0 ish maybe ? idk
-	//std::vector<VertexBuffer*> vertexBuffers;
-	//Technique* tech; //Moved To blueprint
+	bool m_IsCreated;
 };

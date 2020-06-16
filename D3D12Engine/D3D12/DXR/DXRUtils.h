@@ -6,18 +6,6 @@
 #include <Windows.h>
 
 namespace DXRUtils {
-	//typedef enum class GROUP_TYPE
-	//{
-	//	TRIANGLES = 0,
-	//	PROCEDURAL_PRIMITIVE = 0x1
-	//} 	GROUP_TYPE;
-
-	//typedef enum class STATE_SUBOBJECT_TYPE
-	//{
-	//	STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE = 1,
-	//	STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE = 2,
-	//} 	STATE_SUBOBJECT_TYPE;
-
 	class PSOBuilder {
 	public:
 		PSOBuilder();

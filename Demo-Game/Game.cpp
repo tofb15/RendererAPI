@@ -8,8 +8,6 @@ Game::Game()
 #else
 	m_sceneFolderPath = "../assets/Scenes/";
 #endif //AT_OFFICE
-
-	RefreshSceneList();
 }
 Game::~Game()
 {
@@ -141,6 +139,8 @@ int Game::Initialize()
 	m_renderer->SetSetting("NoiseAlphaMaps", m_AlphaTestNoiseTextures);
 	//m_renderer->SetSetting("nAlphaMaps", 1);
 
+
+	RefreshSceneList();
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -1890,6 +1890,25 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 		}
 	}
 
+	if (m_cameras.empty()) {
+		//==============
+		Int2 dim = m_windows[0]->GetDimensions();
+		float aspRatio = dim.x / dim.y;
+
+		Camera* cam = m_renderAPI->MakeCamera();
+		cam->SetPosition(Float3(0, 10, -10));
+		cam->SetTarget(Float3(0, 0, 0));
+		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
+		m_cameras.push_back(cam);
+	}
+
+	if (m_lights.empty()) {
+		//==============
+		LightSource ls;
+		ls.m_position_center = (Float3(10, 60, 10));
+		m_lights.push_back(ls);
+	}
+
 	if (m_mirrorLevel) {
 		MirrorScene(m_mirrorLevel);
 	}
@@ -1952,10 +1971,10 @@ void Game::RefreshSceneList() {
 #ifdef DO_TESTING
 	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
 #endif // DO_TESTING
-	FileSystem::ListDirectory(m_foundScenes, m_sceneFolderPath, { ".scene" });
-	FileSystem::ListDirectory(m_foundBluePrints, "../../Exported_Assets/" + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
-	FileSystem::ListDirectory(m_foundMeshes, "../../Exported_Assets/" + std::string(MESH_FOLDER_NAME), { ".obj" });
-	FileSystem::ListDirectory(m_foundTextures, "../../Exported_Assets/" + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
+	FileSystem::ListDirectory(m_foundScenes,     m_sceneFolderPath, { ".scene" });
+	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
+	FileSystem::ListDirectory(m_foundMeshes,     m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });
+	FileSystem::ListDirectory(m_foundTextures,   m_rm->GetAssetPath() + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
 }
 void Game::ReloadShaders() {
 	m_reloadShaders = false;

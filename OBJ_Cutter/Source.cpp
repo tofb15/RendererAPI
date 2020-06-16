@@ -1,91 +1,11 @@
+/*
+	This small program is used to remove triangles of a alpha tested model that do not contain alpha values above 128.
+*/
 #include "../D3D12Engine/Loaders/OBJ_Loader.h"
-//#include "../D3D12Engine/D"
 #include <iostream>
 #include "../D3D12Engine/D3D12/External/LodePNG/lodepng.h"
 #include <Windows.h>
 #include <filesystem>
-
-void subdivide(const Float3* tri, std::vector<Float3>& result, int cur, const int max) {
-
-	Float3 n[3];
-	n[0] = (tri[0] + tri[1]) * 0.5f;
-	n[1] = (tri[1] + tri[2]) * 0.5f;
-	n[2] = (tri[0] + tri[2]) * 0.5f;
-	std::vector<Float3> temp;
-	/*
-			 t0
-			 /\
-		  n2/__\n0
-		   /\  /\
-		  /  \/  \
-		t2---n1--- t1
-	*/
-
-	size_t size = result.size();
-
-	/*
-		TOP
-		   t0
-		   / \
-		n2/_x_\n0
-		 /\   /\
-		/  \ /  \
-	  t2---n1--- t1
-	*/
-	temp.push_back(tri[0]);
-	temp.push_back(n[0]);
-	temp.push_back(n[2]);
-
-	/*
-		Right
-		   t0
-		   / \
-		n2/___\n0
-		 /\   /\
-		/  \ /x \
-	  t2---n1--- t1
-	*/
-	temp.push_back(tri[1]);
-	temp.push_back(n[1]);
-	temp.push_back(n[0]);
-
-	/*
-		MIDDLE
-		   t0
-		   / \
-		n2/___\n0
-		 /\ x /\
-		/  \ /  \
-	  t2---n1--- t1
-	*/
-	temp.push_back(n[2]);
-	temp.push_back(n[0]);
-	temp.push_back(n[1]);
-
-	/*
-	LEFT
-		   t0
-		   / \
-		n2/___\n0
-		 /\   /\
-		/x \ /  \
-	  t2---n1--- t1
-	*/
-	temp.push_back(n[2]);
-	temp.push_back(n[1]);
-	temp.push_back(tri[2]);
-
-	if (cur < max - 1) {
-		for (int i = 0; i < 4; i++) {
-			subdivide(&temp[i * 3], result, cur + 1, max);
-		}
-	}
-	else {
-		result.insert(result.end(), temp.begin(), temp.end());
-	}
-
-	return;
-}
 
 struct Texture {
 	std::vector<unsigned char> data;
@@ -93,6 +13,9 @@ struct Texture {
 	unsigned int h;
 };
 
+/*
+	Get the alpha value of the texture
+*/
 unsigned char GetAlpha(const Float2& uv, const Texture& texture) {
 	int x = uv.u * (texture.w - 1);
 	int y = (1 - uv.v) * (texture.h - 1);
@@ -107,31 +30,32 @@ unsigned char GetAlpha(const Float2& uv, const Texture& texture) {
 	return texture.data[(x + y * texture.w) * 4 + 3];
 }
 
+/*
+	interpolate uv coordinates of a triangle with respect to the barycentric coordinates 
+*/
 Float2 Barrypolation(Float3 barry, Float2 in1, Float2 in2, Float2 in3)
 {
 	return in1 * barry.x + in2 * barry.y + in3 * barry.z;
 }
 
+/*
+	Returns true if the triangle contain any alpha value > 128 (estimated) sampeled from the alpha map
+*/
 bool checkTriangle(const Float2* v_uv, const Texture& texture) {
 	for (size_t i2 = 0; i2 < 3; i2++)
 	{
-		if (GetAlpha(v_uv[i2], texture) > 100) {
+		if (GetAlpha(v_uv[i2], texture) > 128) {
 			return true;
 		}
 	}
 
-
-	//if (GetAlpha(Barrypolation(Float3(0.5, 0, 0), {0,0}, { 1, 0 }, { 0, 1}), texture) > 100) {
-	//	return true;
-	//}
-
-	if (GetAlpha(Barrypolation(Float3(0.5, 0.5, 0), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+	if (GetAlpha(Barrypolation(Float3(0.5, 0.5, 0), v_uv[0], v_uv[1], v_uv[2]), texture) > 128) {
 		return true;
 	}
-	if (GetAlpha(Barrypolation(Float3(0, 0.5, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+	if (GetAlpha(Barrypolation(Float3(0, 0.5, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 128) {
 		return true;
 	}
-	if (GetAlpha(Barrypolation(Float3(0.5, 0, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 100) {
+	if (GetAlpha(Barrypolation(Float3(0.5, 0, 0.5), v_uv[0], v_uv[1], v_uv[2]), texture) > 128) {
 		return true;
 	}
 
@@ -173,9 +97,6 @@ int Cut(const Texture& texture, std::vector<Float3>& pos, std::vector<Float3>& n
 
 	while (i < size)
 	{
-		//for (size_t vi = 0; vi < 3; vi++) {
-		//	u[vi].v = 1 - u[vi].v;
-		//}
 		if (checkTriangle(u, texture)) {
 			for (size_t i2 = 0; i2 < 3; i2++)
 			{
@@ -207,47 +128,40 @@ int main() {
 	LOADER::FLOAT2_BUFFER uv_data;
 
 	Texture texture;
-	lodepng::decode(texture.data, texture.w, texture.h, "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/Leaf.png");
-	std::string mat = "Material_Leaf";
-	//lodepng::decode(texture.data, texture.w, texture.h, "../../Exported_Assets/Textures/Final/RGBA/ForestTree_C_RGBA.png");
-	//std::string mat = "wf_foresttree_large_02_billboard_tirailleur_foliage_MAT";
-	
-	//std::string inPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Sub/";
-	//std::string outPath = "D:/EXJOB/Exported_Assets/Models/SmallTree/BlenderTest2/Cut/";
+	lodepng::decode(texture.data, texture.w, texture.h, "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/Leaf.png");// The Alpha map
+	std::string mat = "Material_Leaf"; // The name of the material (defined in the .obj) that should be alpha tested
 
-	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/sub/";
-	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/cut/";
-	//std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/nonAlpha-Remake/LargeTree/";
-	//std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Final/nonAlpha-Remake/LargeTree/Cut/";
+	std::string inPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/sub/"; // All models in the cutting process
+	std::string outPath = "C:/Users/Tobias/Desktop/Programming/Exported_Assets/Models/Leaf/quad/cut/";// The cut models will be saved here
 
 	std::filesystem::create_directories(inPath);
 	std::filesystem::create_directories(outPath);
 
 	std::string message = "";
 	for (auto e : std::filesystem::directory_iterator(inPath))
-	{
-		//std::string a = e.path().string();
-		//std::string b = e.path().extension().string();
-		//std::string c = e.path().filename().string();
-		//std::string d = e.path().parent_path().string();
-		//
-		//std::string outName = e.path().filename().string();
-		//int ind = outName.find_last_of(".");
-		//outName = outName.substr(0, ind);
-		
+	{	
 		if (e.path().extension().string() == ".obj") {
 			
 			std::string outName = outPath + e.path().filename().string();
 			p_data.clear();
 			n_data.clear();
 			uv_data.clear();
+			/*
+				Load the next model
+			*/
 			if (!LOADER::LoadOBJ(e.path().string().c_str(), p_data, n_data, uv_data)) {
 				return false;
 			}
 			
 			int i = 0;
+			/*
+				Remove triangles with alpha < 128
+			*/
 			i = Cut(texture, p_data[mat], n_data[mat], uv_data[mat]);
 			
+			/*
+				Save the result. This function is not perfect resulting in duplicate vericies. The duplicates can easily be removed using Blender.
+			*/
 			LOADER::SaveOBJ(outName.c_str(), p_data, n_data, uv_data);
 
 			message += ("removed " + std::to_string(i) + " triangles from: " + e.path().filename().string()) + "\n";

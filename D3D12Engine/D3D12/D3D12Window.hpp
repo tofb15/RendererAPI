@@ -96,7 +96,13 @@ public:
 	*/
 	UINT GetCurrentBackBufferIndex() const;
 
+	/*
+		Not used anymore
+	*/
 	virtual void BeginUIRendering() override;
+	/*
+		Not used anymore
+	*/
 	virtual void EndUIRendering() override;
 
 	ID3D12DescriptorHeap* GetGUIDescriptorHeap();

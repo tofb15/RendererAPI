@@ -38,6 +38,9 @@ public:
 	bool allGeometryIsOpaque = true; //false if at least one geometry in the mesh is alphaTested
 };
 
+/*
+	More lightwight version of Blueprint which do not require any loaded resources.
+*/
 struct BlueprintDescription
 {
 	std::string blueprintName;
@@ -56,6 +59,7 @@ public:
 	~ResourceManager();
 
 	void SetAssetPath(const std::string& s);
+	std::string GetAssetPath();
 	Blueprint* LoadBlueprintFromFile(const std::string& path);
 	Blueprint* GetBlueprint(const std::string& name);
 	bool PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load);

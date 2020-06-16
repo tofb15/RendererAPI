@@ -31,7 +31,13 @@ public:
 	DXRBase(D3D12API* d3d12);
 	~DXRBase();
 
+	/*
+		Initialize the DXRBase
+	*/
 	bool Initialize();
+	/*
+		Set the output resources of the dispatch ray call which can be used to create an UAV. 
+	*/
 	void SetOutputResources(ID3D12Resource** output, Int2 dim);
 	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 

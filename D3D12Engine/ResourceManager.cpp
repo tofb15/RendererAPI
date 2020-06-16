@@ -81,6 +81,10 @@ void ResourceManager::SetAssetPath(const std::string& s) {
 	m_assetPath = s;
 }
 
+std::string ResourceManager::GetAssetPath() {
+	return m_assetPath;
+}
+
 Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name)
 {
 	Blueprint* bp = MY_NEW Blueprint;

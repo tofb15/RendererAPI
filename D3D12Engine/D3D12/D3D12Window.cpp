@@ -317,22 +317,6 @@ void D3D12Window::HandleWindowEvents()
 			}
 				break;
 
-			//case WM_MOUSELEAVE:
-			//case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
-
-			//	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
-			//	mMouseInsideWindow = false;
-			//	break;
-			//case WM_MOUSEMOVE:
-			//case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
-
-			//	/*Set all other windows mMouseInsideWindow to false here maybe?*/
-			//	mMouseInsideWindow = true;
-			//	break;
-			//case WM_SETFOCUS:
-			//case WM_MOUSEACTIVATE:
-			//	mIsInFocus = true;
-			//	break;
 			default:
 				break;
 			}

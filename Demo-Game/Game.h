@@ -166,8 +166,8 @@ private:
 	//std::vector<Material*>	m_materials;    //Not used
 	//std::vector<Technique*>	m_techniques;   //Used for raster
 	//std::vector<RenderState*>	m_renderStates; //Used for raster
-	std::vector<Camera*>		m_cameras;
-	std::vector<Object*>		m_objects;
+	std::vector<Camera*>		m_cameras; // List of all cameras
+	std::vector<Object*>		m_objects; // List of All game objects
 	std::vector<Object*>		m_objects_mirrored;
 	std::vector<std::string>    m_unSavedBlueprints;
 
@@ -181,10 +181,10 @@ private:
 	std::vector<int> m_selectedObjects;
 	//int m_selectedObject = 0;
 
-	FileSystem::Directory m_foundScenes;
-	FileSystem::Directory m_foundBluePrints;
-	FileSystem::Directory m_foundMeshes;
-	FileSystem::Directory m_foundTextures;
+	FileSystem::Directory m_foundScenes; //Scenes files found in Scene folder
+	FileSystem::Directory m_foundBluePrints; //Blueprints files found in Blueprint folder
+	FileSystem::Directory m_foundMeshes; //Meshes files found in Meshe folder
+	FileSystem::Directory m_foundTextures; //Textures files found in Texture folder
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
