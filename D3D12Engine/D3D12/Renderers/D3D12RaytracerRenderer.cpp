@@ -236,22 +236,16 @@ void D3D12RaytracerRenderer::SetSetting(const std::string& setting, float value)
 {
 	if (setting == "anyhit") {
 		m_dxrBase->SetAllowAnyHitShader(value > 0);
-	} else if (setting == "nAlphaMaps") {
-		m_dxrBase->SetNAlphaMaps(value);
 	}
 }
 
 void D3D12RaytracerRenderer::SetSetting(const std::string& setting, void* value) {
-	if (setting == "NoiseAlphaMaps") {
-		m_dxrBase->SetNoiseAlphaMaps((D3D12Texture**)value);
-	}
+
 }
 
 float D3D12RaytracerRenderer::GetSetting(const std::string& setting)
 {
 	if (setting == "anyhit") {
-		return 0;
-	} else if (setting == "nAlphaMaps") {
 		return 0;
 	}
 }
@@ -343,10 +337,10 @@ bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 	return true;
 }
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue)
 {
 	return m_dxrBase->GetGPU_Timers(nValues, firstValue);
 }
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 

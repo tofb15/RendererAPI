@@ -36,12 +36,21 @@ int Game::Initialize()
 	InitializeCameras();
 
 	m_rm = ResourceManager::GetInstance(m_renderAPI);
+	m_rm->SetAssetPath("../assets/");
+	m_sceneFolderPath = "../assets/Scenes/";
 
 	//Preload one texture into memory. The first texture loaded will be used as default or "missing"-texture.
 	m_dummyTexture = m_rm->GetTexture("emplyNormal.png");
 	m_lights.emplace_back();
 
 	RefreshSceneList();
+	for (auto scene : m_foundScenes.files) {
+		if (scene.path.stem() == "example_scene") {
+			LoadScene(scene.path);
+			break;
+		}
+	}
+
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -260,6 +269,7 @@ void Game::RenderWindows()
 
 		//Draw all meshes in the submit list.
 		//TODO: Do we want to support multiple Frame calls in a row? What if we want to render split-screen? Could differend threads prepare different frames?
+
 		m_renderer->Frame(window, cam0);
 		m_renderer->Present(window, this);
 	}
@@ -676,7 +686,7 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 				size_t len2 = clickedItem.string().length() - len1;
 
 				std::string s = clickedItem.string().substr(len1, len2);
-				
+
 				bp->textures[textureIndex] = m_rm->GetTexture(s);
 				bp->hasChanged = true;
 			}
@@ -694,6 +704,7 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 				size_t len2 = clickedItem.string().length() - len1;
 
 				std::string s = clickedItem.string().substr(len1, len2);
+
 
 				bp->textures[textureIndex] = m_rm->GetTexture(s);
 				bp->hasChanged = true;
@@ -886,7 +897,6 @@ void Game::RenderSettingWindow() {
 	ImGui::End();
 }
 void Game::RenderGUI() {
-
 	//UI SETUP HERE
 	static bool b = false;
 	if (b)
@@ -930,6 +940,7 @@ void Game::RenderGUI() {
 	}
 
 	RenderSettingWindow();
+
 
 }
 void Game::MirrorScene(int lvl)
@@ -976,15 +987,6 @@ void Game::MirrorScene(int lvl)
 			}
 		}
 	}
-
-
-	//while (n_mirrored < m_objects_mirrored.size())
-	//{
-	//	Object* o = m_objects_mirrored.back();
-	//	delete o;
-	//	m_objects_mirrored.erase(m_objects_mirrored.end());
-	//}
-	
 }
 
 void Game::MirrorScenePermanent() {
@@ -996,6 +998,7 @@ void Game::MirrorScenePermanent() {
 	m_objects_mirrored.clear();
 	m_objects_mirrored.shrink_to_fit();
 }
+
 
 bool Game::SaveScene(bool saveAsNew) {
 	if (!std::filesystem::exists(m_sceneFolderPath)) {
@@ -1287,9 +1290,9 @@ void Game::ClearScene(bool clearName) {
 	m_lights.clear();
 }
 void Game::RefreshSceneList() {
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 	FileSystem::ListDirectory(m_foundScenes,     m_sceneFolderPath, { ".scene" });
 	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
 	FileSystem::ListDirectory(m_foundMeshes,     m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });

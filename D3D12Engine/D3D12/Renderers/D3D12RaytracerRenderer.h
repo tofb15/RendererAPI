@@ -34,9 +34,9 @@ private:
 	virtual float GetSetting(const std::string& setting) override;
 	virtual bool  SaveLastFrame(const std::string& file) override;
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	virtual double* GetGPU_Timers(int& nValues, int& firstValue) override;
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 private:
 	std::vector<SubmissionItem> m_renderItems;

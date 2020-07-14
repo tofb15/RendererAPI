@@ -51,6 +51,7 @@ public:
 
 	int Initialize();
 	bool InitializeRendererAndWindow();
+
 	void InitializeCameras();
 	void Run();
 	void UpdateObjects(double dt);
@@ -207,4 +208,5 @@ private:
 
 	//Scene Load Settings	
 	bool m_loadSettingkeepKamera = false;
+
 };

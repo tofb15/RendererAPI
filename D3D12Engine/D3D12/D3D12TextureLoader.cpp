@@ -96,7 +96,6 @@ void D3D12TextureLoader::LoadTextureToGPU(D3D12Texture * texture)
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);//Lock when in scope and unlock when out of scope.
 	
-
 	if (!texture->IsLoaded() && !texture->IsDDS()) {
 		m_texturesToLoadToRAM.push_back(texture);
 		m_cv_ram_not_empty.notify_one();//Wake up the RAM loader thread (D3D12TextureLoader::RAMUploaderDoWork)
@@ -133,7 +132,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12TextureLoader::GetSpecificTextureCPUAdress(D3D1
 {
 	std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
 
-	int index = texture->m_GPU_Loader_index;
+	int index = 0;
+	if (texture) {
+		index = texture->m_GPU_Loader_index;
+	} else {
+		index = 0;
+	}
 	if (index == -1)
 		index = 0;
 
