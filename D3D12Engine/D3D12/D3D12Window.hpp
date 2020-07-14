@@ -17,7 +17,7 @@ public:
 	/*
 		Set the dimensions for the window.
 	*/
-	virtual void SetDimensions(Int2 dimensions) override;
+	virtual void SetDimensions(const Int2& dimensions) override;
 	/*
 		Set the dimensions for the window.
 	*/
@@ -25,7 +25,7 @@ public:
 	/*
 		Set the position of the window.
 	*/
-	virtual void SetPosition(Int2 position) override;
+	virtual void SetPosition(const Int2& position) override;
 	/*
 		Set the position of the window.
 	*/
@@ -64,7 +64,7 @@ public:
 		@see GetCurrentBackBufferIndex()
 	*/
 	void SetRenderTarget(ID3D12GraphicsCommandList3*	commandList);
-	HWND				GetHWND();
+	HWND GetHWND();
 
 	/*
 		@Return a pointer to the Swap Chain Interface
@@ -96,12 +96,19 @@ public:
 	*/
 	UINT GetCurrentBackBufferIndex() const;
 
+	/*
+		Not used anymore
+	*/
 	virtual void BeginUIRendering() override;
+	/*
+		Not used anymore
+	*/
 	virtual void EndUIRendering() override;
 
 	ID3D12DescriptorHeap* GetGUIDescriptorHeap();
 
 private:
+	bool m_firstResize = true; //Used to skip the first resize message
 	IDXGISwapChain4*			m_SwapChain4 = nullptr;
 	HWND						m_Wnd;
 	ID3D12DescriptorHeap* m_GUIDescriptHeap = nullptr;
@@ -129,4 +136,5 @@ private:
 	bool InitializeDepthBuffer();	//4.
 	bool InitializeRawInput();
 
+	void ApplyResize();
 };

@@ -34,6 +34,7 @@ public:
 	virtual Technique * MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) override;
 	virtual ShaderManager * MakeShaderManager() override;
 	virtual D3D12VertexBuffer * MakeVertexBuffer();
+	virtual D3D12VertexBuffer * MakeVertexBuffer(const D3D12VertexBuffer& buffer);
 	virtual Renderer* MakeRenderer(const RendererType rendererType) override;
 
 	/*
@@ -65,6 +66,7 @@ public:
 	unsigned __int64 SignalFence();
 	void WaitForGPU_ALL();
 	void WaitForGPU_BUFFERS(int index);
+	void WaitForFenceValue(unsigned __int64 value);
 
 private:	
 	bool InitializeDirect3DDevice(); //1.
@@ -80,7 +82,6 @@ private:
 	UINT m_cbv_srv_uav_size;
 
 	D3D12TextureLoader* m_textureLoader;
-	std::thread m_thread_texture;
 
 	// Default resources
 	ID3D12Device5*           m_device = nullptr;

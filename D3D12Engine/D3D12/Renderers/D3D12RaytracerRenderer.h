@@ -21,16 +21,22 @@ private:
 	void ResetCommandListAndAllocator(int index);
 
 	// Inherited via D3D12Renderer
-	virtual void Submit(SubmissionItem item, Camera* camera = nullptr, unsigned char layer = 0) override;
+	virtual void Submit(const SubmissionItem& item, Camera* camera = nullptr, unsigned char layer = 0) override;
 	virtual void ClearSubmissions() override;
 	virtual void Frame(Window* window, Camera* camera) override;
 	virtual void Present(Window* window, GUI* gui = nullptr) override;
 	virtual void ClearFrame() override;
-	virtual void Refresh(std::vector<std::wstring>* defines) override;
+	virtual void Refresh(const std::vector<ShaderDefine>* defines) override;
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
 	
-	virtual void SetSetting(std::string setting, float value) override;
-	virtual float GetSetting(std::string setting) override;
+	virtual void  SetSetting(const std::string& setting, float value) override;
+	virtual void  SetSetting(const std::string& setting, void* value) override;
+	virtual float GetSetting(const std::string& setting) override;
+	virtual bool  SaveLastFrame(const std::string& file) override;
+
+#ifdef DO_TESTING
+	virtual double* GetGPU_Timers(int& nValues, int& firstValue) override;
+#endif // DO_TESTING
 
 private:
 	std::vector<SubmissionItem> m_renderItems;

@@ -10,6 +10,21 @@ D3D12VertexBuffer::D3D12VertexBuffer(D3D12API* renderer)
 	m_renderer = renderer;
 }
 
+D3D12VertexBuffer::D3D12VertexBuffer(const D3D12VertexBuffer& buffer)
+{
+	m_NumOfElements = buffer.m_NumOfElements;
+	m_ElementSize = buffer.m_ElementSize;
+	m_renderer = buffer.m_renderer;
+	m_resource = buffer.m_resource;
+	m_resource->AddRef();
+
+	//Initialize vertex buffer view, used in the render call.
+	m_view = MY_NEW D3D12_VERTEX_BUFFER_VIEW;
+	m_view->BufferLocation = m_resource->GetGPUVirtualAddress();
+	m_view->StrideInBytes = m_ElementSize;
+	m_view->SizeInBytes = m_ElementSize * m_ElementSize;
+}
+
 D3D12VertexBuffer::~D3D12VertexBuffer()
 {
 	if (m_view)

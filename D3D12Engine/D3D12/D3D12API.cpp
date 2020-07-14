@@ -54,7 +54,7 @@ D3D12API::~D3D12API()
 	m_CommandQueue_direct->Release();
 
 	m_textureLoader->Kill();	//Notify the other thread to stop.
-	m_thread_texture.join();	//Wait for the other thread to stop.
+	//m_thread_texture.join();	//Wait for the other thread to stop.
 	if (m_textureLoader)
 		delete m_textureLoader;
 
@@ -100,7 +100,7 @@ bool D3D12API::Initialize()
 	}
 
 	//Start new Texture loading thread
-	m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
+	//m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
 	m_vertexBufferLoader = MY_NEW D3D12VertexBufferLoader(this);
 	if (!m_vertexBufferLoader->Initialize())
@@ -189,7 +189,10 @@ D3D12VertexBuffer * D3D12API::MakeVertexBuffer()
 	return MY_NEW D3D12VertexBuffer(this);
 }
 
-
+D3D12VertexBuffer* D3D12API::MakeVertexBuffer(const D3D12VertexBuffer& buffer)
+{
+	return MY_NEW D3D12VertexBuffer(buffer);
+}
 
 ID3D12Device5 * D3D12API::GetDevice() const
 {
@@ -262,11 +265,16 @@ void D3D12API::WaitForGPU_ALL()
 
 void D3D12API::WaitForGPU_BUFFERS(int index)
 {
+	WaitForFenceValue(m_FenceValues_GPU_BUFFERS[index]);
+}
+
+void D3D12API::WaitForFenceValue(unsigned __int64 value)
+{
 	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < m_FenceValues_GPU_BUFFERS[index])
+	if (m_Fence->GetCompletedValue() < value)
 	{
 		//m_numWaits++;
-		m_Fence->SetEventOnCompletion(m_FenceValues_GPU_BUFFERS[index], m_EventHandle);
+		m_Fence->SetEventOnCompletion(value, m_EventHandle);
 		WaitForSingleObject(m_EventHandle, INFINITE);
 	}
 }

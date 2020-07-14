@@ -15,25 +15,37 @@ const char MESH_FOLDER_NAME[]      = "Models/";
 const char TEXTURE_FODLER_NAME[]   = "Textures/";
 const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 
+enum Asset_Types : unsigned {
+	Asset_Type_Texture   = 0b001,
+	Asset_Type_Model     = 0b010,
+	Asset_Type_Blueprint = 0b100,
+	Asset_Type_Any       = 0xffffffff,
+};
+
 /*
 	Contain data used to describe a object and how it should be rendered.
 	This class should ONLY be used as a blueprint/prefab to create other object copying data from this class.
 */
 class Blueprint {
 public:
-	Mesh* mesh;
-	std::vector<Technique*> techniques;
+	bool hasChanged = false;
+	Mesh* mesh = nullptr;
+	std::vector<Technique*> techniques; //used for raster
 	std::vector<Texture*>	textures;
 
-	//RTX defines. TODO: find a place to store these that is not here.
-	bool allGeometryIsOpaque = true;
+	//===TODO: find a place to store these that is not here. They should be integrated in to the Technique
+	std::vector<bool> alphaTested;   //for each geometry in the mesh; is it alphatested.
+	bool allGeometryIsOpaque = true; //false if at least one geometry in the mesh is alphaTested
 };
 
+/*
+	More lightwight version of Blueprint which do not require any loaded resources.
+*/
 struct BlueprintDescription
 {
 	std::string blueprintName;
 	std::string meshPath;
-	bool allGeometryIsOpaque = true;
+	std::vector<bool> alphaTested;
 	std::vector<std::string> texturePaths;
 };
 
@@ -42,16 +54,35 @@ class ResourceManager
 public:
 	static ResourceManager* GetInstance(RenderAPI* api);
 	static bool SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions);
+	bool SaveBlueprintToFile(Blueprint* bp, const std::string& bpName);
+
 	~ResourceManager();
 
-	void SetAssetPath(std::string s);
-	Blueprint* LoadBlueprintFromFile(std::string path);
-	Mesh* GetMesh(std::string name);
-	Texture* GetTexture(std::string name);
-	Blueprint* GetBlueprint(std::string name);
-	bool IsBlueprintLoaded(std::string name);
+	void SetAssetPath(const std::string& s);
+	std::string GetAssetPath();
+	Blueprint* LoadBlueprintFromFile(const std::string& path);
+	Blueprint* GetBlueprint(const std::string& name);
+	bool PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load);
+	bool PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load = Asset_Type_Any);
+
+	Blueprint* CreateBlueprint(const std::string& name);
+	Mesh* GetMesh(const std::string& name);
+	Texture* GetTexture(const std::string& name);
+	/*
+		Uses "name" to locate the texture on disk and loads it with the name specified in "copyName".
+		If a texture is already loaded with the name specified by "copyName" that texture will be returned inseed.
+	*/
+	Texture* GetTextureCopy(const std::string& name, const std::string& copyName);
+
+	std::string GetMeshName(Mesh* mesh);
+	std::string GetTextureName(Texture* texture);
+	std::string GetBlueprintName(Blueprint* bp);
+	bool IsBlueprintLoaded(const std::string& name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
+	bool DoesFileExist(const std::string& s);
+	
+	void WaitUntilResourcesIsLoaded();
 public:
 
 private:

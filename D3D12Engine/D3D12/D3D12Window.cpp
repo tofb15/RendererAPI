@@ -19,6 +19,8 @@ static bool quit = false;
 
 BYTE g_rawInputBuffer[64];
 
+constexpr int WM_SIZE_CUSTOM = WM_USER + 1;
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
@@ -29,10 +31,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	*/
 	switch (message)
 	{
+	case WM_SIZE:
+	{
+		PostMessageW(hWnd, WM_SIZE_CUSTOM, wParam, lParam);
+	}
+	break;
+	case WM_QUIT:
+	case WM_CLOSE:
 	case WM_DESTROY:
-		PostQuitMessage(0);
+		//PostQuitMessage(0);
 		quit = true;
-		break;
+		return 0;
 	case WM_KEYDOWN:
 	{
 		short key = static_cast<short>(wParam);
@@ -49,7 +58,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
-
 	}
 		break;
 	}
@@ -83,6 +91,11 @@ D3D12Window::D3D12Window(D3D12API* d3d12)
 D3D12Window::~D3D12Window()
 {
 	m_d3d12->WaitForGPU_ALL();
+
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	delete m_Viewport;
 	delete m_ScissorRect;
 
@@ -99,7 +112,7 @@ D3D12Window::~D3D12Window()
 	m_SwapChain4->Release();
 }
 
-void D3D12Window::SetDimensions(Int2 dimensions)
+void D3D12Window::SetDimensions(const Int2& dimensions)
 {
 	SetDimensions(dimensions.x, dimensions.y);
 }
@@ -119,7 +132,7 @@ void D3D12Window::SetDimensions(int w, int h)
 	//if (mWnd != NULL)
 }
 
-void D3D12Window::SetPosition(Int2 position)
+void D3D12Window::SetPosition(const Int2& position)
 {
 }
 
@@ -223,8 +236,14 @@ void D3D12Window::HandleWindowEvents()
 			*/
 			switch (msg.message)
 			{
+			case WM_SIZE_CUSTOM: {
+				if (!m_firstResize) {
+					ApplyResize();
+				}
+				m_firstResize = false;
+			}
+			break;
 			case WM_KEYDOWN: {
-
 				short key = static_cast<short>(msg.wParam);
 				m_input.SetKeyDown(static_cast<char>(key), true);
 			}
@@ -298,22 +317,6 @@ void D3D12Window::HandleWindowEvents()
 			}
 				break;
 
-			//case WM_MOUSELEAVE:
-			//case WM_NCMOUSELEAVE: //I think NC refers to the windows borders
-
-			//	/*This event is not called if two windows is intersecting and mouse is traveling between them for some reason*/
-			//	mMouseInsideWindow = false;
-			//	break;
-			//case WM_MOUSEMOVE:
-			//case WM_NCMOUSEMOVE: //I think NC refers to the windows borders
-
-			//	/*Set all other windows mMouseInsideWindow to false here maybe?*/
-			//	mMouseInsideWindow = true;
-			//	break;
-			//case WM_SETFOCUS:
-			//case WM_MOUSEACTIVATE:
-			//	mIsInFocus = true;
-			//	break;
 			default:
 				break;
 			}
@@ -462,7 +465,7 @@ bool D3D12Window::InitializeSwapChain()
 	scDesc.BufferCount = NUM_SWAP_BUFFERS;
 	scDesc.Scaling = DXGI_SCALING_NONE;
 	scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	scDesc.Flags = 0;
+	scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	scDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
 
 	IDXGISwapChain1* swapChain1 = nullptr;
@@ -611,6 +614,38 @@ bool D3D12Window::InitializeRawInput()
 	}
 	
 	return true;
+}
+
+void D3D12Window::ApplyResize()
+{
+	m_d3d12->WaitForGPU_ALL();
+
+	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
+	{
+		m_RenderTargets[n]->Release();
+	}
+
+	//m_SwapChain4->SetFullscreenState(msg.wParam == SIZE_MAXIMIZED, NULL);
+	HRESULT hr = m_SwapChain4->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+	if (FAILED(hr)) {
+		int i = 0;
+		//MessageBoxA(NULL, "Winodw Resizing Failed", "Error", 0);
+	}
+
+	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
+	{
+		hr = m_SwapChain4->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n]));
+		if (FAILED(hr))
+		{
+			MessageBoxA(NULL, "Apply Resize Failed", "Error", 0);
+			return;
+		}
+		m_RenderTargets[n]->SetName(L"RT");
+
+		m_d3d12->GetDevice()->CreateRenderTargetView(m_RenderTargets[n], nullptr, cdh);
+		cdh.ptr += m_RenderTargetDescriptorSize;
+	}
 }
 
 void D3D12Window::BeginUIRendering()

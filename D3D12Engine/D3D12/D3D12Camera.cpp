@@ -10,20 +10,20 @@ D3D12Camera::~D3D12Camera()
 {
 }
 
-void D3D12Camera::SetPosition(Float3 position)
+void D3D12Camera::SetPosition(const Float3& position)
 {
 	m_position = position;
 	mHasChanged = true;
 }
 
-void D3D12Camera::Move(Float3 position)
+void D3D12Camera::Move(const Float3& position)
 {
 	Float3 dir = GetTargetDirection();
 	SetPosition(m_position + position);
 	SetTarget(dir + m_position);
 }
 
-void D3D12Camera::Rotate(Float3 axis, float angle)
+void D3D12Camera::Rotate(const Float3& axis, float angle)
 {
 	Float3 dir = GetTargetDirection();
 	
@@ -42,7 +42,7 @@ void D3D12Camera::Rotate(Float3 axis, float angle)
 	SetTarget(m_position + newDir);
 }
 
-void D3D12Camera::SetTarget(Float3 target)
+void D3D12Camera::SetTarget(const Float3& target)
 {
 	m_target = target;
 	mHasChanged = true;
@@ -95,7 +95,7 @@ Frustum::~Frustum()
 {
 }
 
-void Frustum::CreateFrustum(const DirectX::XMFLOAT4X4 & _viewProj, Float3 position, float FOV, float farPlane)
+void Frustum::CreateFrustum(const DirectX::XMFLOAT4X4 & _viewProj, const Float3& position, float FOV, float farPlane)
 {
 	// When multiplied together, the view-projection-matrix contains useful information
 	// The column vectors in each of the four columns are combined to extract a plane's normal and distance from origin
@@ -163,7 +163,7 @@ bool Frustum::CheckPoint(DirectX::XMFLOAT3 p) const
 	return false;
 }
 
-bool Frustum::CheckAgainstFrustum(Sphere & sphere) const
+bool Frustum::CheckAgainstFrustum(const Sphere & sphere) const
 {
 	for (int i = 0; i < 6; i++)
 	{
@@ -183,7 +183,7 @@ bool Frustum::CheckAgainstFrustum(Sphere & sphere) const
 	return true;
 }
 
-float Frustum::DistanceToPlane(Plane p, Float3 point) const
+float Frustum::DistanceToPlane(const Plane& p, const Float3& point) const
 {
 	// Return difference bewtween orthogonal projection and shortest distance to the plane (ax + by + cz = d)
 	return p.normal.dot(point) + p.d;

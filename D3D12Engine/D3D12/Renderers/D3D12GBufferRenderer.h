@@ -5,7 +5,7 @@ class D3D12GBufferRenderer : public D3D12Renderer {
 public:
 	// Inherited via D3D12Renderer
 	virtual bool Initialize() override;
-	virtual void Submit(SubmissionItem item, Camera* c = nullptr, unsigned char layer = 0) override;
+	virtual void Submit(const SubmissionItem& item, Camera* camera = nullptr, unsigned char layer = 0) override;
 	virtual void ClearSubmissions() override;
 	virtual void Frame(Window* window, Camera* camera) override;
 	virtual void Present(Window* window, GUI* gui = nullptr) override;

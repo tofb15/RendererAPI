@@ -48,8 +48,8 @@ typedef union Float4
 	Float4() { x = y = z = w = 0; }
 	Float4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
 
-	Float4 operator+(Float4 other) const { return Float4(x + other.x, y + other.y, z + other.z, w + other.w); }
-	Float4 operator-(Float4 other) const { return Float4(x - other.x, y - other.y, z - other.z, w - other.w); };
+	Float4 operator+(const Float4& other) const { return Float4(x + other.x, y + other.y, z + other.z, w + other.w); }
+	Float4 operator-(const Float4& other) const { return Float4(x - other.x, y - other.y, z - other.z, w - other.w); };
 	Float4 operator*(float other) const { return Float4(x * other, y * other, z * other, w * other); };
 	Float4 operator/(float other) const { float a = 1.0f / other; return Float4(x * a, y * a, z * a, w * a); };
 	void operator/=(float other) { *this = *this / other; };
@@ -58,7 +58,7 @@ typedef union Float4
 	float length() const { return std::sqrtf(length2()); }
 	Float4 normalized() const { return (*this / length()); }
 	void normalize() { *this = this->normalized(); }
-	float dot(Float4 other) const { return x * other.x + y * other.y + z * other.z + w * other.w; }
+	float dot(const Float4& other) const { return x * other.x + y * other.y + z * other.z + w * other.w; }
 	//Float4 crossRH(Float4 other) const { return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x }; }
 	//Float4 crossLH(Float4 other) const { return crossRH(other) * -1; }
 } Float4;
@@ -70,9 +70,13 @@ typedef union Float3
 	Float3() { x = y = z = 0; }
 	Float3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
-	Float3 operator+(Float3 other) const { return Float3(x + other.x, y + other.y, z + other.z); }
-	Float3 operator-(Float3 other) const { return Float3(x - other.x, y - other.y, z - other.z); };
+	Float3 operator+(const Float3& other) const { return Float3(x + other.x, y + other.y, z + other.z); }
+	void operator+=(const Float3& other) { x += other.x; y += other.y; z += other.z; }
+	Float3 operator-(const Float3& other) const { return Float3(x - other.x, y - other.y, z - other.z); };
+	void operator-=(const Float3& other) { x -= other.x; y -= other.y; z -= other.z; }
 	Float3 operator*(float other) const { return Float3(x * other, y * other, z * other); };
+	void operator*=(float other) { x *= other; y *= other; z *= other; }
+	void operator*=(const Float3& other) { x *= other.x; y *= other.y; z *= other.z; }
 	Float3 operator/(float other) const { float a = 1.0f / other; return Float3(x * a, y * a, z * a); };
 	void operator/=(float other) { *this = *this / other; };
 	void operator=(const Float3& other) { x = other.x; y = other.y; z = other.z;};
@@ -81,9 +85,9 @@ typedef union Float3
 	float length() const { return std::sqrtf(length2()); }
 	Float3 normalized() const { return (*this / length()); }
 	void normalize() { *this = this->normalized(); }
-	float dot(Float3 other) const { return x * other.x + y * other.y + z * other.z; }
-	Float3 crossRH(Float3 other) const { return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x }; }
-	Float3 crossLH(Float3 other) const { return crossRH(other) * -1; }
+	float dot(const Float3& other) const { return x * other.x + y * other.y + z * other.z; }
+	Float3 crossRH(const Float3& other) const { return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x }; }
+	Float3 crossLH(const Float3& other) const { return crossRH(other) * -1; }
 } Float3;
 
 typedef union Float2
@@ -94,8 +98,8 @@ typedef union Float2
 	struct { float u; float v; };
 	struct { float s; float t; };
 
-	Float2 operator+(Float2 other) { return Float2(x + other.x, y + other.y); }
-	Float2 operator-(Float2 other) { return Float2(x - other.x, y - other.y); };
+	Float2 operator+(const Float2& other) { return Float2(x + other.x, y + other.y); }
+	Float2 operator-(const Float2& other) { return Float2(x - other.x, y - other.y); };
 	Float2 operator*(float other) { return Float2(x * other, y * other); };
 	Float2 operator/(float other) { float a = 1.0f / other; return Float2(x * a, y * a); };
 } Float2;
@@ -110,11 +114,11 @@ typedef union Int2
 	struct { int u; int v;};
 	struct { int s; int t;};
 
-	Int2 operator+(Int2 other) { return Int2(x + other.x, y + other.y); }
-	Int2 operator-(Int2 other) { return Int2(x - other.x, y - other.y); };
+	Int2 operator+(const Int2& other) { return Int2(x + other.x, y + other.y); }
+	Int2 operator-(const Int2& other) { return Int2(x - other.x, y - other.y); };
 	Int2 operator*(float other) { return Int2(static_cast<int>(x * other), static_cast<int>(y * other)); };
 	Int2 operator/(float other) { float a = 1.0f / other; return Int2(static_cast<int>(x * a), static_cast<int>(y * a)); };
-	bool operator==(Int2 other) { return (x == other.x && y == other.y); };
+	bool operator==(const Int2& other) { return (x == other.x && y == other.y); };
 } Int2;
 
 struct Transform {

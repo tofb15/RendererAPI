@@ -4,7 +4,11 @@
 
 WindowInput::WindowInput()
 {
-	Reset();
+	for (size_t i = 0; i < NUM_KEYS; i++)
+	{
+		m_isKeysDown[i] = false;
+		m_isKeysPressed[i] = false;
+	}
 }
 
 WindowInput::~WindowInput()
@@ -15,7 +19,6 @@ void WindowInput::Reset()
 {
 	for (size_t i = 0; i < NUM_KEYS; i++)
 	{
-		//m_isKeysDown[i] = false;
 		m_isKeysPressed[i] = false;
 	}
 }
@@ -60,7 +63,7 @@ void WindowInput::SetKeyPressed(char key, bool isPressed)
 		m_isKeysPressed[key] = isPressed;
 }
 
-void WindowInput::SetMouseMovement(Int2 mouseMovement)
+void WindowInput::SetMouseMovement(const Int2& mouseMovement)
 {
 	m_mouseMovement = mouseMovement;
 }
