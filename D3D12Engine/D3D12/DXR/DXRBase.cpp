@@ -36,9 +36,9 @@ bool DXRBase::Initialize()
 		return false;
 	}
 	
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	m_gpuTimer.Init(m_d3d12->GetDevice(), NUM_GPU_BUFFERS);
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 	return true;
 }
@@ -192,7 +192,7 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
 	cmdList->SetPipelineState1(m_rtxPipelineState);
 	
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	if (m_nUnExtractedTimerValues == NUM_GPU_BUFFERS) {
 		ExtractGPUTimer();
 	}
@@ -204,7 +204,7 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList)
 	m_gpuTimer.ResolveQueryToCPU(cmdList, bufferIndex);
 #else
 	cmdList->DispatchRays(&desc);
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 }
 
 void DXRBase::ReloadShaders(const std::vector<ShaderDefine>* defines)
@@ -650,9 +650,9 @@ bool DXRBase::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines)
 		}
 	}
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	SetAllowAnyHitShader(allowAnyhit);
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 
 	psoBuilder.AddLibrary("../Shaders/D3D12/DXR/final.hlsl", { m_shader_rayGenName, m_shader_closestHitName, m_shader_closestHitAlphaTestName, m_shader_anyHitName, m_shader_missName, m_shader_shadowMissName}, defines);
@@ -730,7 +730,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DXRBase::GetCurrentDescriptorHandle()
 	return handle;
 }
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 
 double* DXRBase::GetGPU_Timers(int& nValues, int& firstValue)
 {
@@ -771,7 +771,7 @@ double DXRBase::ExtractGPUTimer()
 	return timeInMs;
 }
 
-#endif //DO_TESTING
+#endif //PERFORMANCE_TESTING
 
 bool DXRBase::CreateDXRGlobalRootSignature()
 {

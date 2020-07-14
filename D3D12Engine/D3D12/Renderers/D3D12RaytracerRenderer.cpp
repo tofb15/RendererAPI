@@ -343,10 +343,10 @@ bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 	return true;
 }
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue)
 {
 	return m_dxrBase->GetGPU_Timers(nValues, firstValue);
 }
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 

@@ -94,9 +94,9 @@ public:
 		Save the last rendered frame to a file as an image
 	*/
 	virtual bool  SaveLastFrame(const std::string& file) { return false; };
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	virtual double* GetGPU_Timers(int& nValues, int& firstValue) { nValues = 0; return nullptr; };
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 protected:
 	Renderer();

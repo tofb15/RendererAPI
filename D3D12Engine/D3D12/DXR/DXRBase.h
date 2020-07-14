@@ -49,7 +49,7 @@ public:
 	void SetAllowAnyHitShader(bool b);
 	void SetNAlphaMaps(int value);
 	void SetNoiseAlphaMaps(D3D12Texture** noiseAlphaMaps);
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	/*
 		Returns the stored GPU timers.
 		In order to get the most recent values this function will
@@ -60,7 +60,7 @@ public:
 		@return an array countaining all the timer values. It's size will be given in @param nValues
 	*/
 	virtual double* GetGPU_Timers(int& nValues, int& firstValue);
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 private:
 	struct AccelerationStructureBuffers {
@@ -122,7 +122,7 @@ private:
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
 
 private:
-#ifdef DO_TESTING	
+#ifdef PERFORMANCE_TESTING	
 	/*
 		Extracts the next timervalue from the gpu and places it in m_timerValue.
 		This function in itself does not guarantee that the GPU operation to fill
@@ -141,7 +141,7 @@ private:
 	unsigned int m_nextTimerIndex = 0;
 	double m_averageTime = 0;
 	int m_nUnExtractedTimerValues = 0;
-#endif DO_TESTING
+#endif PERFORMANCE_TESTING
 
 	D3D12API* m_d3d12;
 	Int2 m_outputDim;

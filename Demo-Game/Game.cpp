@@ -3,20 +3,10 @@
 
 Game::Game()
 {
-#ifdef AT_OFFICE
-	m_sceneFolderPath = "../../Exported_Assets/Scenes/";
-#else
-	m_sceneFolderPath = "../assets/Scenes/";
-#endif //AT_OFFICE
+	
 }
 Game::~Game()
 {
-	//for (auto e : m_materials) {
-	//	delete e;
-	//}
-	//for (auto e : m_renderStates) {
-	//	delete e;
-	//}
 	for (auto e : m_cameras) {
 		delete e;
 	}
@@ -31,9 +21,6 @@ Game::~Game()
 	for (auto e : m_windows) {
 		delete e;
 	}
-	//for (auto e : m_techniques) {
-	//	delete e;
-	//}
 
 	delete m_renderer;
 	delete m_renderAPI;
@@ -49,44 +36,39 @@ int Game::Initialize()
 	}
 
 	m_rm = ResourceManager::GetInstance(m_renderAPI);
-
-#ifdef AT_OFFICE
-	m_rm->SetAssetPath("../../Exported_Assets/");
-#else
 	m_rm->SetAssetPath("../assets/");
-#endif // AT_OFFICE
+	m_sceneFolderPath = "../assets/Scenes/";
 
 	//Preload one texture into memory. The first texture loaded will be used as default or "missing"-texture.
 	m_dummyTexture = m_rm->GetTexture("emplyNormal.png");
 
-	if (!InitializeMaterialsAndRenderStates()) {
-		return -2;
-	}
-
-	if (!InitializeShadersAndTechniques())
-	{
-		return -3;
-	}
 	InitializeCameras();
 	if (!InitializeBlueprints()) {
-		return -4;
+		return -2;
 	}
 	InitializeObjects();
-	//InitializeHeightMap();
 
 	m_lights.emplace_back();
 
-#ifdef DO_TESTING
-	
+	//Set AplhaTestNoise textures
+	for (size_t i = 0; i < 7; i++) {
+		m_AlphaTestNoiseTextures[i] = m_rm->GetTextureCopy("NoiseTexture_RGBA.png", "NoiseAlpha" + std::to_string(i));
+	}
+	m_renderer->SetSetting("NoiseAlphaMaps", m_AlphaTestNoiseTextures);
+
+	RefreshSceneList();
+
+#ifdef PERFORMANCE_TESTING	
+	//Set up shader defines for each test case
 	m_shaderSettings = {
 		{"Samples-1",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"1"}}},
-		//{"Samples-2",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"2"}}},
-		//{"Samples-3",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"3"}}},
-		//{"Samples-4",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"4"}}},
-		//{"Samples-5",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"5"}}},
-		//{"Samples-6",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"6"}}},
-		//{"Samples-7",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"7"}}},
-		//{"Samples-8",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"8"}}},
+		{"Samples-2",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"2"}}},
+		{"Samples-3",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"3"}}},
+		{"Samples-4",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"4"}}},
+		{"Samples-5",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"5"}}},
+		{"Samples-6",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"6"}}},
+		{"Samples-7",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"7"}}},
+		{"Samples-8",           {{L"FOUR_CHANNEL"}, {L"N_ALPHA_MAPS", L"8"}}},
 
 		//{"Samples-1",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"1"}}},
 		//{"Samples-2",           {{L"ONE_CHANNEL"}, {L"N_ALPHA_MAPS", L"2"}}},
@@ -130,17 +112,15 @@ int Game::Initialize()
 		//TODO: WaitFor All
 	}
 	m_rm->WaitUntilResourcesIsLoaded();
-#endif // DO_TESTING
-
-	//AplhaTestNoise
-	for (size_t i = 0; i < 7; i++) {
-		m_AlphaTestNoiseTextures[i] = m_rm->GetTextureCopy("Final/RGBA/NoiseTexture_RGBA.png", "NoiseAlpha" + std::to_string(i));
+#else
+	for (auto scene: m_foundScenes.files) {
+		if (scene.path.stem() == "example_scene") {
+			LoadScene(scene.path);
+			break;
+		}
 	}
-	m_renderer->SetSetting("NoiseAlphaMaps", m_AlphaTestNoiseTextures);
-	//m_renderer->SetSetting("nAlphaMaps", 1);
+#endif // PERFORMANCE_TESTING
 
-
-	RefreshSceneList();
 	return 0;
 }
 bool Game::InitializeRendererAndWindow()
@@ -175,58 +155,6 @@ bool Game::InitializeRendererAndWindow()
 
 	return true;
 }
-bool Game::InitializeMaterialsAndRenderStates()
-{
-	////Create a material
-	//Material* mat = m_renderAPI->MakeMaterial();
-	//if (!mat->LoadFromFile("generator.mtl")) { return false; }
-	//m_materials.push_back(mat);
-	//
-	////Create RenderState
-	//RenderState* renderState = m_renderAPI->MakeRenderState();
-	//renderState->SetWireframe(false);
-	//renderState->SetOpaque(true);
-	//renderState->SetFaceCulling(RenderState::FaceCulling::BACK);
-	//m_renderStates.push_back(renderState);
-	//
-	//renderState = m_renderAPI->MakeRenderState();
-	//renderState->SetWireframe(false);
-	//renderState->SetOpaque(false);
-	//renderState->SetFaceCulling(RenderState::FaceCulling::NONE);
-	//renderState->SetUsingDepthBuffer(true);
-	//m_renderStates.push_back(renderState);
-
-	return true;
-}
-bool Game::InitializeShadersAndTechniques()
-{
-	//TODO: Add support to select Raytracing shaders here
-	//m_sm = m_renderAPI->MakeShaderManager();
-	//ShaderDescription sd = {};
-	//
-	//sd.defines = "#define NORMAL\n#define TEXTCOORD\n";
-	//sd.name = "VertexShader";
-	//sd.type = ShaderType::VS;
-	//Shader vs = m_sm->CompileShader(sd);
-	//
-	//sd.name = "FragmentShader";
-	//sd.type = ShaderType::FS;
-	//Shader fs = m_sm->CompileShader(sd);
-	//
-	//ShaderProgram sp = {};
-	//
-	//sp.VS = vs;
-	//sp.FS = fs;
-	//
-	////Create Technique from renderstate
-	//Technique* tech = m_renderAPI->MakeTechnique(m_renderStates[0], &sp, m_sm);
-	//m_techniques.push_back(tech);
-	//
-	//tech = m_renderAPI->MakeTechnique(m_renderStates[1], &sp, m_sm);
-	//m_techniques.push_back(tech);
-
-	return true;
-}
 bool Game::InitializeBlueprints()
 {
 #ifdef PRELOAD_RESOURCES
@@ -243,9 +171,6 @@ bool Game::InitializeBlueprints()
 	if (m_rm->GetBlueprint("enemy_flying") == nullptr) { return false; }
 #endif
 #endif // PRELOAD_RESOURCES
-
-	//Texture* tex = m_rm->GetTexture("R");
-
 	return true;
 }
 void Game::InitializeObjects()
@@ -293,10 +218,6 @@ void Game::InitializeObjects()
 
 }
 
-void Game::InitializeHeightMap() {
-	
-}
-
 void Game::InitializeCameras()
 {
 	Int2 dim = m_windows[0]->GetDimensions();
@@ -307,12 +228,6 @@ void Game::InitializeCameras()
 	cam->SetTarget(Float3(100, 20, 100));
 	cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
 	m_cameras.push_back(cam);
-
-	//cam = m_renderAPI->MakeCamera();
-	//cam->SetPosition(Float3(-5, 5, -5));
-	//cam->SetTarget(Float3(0, 0, 0));
-	//cam->SetPerspectiveProjection(3.14159265f * 0.5f, 1.0f, 0.1f, 2000.0f);
-	//m_cameras.push_back(cam);
 }
 void Game::Run()
 {
@@ -419,22 +334,6 @@ void Game::ProcessGlobalInput()
 {
 	WindowInput& input_Global = Window::GetGlobalWindowInputHandler();
 	int techniqueToUse = 0;
-
-	//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_1)) {
-	//	m_demoMovement[0] = true;
-	//}
-	//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_2)) {
-	//	m_demoMovement[1] = true;
-	//}
-	//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_3)) {
-	//	m_demoMovement[0] = m_demoMovement[1] = true;
-	//}
-	//if (input_Global.IsKeyDown(WindowInput::KEY_CODE_Q)) {
-	//	//techniqueToUse = (techniqueToUse + 1) % 2;
-	//	//m_blueprints[0]->technique = m_techniques[techniqueToUse];
-	//	//m_blueprints[1]->technique = m_techniques[techniqueToUse];
-	//}
-
 }
 void Game::ProcessLocalInput(double dt)
 {
@@ -510,8 +409,6 @@ void Game::RenderWindows()
 			}
 		}
 
-		//m_renderer->Submit({ &m_terrainBlueprint }, m_cameras[0], 1);
-
 		//Draw all meshes in the submit list. Do we want to support multiple frames? What if we want to render split-screen? Could differend threads prepare different frames?
 		m_renderer->Frame(window, cam0);
 #ifdef NO_GUI
@@ -522,7 +419,7 @@ void Game::RenderWindows()
 
 	}
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	if (m_nFrames == 1) {
 		std::string filename = m_shaderSettings[m_currentShaderDefineTestCase].name + ".png";
 		m_renderer->SaveLastFrame("TestData/Images/" + m_currentSceneName.substr(0, m_currentSceneName.find_last_of(".")) + "/" + filename);
@@ -628,7 +525,7 @@ void Game::RenderWindows()
 
 		ReloadShaders(m_shaderSettings[m_currentShaderDefineTestCase].shaderDefines);
 	}
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 }
 std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory & path, const std::string & selectedItem, const bool isMenuBar, unsigned int currDepth)
@@ -703,12 +600,6 @@ void Game::RenderObjectEditor()
 	ImGui::Separator();
 
 	ImGui::BeginChild("Blueprints pane");
-	//for (auto& e : m_foundBluePrints.files)
-	//{
-   //	 std::string name = e.path.filename().string().substr(0, e.path.filename().string().find_last_of("."));
-   //	 if (ImGui::Selectable(name.c_str(), false)) {
-   //	 }
-	//}
 
 	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundBluePrints, "");
 	if (clickedItem != "") {
@@ -903,27 +794,6 @@ void Game::RenderBlueprintWindow() {
 	static std::string selected = "";
 	static Blueprint* selectedBP = nullptr;
 
-	//ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
-	//if (ImGui::Begin("Blueprint List", NULL, ImGuiWindowFlags_MenuBar))
-	//{
-	//if (ImGui::BeginMenuBar())
-	//{
-	//	if (ImGui::BeginMenu("Blueprint##bpmb"))
-	//	{
-	//		if (ImGui::MenuItem("Add New Blueprint")) {
-	//			Blueprint* bp = nullptr;
-	//			if (bp = m_rm->CreateBlueprint("unsavedBP")) {
-	//				selected = "unsavedBP";
-	//				selectedBP = bp;
-	//				m_unSavedBlueprints.push_back("unsavedBP");
-	//			}
-	//		}
-	//		ImGui::EndMenu();
-	//	}
-	//	ImGui::EndMenuBar();
-	//}
-
-
 	ImGui::Columns(2);
 	ImGui::Text("Blueprints");
 	ImGui::NextColumn();
@@ -1014,14 +884,8 @@ void Game::RenderBlueprintWindow() {
 	}
 	ImGui::EndChild();
 	ImGui::NextColumn();
-	//}
-	//ImGui::End();
 }
 void Game::RenderGeometryWindow(Blueprint* bp) {
-	//if(ImGui::Checkbox("Force Opaque", &bp->allGeometryIsOpaque)) {
-	//	bp->hasChanged = true;
-	//}
-
 	ImGui::BeginChild("Geometry left pane", ImVec2(150, 0), true);
 	static int selectedGeometry = 0;
 
@@ -1063,9 +927,6 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 			}
 		}
 
-		//if (selectedBP) {
-		//	meshName = m_rm->GetMeshName(selectedBP->mesh);
-		//}
 		std::string textureName;
 		int textureIndex;
 
@@ -1079,7 +940,6 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 				size_t len2 = clickedItem.string().length() - len1;
 
 				std::string s = clickedItem.string().substr(len1, len2);
-				//s = s.substr(0, s.find_last_of("."));
 
 				bp->textures[textureIndex] = m_rm->GetTexture(s);
 				bp->hasChanged = true;
@@ -1098,17 +958,9 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 				size_t len2 = clickedItem.string().length() - len1;
 
 				std::string s = clickedItem.string().substr(len1, len2);
-				//s = s.substr(0, s.find_last_of("."));
-
 				bp->textures[textureIndex] = m_rm->GetTexture(s);
 				bp->hasChanged = true;
 			}
-
-			//for (auto const& texture : m_textureList) {
-			//	if (ImGui::Selectable(texture.c_str(), texture == textureName)) {
-			//		bp->textures[textureIndex] = m_rm->GetTexture(texture);
-			//	}
-			//}
 			ImGui::EndCombo();
 		}
 		ImGui::EndChild();
@@ -1297,7 +1149,7 @@ void Game::RenderSettingWindow() {
 }
 void Game::RenderGUI() {
 	
-#ifndef DO_TESTING
+#ifndef PERFORMANCE_TESTING
 	//UI SETUP HERE
 	static bool b = false;
 	if (b)
@@ -1353,7 +1205,7 @@ void Game::RenderGUI() {
 		ImGui::Text(("Shader: " + m_shaderSettings[m_currentShaderDefineTestCase].name).c_str());
 	}
 	ImGui::End();
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 
 }
 void Game::MirrorScene(int lvl)
@@ -1400,15 +1252,6 @@ void Game::MirrorScene(int lvl)
 			}
 		}
 	}
-
-
-	//while (n_mirrored < m_objects_mirrored.size())
-	//{
-	//	Object* o = m_objects_mirrored.back();
-	//	delete o;
-	//	m_objects_mirrored.erase(m_objects_mirrored.end());
-	//}
-	
 }
 
 void Game::MirrorScenePermanent() {
@@ -1421,7 +1264,7 @@ void Game::MirrorScenePermanent() {
 	m_objects_mirrored.shrink_to_fit();
 }
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 void Game::GenerateGnuPlotScript(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath)
 {
 	//scriptPath = scriptPath.lexically_normal();
@@ -1968,9 +1811,9 @@ void Game::ClearScene(bool clearName) {
 	m_lights.clear();
 }
 void Game::RefreshSceneList() {
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 	FileSystem::ListDirectory(m_foundScenes,     m_sceneFolderPath, { ".scene" });
 	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
 	FileSystem::ListDirectory(m_foundMeshes,     m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });

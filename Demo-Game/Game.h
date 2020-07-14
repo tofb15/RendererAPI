@@ -51,11 +51,8 @@ public:
 
 	int Initialize();
 	bool InitializeRendererAndWindow();
-	bool InitializeMaterialsAndRenderStates();
-	bool InitializeShadersAndTechniques();
 	bool InitializeBlueprints();
 	void InitializeObjects();
-	void InitializeHeightMap();
 	void InitializeCameras();
 	void Run();
 	void UpdateObjects(double dt);
@@ -221,7 +218,7 @@ private:
 
 	Texture* m_AlphaTestNoiseTextures[7];
 
-#ifdef DO_TESTING
+#ifdef PERFORMANCE_TESTING
 	FileSystem::Directory m_TestScenes;
 	uint64_t m_nFrames = 0;
 	unsigned int m_currentTestSceneIndex = 0;
@@ -240,5 +237,5 @@ private:
 	void GenerateGnuPlotScript_full(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
 	void GenerateGnuPlotScript_perScene(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
 	void GenerateGnuPlotScript_perShader(const std::filesystem::path& scriptPath, const std::filesystem::path& dataPath);
-#endif // DO_TESTING
+#endif // PERFORMANCE_TESTING
 };
