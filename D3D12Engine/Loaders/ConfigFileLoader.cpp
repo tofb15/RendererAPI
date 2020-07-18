@@ -38,6 +38,17 @@ namespace ConfigParser {
 	};
 	const ConfigParser::SettingValue g_setting_value;
 
+	class Array : public ParseExpression {
+	public:
+		Array() {};
+		~Array() {};
+		// Inherited via Expression
+		virtual int Check(char*& current, ConfigTreeNode* parrentNode) const override;
+	};
+	const ConfigParser::Array g_array;
+	RegularExp::AND g_nextArrayValue({ &RegularExp::Special::g_seperator_star, &RegularExp::Special::g_comma, &RegularExp::Special::g_seperator_star, &g_setting_value });
+	RegularExp::Star g_nextArrayValue_star(g_nextArrayValue);
+
 	class InlineComment : public ParseExpression {
 	public:
 		InlineComment() {};
@@ -46,6 +57,7 @@ namespace ConfigParser {
 		virtual int Check(char*& current, ConfigTreeNode* parrentNode) const override;
 	};
 	const ConfigParser::InlineComment g_inline_comment;
+
 }
 
 ////////////////////////////////////////////////////
@@ -63,7 +75,11 @@ int ConfigParser::Setting::Check(char*& current, ConfigTreeNode* parrentNode) co
 		//Detect the equal sign with optional space characters before and after.
 		if (RegularExp::Special::g_seperator_star.Check(current, myNode) >= 0 && RegularExp::Special::g_equal_token.Check(current, myNode) > 0 && RegularExp::Special::g_seperator_star.Check(current, myNode) >= 0) {
 			//Detect the setting value, if found it is pushed to myNode
-			if (g_setting_value.Check(current, myNode) > 0) {
+			if (g_array.Check(current, myNode) > 0) {
+				//The value is an array
+				parrentNode->subnodes.push_back(myNode);
+				return current - start;
+			} else if (g_setting_value.Check(current, myNode) > 0) {
 				//Setting name and value found. Keep looking forward to make sure that the row is consumed
 				if (g_inline_comment.Check(current, myNode) >= 0) {
 					//if the Setting pattern is correct, push myNode to parrentNode and return
@@ -182,4 +198,59 @@ int ConfigParser::InlineComment::Check(char*& current, ConfigTreeNode* parrentNo
 	}
 
 
+}
+
+int ConfigParser::Array::Check(char*& current, ConfigTreeNode* parrentNode) const {
+	const char* start = current;
+	ConfigTreeNode* myNode = new ConfigTreeNode;
+	myNode->type = ConfigTreeNodeType::Array;
+
+	//Detect Begining Of Array "{"
+	if (RegularExp::Special::g_curly_start.Check(current, myNode) >= 0) {
+		//Detect array elements. Find one value followed by any number of comma seperated values.
+		if (ConfigParser::g_setting_value.Check(current, myNode) >= 0 && g_nextArrayValue_star.Check(current, myNode) >= 0) {
+			//Detect End Of Array "}"
+			if (RegularExp::Special::g_curly_end.Check(current, myNode) >= 0) {
+				parrentNode->subnodes.push_back(myNode);
+				return current - (char*)start;
+			}
+		}
+	}
+
+	myNode->Delete();
+	return -1;
+}
+
+void ConfigLoader::ConfigTreeNode::Print_Depth(std::vector<bool>& b, int depth) {
+	for (int i = 1; i < depth; i++) {
+		if (!b[i]) {
+			std::cout << "    ";
+		} else {
+			std::cout << "|   ";
+		}
+	}
+
+	if (depth > 0) {
+		std::cout << "|---";
+	}
+}
+
+void ConfigLoader::ConfigTreeNode::Print(std::vector<bool>& b, int depth) {
+	int childSkip = 0;
+	switch (type) {
+	default:
+		Print_Depth(b, depth);
+		std::cout << ConfigLoader::ConfigTreeNodeType_String[(int)type] << " " << value << std::endl;
+		break;
+	}
+
+	int n = 0;
+	int s = subnodes.size();
+	b.emplace_back(false);
+	for (auto& e : subnodes) {
+		if (n++ < childSkip) { continue; }
+		b.back() = (n != s);
+		e->Print(b, depth + 1);
+	}
+	b.erase(b.begin() + b.size() - 1);
 }

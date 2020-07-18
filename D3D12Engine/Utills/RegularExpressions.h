@@ -225,6 +225,10 @@ namespace RegularExp {
 		const RegularExp::CharacterSelect_Set g_equal_token("=");
 		const RegularExp::CharacterSelect_Set g_dot(".");
 
+		const RegularExp::CharacterSelect_Set g_curly_start("{");
+		const RegularExp::CharacterSelect_Set g_curly_end("}");
+		const RegularExp::CharacterSelect_Set g_comma(",");
+
 	}
 	namespace Numbers {
 		/*

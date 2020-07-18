@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <thread>
 #include <chrono>
+#include "Loaders/ConfigFileLoader.hpp"
 
 ResourceManager* s_instance = nullptr;
 
@@ -83,48 +84,69 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name) {
 	Blueprint* bp = MY_NEW Blueprint;
 	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name + ".bp";
 
-	std::ifstream in(fName);
-	if (!in.is_open()) {
-		delete bp;
-		return nullptr;
-	}
-	std::string line;
+	ConfigLoader::ConfigTreeNode* configRoot = new ConfigLoader::ConfigTreeNode;
 
-	std::getline(in, line);
-	bp->mesh = GetMesh(line);
-	if (!bp->mesh) {
-		delete bp;
-		return nullptr;
-	}
+	std::string errorString;
+	bool result = ConfigLoader::Load(fName.c_str(), *configRoot, &errorString);
 
-	int tempInt;
-	in >> tempInt;
-	in.ignore();
-	for (size_t i = 0; i < tempInt; i++) {
-		std::getline(in, line);
-		bool b = (line == "alphaTested");
+	if (result) {
+		for (auto& setting : configRoot->subnodes) {
+			if (!bp) {
+				break;
+			}
 
-		bp->alphaTested.push_back(b);
-		if (b) {
-			bp->allGeometryIsOpaque = false;
+			if (setting->type == ConfigLoader::ConfigTreeNodeType::Setting) {
+				const std::string& settingName = setting->subnodes[0]->value;
+				const std::string& settingValue = setting->subnodes[1]->value;
+				const ConfigLoader::ConfigTreeNodeType settingType = setting->subnodes[1]->type;
+
+				if (settingName == "mesh") {
+					//Load mesh
+					if (settingType == ConfigLoader::ConfigTreeNodeType::String) {
+						bp->mesh = GetMesh(settingValue);
+						if (!bp->mesh) {
+							delete bp;
+							bp = nullptr;
+						}
+					}
+				} else if (settingName == "materials") {
+					//Load material(s)
+					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+						for (auto& mat : setting->subnodes[1]->subnodes) {
+							//TODO: remove this
+							bp->alphaTested.push_back(false);
+							bp->allGeometryIsOpaque = true;
+							if (mat->type == ConfigLoader::ConfigTreeNodeType::String) {
+								Material* mt = GetMaterial(mat->value);
+								bp->materials.push_back(mt);
+							}
+						}
+					}
+				} else if (settingName == "textures") {
+					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+						//Temoprary, TODO: Remove this
+						for (auto& tex : setting->subnodes[1]->subnodes) {
+							if (tex->type == ConfigLoader::ConfigTreeNodeType::String) {
+								Texture* texture = GetTexture(tex->value);
+								bp->textures.push_back(texture);
+							}
+						}
+					}
+				} else {
+					//Undefined setting
+					std::cout << "Blueprint loader found unknown setting: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\" \n";
+				}
+			}
 		}
-	}
-
-	in >> tempInt;
-	in.ignore();
-	for (size_t i = 0; i < tempInt; i++) {
-		std::getline(in, line);
-		bp->textures.push_back(GetTexture(line));
-	}
-
-	Material* mt = GetMaterial("alphaTest.txt");
-	if (mt) {
-		bp->materials.push_back(mt);
 	} else {
-		delete bp;
-		return nullptr;
+		std::cout << "Could not load blueprint: " + errorString + " \n";
 	}
 
+	//TODO:: Remove this printing
+	std::vector<bool> b = { false };
+	configRoot->Print(b);
+
+	configRoot->Delete();
 	return bp;
 }
 
