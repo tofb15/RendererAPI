@@ -168,6 +168,18 @@
     <ClCompile Include="Loaders\SimpleTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D3D12\Renderers\D3D12GBufferRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utills\RegularExpressions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utills\CodeParser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Loaders\ConfigFileLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Texture.hpp">
@@ -333,6 +345,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Loaders\SimpleTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12\Renderers\D3D12GBufferRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Loaders\ConfigFileLoader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utills\RegularExpressions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utills\CodeParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

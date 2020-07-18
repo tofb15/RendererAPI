@@ -1,0 +1,11 @@
+#Material Types [pbr, nonpbr](default: non_pbr) 
+materialType=nonpbr
+
+#Textures. Which textures is needed is defined by materialType. (default: )
+textureColor=pbr/metal/Metal_Color.png
+textureNormal=pbr/metal/Metal_Color.png
+textureRoughness=pbr/metal/Metal_Color.png
+textureMetalness=pbr/metal/Metal_Color.png
+
+#shaderGroup
+shaderGroup=alphaTestedShaderGroup

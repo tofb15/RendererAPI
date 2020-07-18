@@ -4,17 +4,18 @@
 #include "Math.hpp"
 
 class Texture;
+class ResourceManager;
 
-struct MtlData
-{
-	std::string materialName;
-	int illuminationModel;
-	Float3 diffuseReflectivity;
-	Float3 ambientReflectivity;
-	Float3 specularReflectivity;
-	Float3 transmissionFilter;
-	std::vector<std::string> defaultTextureNames;
-	int opticalDensity;
+enum class MaterialType {
+	PBR,
+	Normal
+};
+
+struct PBR_Material_Data {
+	Texture* color;
+	Texture* normal;
+	Texture* roughness;
+	Texture* metalness;
 };
 
 /*
@@ -23,22 +24,21 @@ struct MtlData
 */
 class Material {
 public:
-		virtual ~Material();
-
+	virtual ~Material();
 	/*
 		@param name, the file name of the material
 
 		@return true if Material was loaded successfully.
 	*/
-	virtual bool LoadFromFile(const char* name) = 0;
-	//virtual void AddTexture(Texture*);
-
-	const MtlData& GetMtlData() const;
+	bool LoadFromFile(const char* name, ResourceManager& resourceManager);
+	//const MaterialData& GetMtlData() const;
 
 protected:
 	Material();
-
-	MtlData mMtlData;
-private:
-	//std::vector<Texture*> textures;
+	std::string m_shaderGroup;
+	//MaterialType type;
+	union {
+		PBR_Material_Data pbrData;
+		//Non_PBR_Material_Data nonPbrData;
+	} m_materialData;
 };

@@ -447,6 +447,7 @@
     <ClCompile Include="External\IMGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Light\LightSource.cpp" />
+    <ClCompile Include="Loaders\ConfigFileLoader.cpp" />
     <ClCompile Include="Loaders\OBJ_Loader.cpp" />
     <ClCompile Include="Loaders\SimpleTexture.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
@@ -467,7 +468,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Terrain.cpp" />
+    <ClCompile Include="Utills\CodeParser.cpp" />
     <ClCompile Include="Utills\FileSystem.cpp" />
+    <ClCompile Include="Utills\RegularExpressions.cpp" />
     <ClCompile Include="WindowInput.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -549,7 +552,10 @@
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
+    <ClInclude Include="Loaders\ConfigFileLoader.hpp" />
     <ClInclude Include="Loaders\SimpleTexture.h" />
+    <ClInclude Include="Utills\CodeParser.h" />
+    <ClInclude Include="Utills\RegularExpressions.h" />
     <ClInclude Include="Utills\Utills.h" />
     <ClInclude Include="External\IMGUI\imconfig.h" />
     <ClInclude Include="External\IMGUI\imgui.h" />

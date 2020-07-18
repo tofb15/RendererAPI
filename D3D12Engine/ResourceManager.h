@@ -4,22 +4,29 @@
 #include <string>
 #include <fstream>
 #include <unordered_map>
+#include <unordered_set>
+
 //#include "RenderAPI.hpp"
 
 class Mesh;
 class Texture;
+class Material;
 class Technique;
 class RenderAPI;
 
-const char MESH_FOLDER_NAME[]      = "Models/";
-const char TEXTURE_FODLER_NAME[]   = "Textures/";
+const char MESH_FOLDER_NAME[] = "Models/";
+const char TEXTURE_FODLER_NAME[] = "Textures/";
 const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
+const char MATERIAL_FOLDER_NAME[] = "Materials/";
+const char SHADER_FOLDER_NAME[] = "Shaders/";
+
+typedef size_t MaterialHandle;
 
 enum Asset_Types : unsigned {
-	Asset_Type_Texture   = 0b001,
-	Asset_Type_Model     = 0b010,
+	Asset_Type_Texture = 0b001,
+	Asset_Type_Model = 0b010,
 	Asset_Type_Blueprint = 0b100,
-	Asset_Type_Any       = 0xffffffff,
+	Asset_Type_Any = 0xffffffff,
 };
 
 /*
@@ -30,8 +37,9 @@ class Blueprint {
 public:
 	bool hasChanged = false;
 	Mesh* mesh = nullptr;
-	std::vector<Technique*> techniques; //used for raster
+	//std::vector<Technique*> techniques; //used for raster
 	std::vector<Texture*>	textures;
+	std::vector<Material*> materials;//TODO: this will replace the "textures", "alphaTested" and "allGeometryIsOpaque" variables, as well as allow for defining custom material shaders.
 
 	//===TODO: find a place to store these that is not here. They should be integrated in to the Technique
 	std::vector<bool> alphaTested;   //for each geometry in the mesh; is it alphatested.
@@ -41,16 +49,14 @@ public:
 /*
 	More lightwight version of Blueprint which do not require any loaded resources.
 */
-struct BlueprintDescription
-{
+struct BlueprintDescription {
 	std::string blueprintName;
 	std::string meshPath;
 	std::vector<bool> alphaTested;
 	std::vector<std::string> texturePaths;
 };
 
-class ResourceManager
-{
+class ResourceManager {
 public:
 	static ResourceManager* GetInstance(RenderAPI* api);
 	static bool SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions);
@@ -62,6 +68,9 @@ public:
 	std::string GetAssetPath();
 	Blueprint* LoadBlueprintFromFile(const std::string& path);
 	Blueprint* GetBlueprint(const std::string& name);
+	//MaterialHandle LoadMaterialFromFile(const std::string& path);
+	Material* GetMaterial(const std::string& name);
+
 	bool PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load);
 	bool PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load = Asset_Type_Any);
 
@@ -81,7 +90,7 @@ public:
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 
 	bool DoesFileExist(const std::string& s);
-	
+
 	void WaitUntilResourcesIsLoaded();
 public:
 
@@ -93,6 +102,7 @@ private:
 	std::unordered_map<std::string, Mesh*>      m_meshes;
 	std::unordered_map<std::string, Texture*>   m_textures;
 	std::unordered_map<std::string, Blueprint*> m_blueprints;
+	std::unordered_map<std::string, Material*> m_materials;
 
 	std::string m_assetPath = "../assets/";
 };

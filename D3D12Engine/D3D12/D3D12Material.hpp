@@ -9,5 +9,5 @@ public:
 	D3D12Material();
 	virtual ~D3D12Material();
 
-	virtual bool LoadFromFile(const char * fileName) override;
+	//virtual bool LoadFromFile(const char* fileName) override;
 };
