@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "Math.hpp"
+#include "ShaderManager.hpp"
 
 class Texture;
 class ResourceManager;
@@ -30,15 +31,16 @@ public:
 
 		@return true if Material was loaded successfully.
 	*/
-	bool LoadFromFile(const char* name, ResourceManager& resourceManager);
+	virtual bool LoadFromFile(const char* name, ResourceManager& resourceManager);
 	//const MaterialData& GetMtlData() const;
-
-protected:
-	Material();
-	std::string m_shaderGroup;
-	//MaterialType type;
 	union {
 		PBR_Material_Data pbrData;
 		//Non_PBR_Material_Data nonPbrData;
 	} m_materialData;
+
+	ShaderProgramHandle m_shaderProgram;
+protected:
+	Material();
+	//MaterialType type;
+private:
 };

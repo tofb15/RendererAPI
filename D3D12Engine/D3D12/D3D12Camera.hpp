@@ -8,14 +8,12 @@ struct Sphere {
 	Float3 center;
 };
 
-struct Plane
-{
+struct Plane {
 	Float3 normal;
 	float d;
 };
 
-class Frustum
-{
+class Frustum {
 public:
 	Frustum();
 	virtual ~Frustum();
@@ -57,7 +55,7 @@ private:
 	DirectX::XMFLOAT4X4 m_rotationMatrix;
 
 	mutable DirectX::XMFLOAT4X4 mViewPerspectiveMatrix;
-	mutable bool mHasChanged;
+	mutable bool mHasChanged = true;
 
 	mutable Frustum m_frustum;
 };

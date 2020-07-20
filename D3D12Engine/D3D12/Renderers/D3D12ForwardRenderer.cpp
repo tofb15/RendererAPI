@@ -48,6 +48,9 @@ D3D12ForwardRenderer::~D3D12ForwardRenderer() {
 }
 
 bool D3D12ForwardRenderer::Initialize() {
+	//TODO: Remove this when raster is supported again 
+	return false;
+
 	if (!InitializeMatrixStructuredBuffer()) {
 		printf("Error: Could not initialize structured buffer\n");
 		return false;
@@ -248,7 +251,7 @@ void D3D12ForwardRenderer::Frame(Window* w, Camera* c) {
 	RecordRenderInstructions(window, cam, MAIN_COMMAND_INDEX, backBufferIndex, 0, m_renderInstructions.size());
 #endif
 
-}
+		}
 void D3D12ForwardRenderer::Present(Window* w, GUI* gui) {
 	D3D12Window* window = static_cast<D3D12Window*>(w);
 	UINT backBufferIndex = window->GetCurrentBackBufferIndex();
@@ -405,87 +408,87 @@ bool D3D12ForwardRenderer::InitializeCommandInterfaces() {
 
 void D3D12ForwardRenderer::SetUpRenderInstructions() {
 	// Clear render instructions from previous frame
-	m_renderInstructions.clear();
-	m_instanceOffsets.clear();
-	m_textureOffsets.clear();
-
-	if (m_items.size() == 0)
-		return;
-
-	unsigned short meshID_last = m_items[0].meshIndex;
-	unsigned short techID_last = m_items[0].techniqueIndex;
-	unsigned short meshID_curr;
-	unsigned short techID_curr;
-	unsigned int nrOfInstances = 0;
-	unsigned int nrOfTextures = 0;
-
-	// Start with setting new technique
-	m_renderInstructions.push_back(-1);
-
-	// Setting a new technique does not increase the total instance count
-	m_instanceOffsets.push_back(0);
-	m_textureOffsets.push_back(0);
-
-	// The first draw call has no instance offset
-	m_instanceOffsets.push_back(0);
-	m_textureOffsets.push_back(0);
-
-	// Create render instructions
-	size_t nItems = m_items.size();
-	for (int i = 0; i < nItems; i++) {
-		//Check Mesh and Tech
-		techID_curr = m_items[i].techniqueIndex;
-		meshID_curr = m_items[i].meshIndex;
-
-		if (techID_curr != techID_last) {
-			// This is not the last technique
-
-			techID_last = techID_curr;
-
-			// Add an instanced draw call instruction
-			m_renderInstructions.push_back(nrOfInstances);
-
-			// Add up the total amount of instances in this draw call
-			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
-			// Add up the total amount of textures in this draw call
-			m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
-
-			// Add a technique swap instruction
-			m_renderInstructions.push_back(-1);
-
-			// Setting a new technique does not increase the total instance count
-			m_instanceOffsets.push_back(m_instanceOffsets.back());
-			// Setting a new technique does not increase the total texture count
-			m_textureOffsets.push_back(m_textureOffsets.back());
-
-			nrOfInstances = 0;
-			nrOfTextures = 0;
-
-			if (meshID_curr != meshID_last) {
-				meshID_last = meshID_curr;
-			}
-		} else if (meshID_curr != meshID_last) {
-			// This is not the last mesh
-
-			meshID_last = meshID_curr;
-
-			// Add an instanced draw call instruction
-			m_renderInstructions.push_back(nrOfInstances);
-
-			// Add up the total amount of instances in this draw call
-			m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
-			// Add up the total amount of textures in this draw call
-			m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
-
-			nrOfInstances = 0;
-			nrOfTextures = 0;
-		}
-		nrOfInstances++;
-		nrOfTextures += m_items[i].item.blueprint->textures.size();
-	}
-
-	//Start with setting new technique
-	m_renderInstructions.push_back(nrOfInstances);
+	//m_renderInstructions.clear();
+	//m_instanceOffsets.clear();
+	//m_textureOffsets.clear();
+	//
+	//if (m_items.size() == 0)
+	//	return;
+	//
+	//unsigned short meshID_last = m_items[0].meshIndex;
+	//unsigned short techID_last = m_items[0].techniqueIndex;
+	//unsigned short meshID_curr;
+	//unsigned short techID_curr;
+	//unsigned int nrOfInstances = 0;
+	//unsigned int nrOfTextures = 0;
+	//
+	//// Start with setting new technique
+	//m_renderInstructions.push_back(-1);
+	//
+	//// Setting a new technique does not increase the total instance count
+	//m_instanceOffsets.push_back(0);
+	//m_textureOffsets.push_back(0);
+	//
+	//// The first draw call has no instance offset
+	//m_instanceOffsets.push_back(0);
+	//m_textureOffsets.push_back(0);
+	//
+	//// Create render instructions
+	//size_t nItems = m_items.size();
+	//for (int i = 0; i < nItems; i++) {
+	//	//Check Mesh and Tech
+	//	techID_curr = m_items[i].techniqueIndex;
+	//	meshID_curr = m_items[i].meshIndex;
+	//
+	//	if (techID_curr != techID_last) {
+	//		// This is not the last technique
+	//
+	//		techID_last = techID_curr;
+	//
+	//		// Add an instanced draw call instruction
+	//		m_renderInstructions.push_back(nrOfInstances);
+	//
+	//		// Add up the total amount of instances in this draw call
+	//		m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+	//		// Add up the total amount of textures in this draw call
+	//		m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
+	//
+	//		// Add a technique swap instruction
+	//		m_renderInstructions.push_back(-1);
+	//
+	//		// Setting a new technique does not increase the total instance count
+	//		m_instanceOffsets.push_back(m_instanceOffsets.back());
+	//		// Setting a new technique does not increase the total texture count
+	//		m_textureOffsets.push_back(m_textureOffsets.back());
+	//
+	//		nrOfInstances = 0;
+	//		nrOfTextures = 0;
+	//
+	//		if (meshID_curr != meshID_last) {
+	//			meshID_last = meshID_curr;
+	//		}
+	//	} else if (meshID_curr != meshID_last) {
+	//		// This is not the last mesh
+	//
+	//		meshID_last = meshID_curr;
+	//
+	//		// Add an instanced draw call instruction
+	//		m_renderInstructions.push_back(nrOfInstances);
+	//
+	//		// Add up the total amount of instances in this draw call
+	//		m_instanceOffsets.push_back(m_instanceOffsets.back() + nrOfInstances);
+	//		// Add up the total amount of textures in this draw call
+	//		m_textureOffsets.push_back(m_textureOffsets.back() + nrOfTextures);
+	//
+	//		nrOfInstances = 0;
+	//		nrOfTextures = 0;
+	//	}
+	//	nrOfInstances++;
+	//	nrOfTextures += m_items[i].item.blueprint->textures.size();
+	//}
+	//
+	////Start with setting new technique
+	//m_renderInstructions.push_back(nrOfInstances);
 }
 void D3D12ForwardRenderer::ResetCommandListAndAllocator(int backbufferIndex, int index) {
 	HRESULT hr;
@@ -500,66 +503,66 @@ void D3D12ForwardRenderer::ResetCommandListAndAllocator(int backbufferIndex, int
 void D3D12ForwardRenderer::SetMatrixDataAndTextures(int backBufferIndex) {
 	// Heap information
 	//D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap[backBufferIndex]->GetCPUDescriptorHandleForHeapStart();
-	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	cdh.ptr += backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER * m_d3d12->GetViewSize();
-
-	HRESULT hr;
-
-	// Begin mapping matrix data
-	D3D12_RANGE readRange = { 0, 0 };
-	void* data = nullptr;
-
-	hr = m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
-	if (FAILED(hr)) {
-
-		_com_error err(hr);
-		std::cout << err.ErrorMessage() << std::endl;
-
-		hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
-		_com_error err2(hr);
-		std::cout << err2.ErrorMessage() << std::endl;
-
-		return;
-	}
-
-	// Map matrix data to GPU
-	// Copy descriptors to textures
-	DirectX::XMMATRIX mat;
-	size_t nItems = m_items.size();
-	for (size_t item = 0; item < nItems; item++) {
-		// Construct and copy matrix data
-		Float3 pos = m_items[item].item.transform.pos;
-		Float3 rot = m_items[item].item.transform.rotation;
-		Float3 scal = m_items[item].item.transform.scale;
-
-		mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
-		mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
-		mat.r[0].m128_f32[0] *= scal.x;
-		mat.r[1].m128_f32[1] *= scal.y;
-		mat.r[2].m128_f32[2] *= scal.z;
-
-		memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
-
-
-		// Retrieve this mesh's textures
-		std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
-		size_t nTextures = textures.size();
-
-		// Create a shader resource view for each texture
-		for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++) {
-			D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
-			int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
-
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, cdh, m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(texture), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-			// Move the pointer forward in memory
-			cdh.ptr += m_d3d12->GetViewSize();
-		}
-	}
-
-	// Finish mapping and write the matrix data
-	D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
-	m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
+	//D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	//cdh.ptr += backBufferIndex * NUM_DESCRIPTORS_PER_SWAP_BUFFER * m_d3d12->GetViewSize();
+	//
+	//HRESULT hr;
+	//
+	//// Begin mapping matrix data
+	//D3D12_RANGE readRange = { 0, 0 };
+	//void* data = nullptr;
+	//
+	//hr = m_structuredBufferResources[backBufferIndex]->Map(0, &readRange, &data);
+	//if (FAILED(hr)) {
+	//
+	//	_com_error err(hr);
+	//	std::cout << err.ErrorMessage() << std::endl;
+	//
+	//	hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
+	//	_com_error err2(hr);
+	//	std::cout << err2.ErrorMessage() << std::endl;
+	//
+	//	return;
+	//}
+	//
+	//// Map matrix data to GPU
+	//// Copy descriptors to textures
+	//DirectX::XMMATRIX mat;
+	//size_t nItems = m_items.size();
+	//for (size_t item = 0; item < nItems; item++) {
+	//	// Construct and copy matrix data
+	//	Float3 pos = m_items[item].item.transform.pos;
+	//	Float3 rot = m_items[item].item.transform.rotation;
+	//	Float3 scal = m_items[item].item.transform.scale;
+	//
+	//	mat = DirectX::XMMatrixRotationRollPitchYaw(rot.x, rot.y, rot.z);
+	//	mat.r[3] = { pos.x, pos.y, pos.z, 1.0f };
+	//	mat.r[0].m128_f32[0] *= scal.x;
+	//	mat.r[1].m128_f32[1] *= scal.y;
+	//	mat.r[2].m128_f32[2] *= scal.z;
+	//
+	//	memcpy(static_cast<char*>(data) + sizeof(mat) * item, &mat, sizeof(mat));
+	//
+	//
+	//	// Retrieve this mesh's textures
+	//	std::vector<Texture*>& textures = m_items[item].item.blueprint->textures;
+	//	size_t nTextures = textures.size();
+	//
+	//	// Create a shader resource view for each texture
+	//	for (size_t textureIndex = 0; textureIndex < nTextures; textureIndex++) {
+	//		D3D12Texture* texture = static_cast<D3D12Texture*>(textures[textureIndex]);
+	//		int textureIndexOnGPU = texture->IsLoaded() ? texture->GetTextureIndex() : 0;
+	//
+	//		m_d3d12->GetDevice()->CopyDescriptorsSimple(1, cdh, m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(texture), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	//
+	//		// Move the pointer forward in memory
+	//		cdh.ptr += m_d3d12->GetViewSize();
+	//	}
+	//}
+	//
+	//// Finish mapping and write the matrix data
+	//D3D12_RANGE writeRange = { 0, sizeof(mat) * nItems };
+	//m_structuredBufferResources[backBufferIndex]->Unmap(0, &writeRange);
 }
 void D3D12ForwardRenderer::RecordRenderInstructions(D3D12Window* w, D3D12Camera* c, int commandListIndex, int backBufferIndex, size_t firstInstructionIndex, size_t numInstructions) {
 	//if (firstInstructionIndex >= m_renderInstructions.size()) {

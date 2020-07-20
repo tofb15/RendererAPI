@@ -4,40 +4,42 @@
 #include "D3D12API.hpp"
 #include <d3d12.h>
 
-D3D12VertexBufferLoader::D3D12VertexBufferLoader(D3D12API * renderer)
-{
-	m_renderer = renderer;
+D3D12VertexBufferLoader::D3D12VertexBufferLoader(D3D12API* d3d12) {
+	m_d3d12 = d3d12;
 }
 
-D3D12VertexBufferLoader::~D3D12VertexBufferLoader()
-{
-	for (int i = 0; i < 2; i++)
-	{
-		m_commandQueues[i]->Release();
-		m_commandLists[i]->Release();
-		m_commandAllocators[i]->Release();
+D3D12VertexBufferLoader::~D3D12VertexBufferLoader() {
+	for (int i = 0; i < 2; i++) {
+		if (m_commandQueues[i]) {
+			m_commandQueues[i]->Release();
+		}
+		if (m_commandLists[i]) {
+			m_commandLists[i]->Release();
+		}
+		if (m_commandAllocators[i]) {
+			m_commandAllocators[i]->Release();
+		}
 	}
-	m_fence->Release();
+	if (m_fence) {
+		m_fence->Release();
+	}
+	CloseHandle(m_eventHandle);
 }
 
-bool D3D12VertexBufferLoader::Initialize()
-{
-	ID3D12Device5* device = m_renderer->GetDevice();
+bool D3D12VertexBufferLoader::Initialize() {
+	ID3D12Device5* device = m_d3d12->GetDevice();
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	HRESULT hr;
-	
-	if (!InitializeCommandInterfaces(COPY_INDEX))
-	{
+
+	if (!InitializeCommandInterfaces(COPY_INDEX)) {
 		return false;
 	}
-	if (!InitializeCommandInterfaces(DIRECT_INDEX))
-	{
+	if (!InitializeCommandInterfaces(DIRECT_INDEX)) {
 		return false;
 	}
 
 	hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -47,9 +49,8 @@ bool D3D12VertexBufferLoader::Initialize()
 	return true;
 }
 
-bool D3D12VertexBufferLoader::InitializeCommandInterfaces(const unsigned typeIndex)
-{
-	ID3D12Device5* device = m_renderer->GetDevice();
+bool D3D12VertexBufferLoader::InitializeCommandInterfaces(const unsigned typeIndex) {
+	ID3D12Device5* device = m_d3d12->GetDevice();
 	D3D12_COMMAND_QUEUE_DESC cqd = {};
 	HRESULT hr;
 
@@ -59,34 +60,29 @@ bool D3D12VertexBufferLoader::InitializeCommandInterfaces(const unsigned typeInd
 		cqd.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
 	hr = device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_commandQueues[typeIndex]));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	hr = device->CreateCommandAllocator(cqd.Type, IID_PPV_ARGS(&m_commandAllocators[typeIndex]));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	hr = device->CreateCommandList(0, cqd.Type, m_commandAllocators[typeIndex], nullptr, IID_PPV_ARGS(&m_commandLists[typeIndex]));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	hr = m_commandLists[typeIndex]->Close();
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	return true;
 }
 
-GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, void * data)
-{
+GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, void* data) {
 	GPUBuffer gpuBuffer;
 	HRESULT hr;
 	D3D12_HEAP_PROPERTIES hp = {};
@@ -108,14 +104,14 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 
 	rd.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	rd.Alignment = 0;
-	rd.Width = nElements * elementSize;
+	rd.Width = (UINT64)nElements * elementSize;
 	rd.Height = 1;
 	rd.DepthOrArraySize = 1;
 	rd.MipLevels = 1;
 	rd.SampleDesc.Count = 1;
 	rd.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-	hr = m_renderer->GetDevice()->CreateCommittedResource(
+	hr = m_d3d12->GetDevice()->CreateCommittedResource(
 		&hp,
 		D3D12_HEAP_FLAG_NONE,
 		&rd,
@@ -123,8 +119,7 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 		nullptr,
 		IID_PPV_ARGS(&defaultResource)
 	);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return gpuBuffer;
 	}
 
@@ -134,7 +129,7 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 
 	hp.Type = D3D12_HEAP_TYPE_UPLOAD;
 
-	hr = m_renderer->GetDevice()->CreateCommittedResource(
+	hr = m_d3d12->GetDevice()->CreateCommittedResource(
 		&hp,
 		D3D12_HEAP_FLAG_NONE,
 		&rd,
@@ -142,8 +137,7 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 		nullptr,
 		IID_PPV_ARGS(&uploadResource)
 	);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return gpuBuffer;
 	}
 
@@ -208,7 +202,7 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 	// Execute transition
 	ID3D12CommandList* directCommandLists[] = { m_commandLists[DIRECT_INDEX] };
 	m_commandQueues[DIRECT_INDEX]->ExecuteCommandLists(1, directCommandLists);
-	
+
 	WaitForGPU(DIRECT_INDEX);
 
 	gpuBuffer.resource = defaultResource;
@@ -218,14 +212,12 @@ GPUBuffer D3D12VertexBufferLoader::CreateBuffer(int nElements, int elementSize, 
 	return gpuBuffer;
 }
 
-void D3D12VertexBufferLoader::WaitForGPU(const unsigned typeIndex)
-{
+void D3D12VertexBufferLoader::WaitForGPU(const unsigned typeIndex) {
 	const UINT64 fence = m_fenceValue;
 	m_commandQueues[typeIndex]->Signal(m_fence, fence);
 	m_fenceValue++;
 
-	if (m_fence->GetCompletedValue() < fence)
-	{
+	if (m_fence->GetCompletedValue() < fence) {
 		m_fence->SetEventOnCompletion(fence, m_eventHandle);
 		WaitForSingleObject(m_eventHandle, INFINITE);
 	}

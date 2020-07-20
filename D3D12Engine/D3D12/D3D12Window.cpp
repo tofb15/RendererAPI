@@ -21,16 +21,14 @@ BYTE g_rawInputBuffer[64];
 
 constexpr int WM_SIZE_CUSTOM = WM_USER + 1;
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
 
 
 	/*
 		Catch Global Winodw Events.
 	*/
-	switch (message)
-	{
+	switch (message) {
 	case WM_SIZE:
 	{
 		PostMessageW(hWnd, WM_SIZE_CUSTOM, wParam, lParam);
@@ -48,26 +46,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		//std::cout << std::dec << key << std::endl;
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), true);
 	}
-		break;
+	break;
 	case WM_KEYUP:
 	{
 		short key = static_cast<short>(wParam);
 		Window::GetGlobalWindowInputHandler().SetKeyDown(static_cast<char>(key), false);
 
-		if (lParam >> 30 & 1)
-		{
+		if (lParam >> 30 & 1) {
 			Window::GetGlobalWindowInputHandler().SetKeyPressed(static_cast<char>(key), true);
 		}
 	}
-		break;
+	break;
 	}
 
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-D3D12Window::D3D12Window(D3D12API* d3d12)
-{
+D3D12Window::D3D12Window(D3D12API* d3d12) {
 	m_Wnd = NULL;
 	m_d3d12 = d3d12;
 	m_Viewport = MY_NEW D3D12_VIEWPORT;
@@ -88,37 +84,48 @@ D3D12Window::D3D12Window(D3D12API* d3d12)
 	m_numWaits = 0;
 }
 
-D3D12Window::~D3D12Window()
-{
+D3D12Window::~D3D12Window() {
 	m_d3d12->WaitForGPU_ALL();
 
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 
-	delete m_Viewport;
-	delete m_ScissorRect;
+	if (m_Viewport) {
+		delete m_Viewport;
+	}
+	if (m_ScissorRect) {
+		delete m_ScissorRect;
+	}
 
 	// Wait until each queue has finished executing before releasing resources
 	int currentBackBuffer = m_SwapChain4->GetCurrentBackBufferIndex();
-	
-	for (int i = 0; i < NUM_SWAP_BUFFERS; i++)
-	{
+
+	for (int i = 0; i < NUM_SWAP_BUFFERS; i++) {
 		m_RenderTargets[i]->Release();
 	}
-	m_RenderTargetsHeap->Release();
-	m_DepthStencil->Release();
-	m_DepthStencilHeap->Release();
-	m_SwapChain4->Release();
+	if (m_RenderTargetsHeap) {
+		m_RenderTargetsHeap->Release();
+	}
+	if (m_DepthStencil) {
+		m_DepthStencil->Release();
+	}
+	if (m_DepthStencilHeap) {
+		m_DepthStencilHeap->Release();
+	}
+	if (m_SwapChain4) {
+		m_SwapChain4->Release();
+	}
+	if (m_GUIDescriptHeap) {
+		m_GUIDescriptHeap->Release();
+	}
 }
 
-void D3D12Window::SetDimensions(const Int2& dimensions)
-{
+void D3D12Window::SetDimensions(const Int2& dimensions) {
 	SetDimensions(dimensions.x, dimensions.y);
 }
 
-void D3D12Window::SetDimensions(int w, int h)
-{
+void D3D12Window::SetDimensions(int w, int h) {
 	m_dimensions.x = w;
 	m_dimensions.y = h;
 
@@ -132,23 +139,19 @@ void D3D12Window::SetDimensions(int w, int h)
 	//if (mWnd != NULL)
 }
 
-void D3D12Window::SetPosition(const Int2& position)
-{
+void D3D12Window::SetPosition(const Int2& position) {
 }
 
-void D3D12Window::SetPosition(int x, int y)
-{
+void D3D12Window::SetPosition(int x, int y) {
 }
 
-void D3D12Window::SetTitle(const char * title)
-{
+void D3D12Window::SetTitle(const char* title) {
 	this->m_title = title;
 	if (m_Wnd != NULL)
 		SetWindowText(m_Wnd, title);
 }
 
-bool D3D12Window::Create(int dimensionX, int dimensionY)
-{
+bool D3D12Window::Create(int dimensionX, int dimensionY) {
 	SetDimensions(dimensionX, dimensionY);
 
 	if (!InitializeWindow())
@@ -162,7 +165,7 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 
 	if (!InitializeDepthBuffer())
 		return false;
-	
+
 	if (!InitializeRawInput())
 		return false;
 
@@ -197,33 +200,28 @@ bool D3D12Window::Create(int dimensionX, int dimensionY)
 	return true;
 }
 
-void D3D12Window::Show()
-{
+void D3D12Window::Show() {
 	if (m_Wnd != NULL)
 		ShowWindow(m_Wnd, 1);
 }
 
-void D3D12Window::Hide()
-{
+void D3D12Window::Hide() {
 }
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void D3D12Window::HandleWindowEvents()
-{
+void D3D12Window::HandleWindowEvents() {
 	/*Reset Previus State*/
 	m_input.Reset();
 
 	MSG msg = { 0 };
 	bool CheckMessage = true;
-	Int2 mouseMovement(0,0);
+	Int2 mouseMovement(0, 0);
 	int mouseWheelMovement = 0;
 
-	while (CheckMessage)
-	{
+	while (CheckMessage) {
 
-		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE))
-		{
+		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
@@ -234,21 +232,23 @@ void D3D12Window::HandleWindowEvents()
 			/*
 				Update the local input handler for each window
 			*/
-			switch (msg.message)
+			switch (msg.message) {
+			case WM_SIZE_CUSTOM:
 			{
-			case WM_SIZE_CUSTOM: {
 				if (!m_firstResize) {
 					ApplyResize();
 				}
 				m_firstResize = false;
 			}
 			break;
-			case WM_KEYDOWN: {
+			case WM_KEYDOWN:
+			{
 				short key = static_cast<short>(msg.wParam);
 				m_input.SetKeyDown(static_cast<char>(key), true);
 			}
-				break;
-			case WM_KEYUP: {
+			break;
+			case WM_KEYUP:
+			{
 
 				short key = static_cast<short>(msg.wParam);
 				m_input.SetKeyDown(static_cast<char>(key), false);
@@ -257,10 +257,10 @@ void D3D12Window::HandleWindowEvents()
 					m_input.SetKeyPressed(static_cast<char>(key), true);
 				}
 			}
-				break;
+			break;
 			case WM_INPUT:
 			{
-				UINT dwSize;
+				UINT dwSize = 0;
 				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 
 				if (dwSize < 50) {
@@ -268,8 +268,7 @@ void D3D12Window::HandleWindowEvents()
 
 					RAWINPUT* rawInput = (RAWINPUT*)g_rawInputBuffer;
 					tagRAWMOUSE;
-					switch (rawInput->header.dwType)
-					{
+					switch (rawInput->header.dwType) {
 					case RIM_TYPEMOUSE:
 						tagRAWMOUSE m = rawInput->data.mouse;
 						if (m.usFlags == 0) {
@@ -277,8 +276,7 @@ void D3D12Window::HandleWindowEvents()
 							mouseMovement.y = static_cast<int>(m.lLastY);
 						}
 
-						switch (m.usButtonFlags)
-						{
+						switch (m.usButtonFlags) {
 						case RI_MOUSE_LEFT_BUTTON_DOWN:
 							m_input.SetMouseKeyDown(WindowInput::MOUSE_KEY_CODE_LEFT, true);
 							break;
@@ -311,11 +309,11 @@ void D3D12Window::HandleWindowEvents()
 						break;
 					}
 				}
-					
 
-				
+
+
 			}
-				break;
+			break;
 
 			default:
 				break;
@@ -323,8 +321,7 @@ void D3D12Window::HandleWindowEvents()
 			//std::cout << title << ":	" << std::dec << msg.message << " " << std::hex << msg.message << std::endl;
 #pragma endregion
 
-		}
-		else {
+		} else {
 			CheckMessage = false;
 		}
 	}
@@ -332,17 +329,15 @@ void D3D12Window::HandleWindowEvents()
 	m_input.SetMouseWheelMovement(mouseWheelMovement);
 }
 
-bool D3D12Window::WindowClosed()
-{
+bool D3D12Window::WindowClosed() {
 	return quit;
 }
 
-void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
-{
+void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3* commandList) {
 	//Get the handle for the current render target used as back buffer.
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	cdh.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
+	cdh.ptr += (size_t)(m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex());
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdhds = m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -351,59 +346,49 @@ void D3D12Window::ClearRenderTarget(ID3D12GraphicsCommandList3*	commandList)
 	commandList->ClearDepthStencilView(cdhds, D3D12_CLEAR_FLAG_DEPTH /*| D3D12_CLEAR_FLAG_STENCIL*/, 1.0f, 0, 0, nullptr);
 }
 
-void D3D12Window::SetRenderTarget(ID3D12GraphicsCommandList3*	commandList)
-{
+void D3D12Window::SetRenderTarget(ID3D12GraphicsCommandList3* commandList) {
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	cdh.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
+	cdh.ptr += (size_t)(m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex());
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdhds = m_DepthStencilHeap->GetCPUDescriptorHandleForHeapStart();
 	commandList->OMSetRenderTargets(1, &cdh, true, &cdhds);
 }
 
-HWND D3D12Window::GetHWND()
-{
+HWND D3D12Window::GetHWND() {
 	return m_Wnd;
 }
 
-IDXGISwapChain4 * D3D12Window::GetSwapChain()
-{
+IDXGISwapChain4* D3D12Window::GetSwapChain() {
 	return m_SwapChain4;
 }
 
-D3D12_VIEWPORT * D3D12Window::GetViewport()
-{
+D3D12_VIEWPORT* D3D12Window::GetViewport() {
 	return m_Viewport;
 }
 
-D3D12_RECT * D3D12Window::GetScissorRect()
-{
+D3D12_RECT* D3D12Window::GetScissorRect() {
 	return m_ScissorRect;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3D12Window::GetCurrentRenderTargetGPUDescriptorHandle()
-{
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12Window::GetCurrentRenderTargetGPUDescriptorHandle() {
 	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_RenderTargetsHeap->GetGPUDescriptorHandleForHeapStart();
 	handle.ptr += m_RenderTargetDescriptorSize * m_SwapChain4->GetCurrentBackBufferIndex();
 	return handle;
 }
 
-ID3D12Resource1 * D3D12Window::GetCurrentRenderTargetResource()
-{
+ID3D12Resource1* D3D12Window::GetCurrentRenderTargetResource() {
 	return m_RenderTargets[m_SwapChain4->GetCurrentBackBufferIndex()];
 }
 
-ID3D12Resource1** D3D12Window::GetRenderTargetResources()
-{
+ID3D12Resource1** D3D12Window::GetRenderTargetResources() {
 	return m_RenderTargets;
 }
 
-UINT D3D12Window::GetCurrentBackBufferIndex() const
-{
+UINT D3D12Window::GetCurrentBackBufferIndex() const {
 	return m_SwapChain4->GetCurrentBackBufferIndex();
 }
 
-bool D3D12Window::InitializeWindow()
-{
+bool D3D12Window::InitializeWindow() {
 	if (m_Wnd != NULL)
 		return false;
 
@@ -415,8 +400,7 @@ bool D3D12Window::InitializeWindow()
 	wcex.lpfnWndProc = WndProc;
 	wcex.hInstance = nullptr;
 	wcex.lpszClassName = "D3D12 Works!";
-	if (!RegisterClassEx(&wcex))
-	{
+	if (!RegisterClassEx(&wcex)) {
 		//return false;
 	}
 
@@ -442,14 +426,12 @@ bool D3D12Window::InitializeWindow()
 }
 
 
-bool D3D12Window::InitializeSwapChain()
-{
+bool D3D12Window::InitializeSwapChain() {
 	HRESULT hr;
 
-	IDXGIFactory5*	factory = nullptr;
+	IDXGIFactory5* factory = nullptr;
 	hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -477,20 +459,14 @@ bool D3D12Window::InitializeSwapChain()
 		nullptr,
 		nullptr,
 		&swapChain1);
-	if (SUCCEEDED(hr))
-	{
+	if (SUCCEEDED(hr)) {
 		hr = swapChain1->QueryInterface(IID_PPV_ARGS(&m_SwapChain4));
-		if (SUCCEEDED(hr))
-		{
+		if (SUCCEEDED(hr)) {
 			m_SwapChain4->Release();
-		}
-		else
-		{
+		} else {
 			return false;
 		}
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 
@@ -498,16 +474,14 @@ bool D3D12Window::InitializeSwapChain()
 	return true;
 }
 
-bool D3D12Window::InitializeRenderTargets()
-{
+bool D3D12Window::InitializeRenderTargets() {
 	//Create descriptor heap for render target views.
 	D3D12_DESCRIPTOR_HEAP_DESC dhd = {};
 	dhd.NumDescriptors = NUM_SWAP_BUFFERS;
 	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
 	HRESULT hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_RenderTargetsHeap));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 	m_RenderTargetsHeap->SetName(L"RT DescHeap");
@@ -520,11 +494,9 @@ bool D3D12Window::InitializeRenderTargets()
 	UINT SRV_SIZE = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	//One RTV for each frame.
-	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
-	{
+	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++) {
 		hr = m_SwapChain4->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n]));
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			return false;
 		}
 		m_RenderTargets[n]->SetName(L"RT");
@@ -536,8 +508,7 @@ bool D3D12Window::InitializeRenderTargets()
 	return true;
 }
 
-bool D3D12Window::InitializeDepthBuffer()
-{
+bool D3D12Window::InitializeDepthBuffer() {
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -550,7 +521,7 @@ bool D3D12Window::InitializeDepthBuffer()
 	resourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	resourceDesc.Width =  m_dimensions.x; //Use the dimensions of the window
+	resourceDesc.Width = m_dimensions.x; //Use the dimensions of the window
 	resourceDesc.Height = m_dimensions.y; //Use the dimensions of the window
 	resourceDesc.DepthOrArraySize = 1;
 	resourceDesc.MipLevels = 0;
@@ -574,8 +545,7 @@ bool D3D12Window::InitializeDepthBuffer()
 		&cv,
 		IID_PPV_ARGS(&m_DepthStencil)
 	);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -585,8 +555,7 @@ bool D3D12Window::InitializeDepthBuffer()
 	dhd.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_DepthStencilHeap));
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
@@ -601,27 +570,23 @@ bool D3D12Window::InitializeDepthBuffer()
 	return true;
 }
 
-bool D3D12Window::InitializeRawInput()
-{
+bool D3D12Window::InitializeRawInput() {
 	m_rawMouseDevice.usUsagePage = 0x01;
 	m_rawMouseDevice.usUsage = 0x02;
 	m_rawMouseDevice.dwFlags = 0x0;
 	m_rawMouseDevice.hwndTarget = m_Wnd;
-	
-	if (!RegisterRawInputDevices(&m_rawMouseDevice, 1U, sizeof(RAWINPUTDEVICE)))
-	{
+
+	if (!RegisterRawInputDevices(&m_rawMouseDevice, 1U, sizeof(RAWINPUTDEVICE))) {
 		return false;
 	}
-	
+
 	return true;
 }
 
-void D3D12Window::ApplyResize()
-{
+void D3D12Window::ApplyResize() {
 	m_d3d12->WaitForGPU_ALL();
 
-	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
-	{
+	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++) {
 		m_RenderTargets[n]->Release();
 	}
 
@@ -633,11 +598,9 @@ void D3D12Window::ApplyResize()
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
-	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++)
-	{
+	for (UINT n = 0; n < NUM_SWAP_BUFFERS; n++) {
 		hr = m_SwapChain4->GetBuffer(n, IID_PPV_ARGS(&m_RenderTargets[n]));
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			MessageBoxA(NULL, "Apply Resize Failed", "Error", 0);
 			return;
 		}
@@ -648,17 +611,14 @@ void D3D12Window::ApplyResize()
 	}
 }
 
-void D3D12Window::BeginUIRendering()
-{
+void D3D12Window::BeginUIRendering() {
 
 }
 
-void D3D12Window::EndUIRendering()
-{
+void D3D12Window::EndUIRendering() {
 
 }
 
-ID3D12DescriptorHeap* D3D12Window::GetGUIDescriptorHeap()
-{
+ID3D12DescriptorHeap* D3D12Window::GetGUIDescriptorHeap() {
 	return m_GUIDescriptHeap;
 }

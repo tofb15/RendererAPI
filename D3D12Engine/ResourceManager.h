@@ -5,6 +5,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include "ShaderManager.hpp"
 
 //#include "RenderAPI.hpp"
 
@@ -19,6 +20,8 @@ const char TEXTURE_FODLER_NAME[] = "Textures/";
 const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 const char MATERIAL_FOLDER_NAME[] = "Materials/";
 const char SHADER_FOLDER_NAME[] = "Shaders/";
+const char SHADER_PROGRAMS_FOLDER_NAME[] = "ShaderPrograms/";
+
 
 typedef size_t MaterialHandle;
 
@@ -37,13 +40,7 @@ class Blueprint {
 public:
 	bool hasChanged = false;
 	Mesh* mesh = nullptr;
-	//std::vector<Technique*> techniques; //used for raster
-	std::vector<Texture*>	textures;
-	std::vector<Material*> materials;//TODO: this will replace the "textures", "alphaTested" and "allGeometryIsOpaque" variables, as well as allow for defining custom material shaders.
-
-	//===TODO: find a place to store these that is not here. They should be integrated in to the Technique
-	std::vector<bool> alphaTested;   //for each geometry in the mesh; is it alphatested.
-	bool allGeometryIsOpaque = true; //false if at least one geometry in the mesh is alphaTested
+	std::vector<Material*> materials;
 };
 
 /*
@@ -70,6 +67,8 @@ public:
 	Blueprint* GetBlueprint(const std::string& name);
 	//MaterialHandle LoadMaterialFromFile(const std::string& path);
 	Material* GetMaterial(const std::string& name);
+	ShaderProgramHandle LoadShaderProgramFromFile(const std::string& name);
+	ShaderProgramHandle GetShaderProgramHandle(const std::string& name);
 
 	bool PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load);
 	bool PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load = Asset_Type_Any);
@@ -102,7 +101,8 @@ private:
 	std::unordered_map<std::string, Mesh*>      m_meshes;
 	std::unordered_map<std::string, Texture*>   m_textures;
 	std::unordered_map<std::string, Blueprint*> m_blueprints;
-	std::unordered_map<std::string, Material*> m_materials;
+	std::unordered_map<std::string, Material*>	m_materials;
+	std::unordered_map<std::string, ShaderProgramHandle> m_shaderPrograms;
 
 	std::string m_assetPath = "../assets/";
 };

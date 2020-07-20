@@ -1,3 +1,2 @@
 mesh=floor_and_wall.obj
-materials={opaque}
-textures={default.png,emplyNormal.png}
+materials={chessboard_material.txt}

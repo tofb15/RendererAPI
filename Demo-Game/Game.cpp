@@ -1,10 +1,9 @@
 #include "Game.h"
 #include "../D3D12Engine/Utills/Utills.h"
 
-Game::Game(){}
+Game::Game() {}
 
-Game::~Game()
-{
+Game::~Game() {
 	for (auto e : m_cameras) {
 		delete e;
 	}
@@ -25,11 +24,9 @@ Game::~Game()
 	delete m_rm;
 	delete m_sm;
 }
-int Game::Initialize()
-{
+int Game::Initialize() {
 
-	if (!InitializeRendererAndWindow())
-	{
+	if (!InitializeRendererAndWindow()) {
 		return -1;
 	}
 
@@ -53,8 +50,7 @@ int Game::Initialize()
 
 	return 0;
 }
-bool Game::InitializeRendererAndWindow()
-{	
+bool Game::InitializeRendererAndWindow() {
 	m_renderAPI = RenderAPI::MakeAPI(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
 
 	if (m_renderAPI == nullptr) {
@@ -85,8 +81,7 @@ bool Game::InitializeRendererAndWindow()
 	return true;
 }
 
-void Game::InitializeCameras()
-{
+void Game::InitializeCameras() {
 	Int2 dim = m_windows[0]->GetDimensions();
 	float aspRatio = dim.x / dim.y;
 
@@ -97,8 +92,7 @@ void Game::InitializeCameras()
 	m_cameras.push_back(cam);
 }
 
-void Game::Run()
-{
+void Game::Run() {
 	//Delta Time
 	static Time now, then;
 
@@ -119,8 +113,7 @@ void Game::Run()
 
 	//Game Loop
 	now = Clock::now();
-	while (!m_windows[0]->WindowClosed())
-	{
+	while (!m_windows[0]->WindowClosed()) {
 		then = now;
 		now = Clock::now();
 		double dt = (double)((now - then).count()) * 0.000000001;
@@ -130,8 +123,7 @@ void Game::Run()
 		frameCount++;
 
 		m_windows[0]->HandleWindowEvents();
-		if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM)
-		{
+		if ((Clock::now() - t1).count() > 1e9 * TIME_PER_SHORT_TERM) {
 			t1 = Clock::now();
 
 			// Set short-term average FPS
@@ -142,8 +134,7 @@ void Game::Run()
 			totalFramesLastInterval += frameCount;
 
 			// Set long-term average FPS
-			if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM)
-			{
+			if (avgUpdateCount >= SHORT_TERM_UPDATES_PER_LONG_TERM) {
 				int avgFps = static_cast<int>(totalFramesLastInterval / TIME_PER_LONG_TERM);
 				fpsAvgStr = ",    Avg FPS: " + std::to_string(avgFps);
 				avgUpdateCount = 0;
@@ -163,8 +154,7 @@ void Game::Run()
 
 	}
 }
-void Game::UpdateObjects(double dt)
-{
+void Game::UpdateObjects(double dt) {
 	if (m_animateLight) {
 		m_time_lightAnim += dt * 0.05;
 	}
@@ -175,8 +165,7 @@ void Game::UpdateObjects(double dt)
 		e.m_position_animated = (e.m_position_center + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
 	}
 }
-void Game::UpdateInput()
-{
+void Game::UpdateInput() {
 	// This input handler is shared between windows
 	WindowInput& input_Global = Window::GetGlobalWindowInputHandler();
 
@@ -184,24 +173,20 @@ void Game::UpdateInput()
 	input_Global.Reset();
 
 	//Handle window events to detect window movement, window destruction, input etc. 
-	for (size_t i = 0; i < m_windows.size(); i++)
-	{
+	for (size_t i = 0; i < m_windows.size(); i++) {
 		m_windows[i]->HandleWindowEvents();
 	}
 }
 
-void Game::ProcessGlobalInput()
-{
+void Game::ProcessGlobalInput() {
 	WindowInput& input_Global = Window::GetGlobalWindowInputHandler();
 }
 
-void Game::ProcessLocalInput(double dt)
-{
+void Game::ProcessLocalInput(double dt) {
 	std::vector<WindowInput*> inputs;
 
 
-	for (size_t i = 0; i < m_windows.size(); i++)
-	{
+	for (size_t i = 0; i < m_windows.size(); i++) {
 		inputs.push_back(&m_windows[i]->GetLocalWindowInputHandler());
 	}
 
@@ -211,24 +196,19 @@ void Game::ProcessLocalInput(double dt)
 
 	bool rightMouse = inputs[0]->IsKeyDown(WindowInput::MOUSE_KEY_CODE_RIGHT);
 	if (rightMouse) {
-		for (size_t i = 0; i < m_windows.size(); i++)
-		{
+		for (size_t i = 0; i < m_windows.size(); i++) {
 			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
 			float ms = m_ms * (shift ? 1 : 0.02);
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W))
-			{
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W)) {
 				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S))
-			{
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S)) {
 				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
 			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A))
-			{
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A)) {
 				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(ms * dt));
 			}
-			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D))
-			{
+			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D)) {
 				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (ms * dt));
 			}
 		}
@@ -240,8 +220,7 @@ void Game::ProcessLocalInput(double dt)
 	}
 }
 
-void Game::RenderWindows()
-{
+void Game::RenderWindows() {
 	if (m_reloadShaders) {
 		ReloadShaders();
 	}
@@ -249,20 +228,17 @@ void Game::RenderWindows()
 	Window* window;
 
 	size_t nWindows = m_windows.size();
-	for (int i = 0; i < nWindows; i++)
-	{
+	for (int i = 0; i < nWindows; i++) {
 		m_renderer->ClearSubmissions();
 		m_renderer->SetLightSources(m_lights);
 		window = m_windows[i];
 
-		for (auto& e : m_objects)
-		{
+		for (auto& e : m_objects) {
 			m_renderer->Submit({ e->blueprint, e->transform }, cam0);
 		}
 
 		if (m_mirrorScene) {
-			for (auto& e : m_objects_mirrored)
-			{
+			for (auto& e : m_objects_mirrored) {
 				m_renderer->Submit({ e->blueprint, e->transform }, cam0);
 			}
 		}
@@ -275,8 +251,7 @@ void Game::RenderWindows()
 	}
 }
 
-std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory & path, const std::string & selectedItem, const bool isMenuBar, unsigned int currDepth)
-{
+std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory& path, const std::string& selectedItem, const bool isMenuBar, unsigned int currDepth) {
 	std::filesystem::path clicked = "";
 	if (path.files.empty() && path.directories.empty()) {
 		ImGui::Text("-Empty Directory-");
@@ -284,28 +259,24 @@ std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory &
 	}
 
 	std::string depthStr;
-	for (size_t i = 0; i < currDepth; i++)
-	{
+	for (size_t i = 0; i < currDepth; i++) {
 		depthStr += "-";
 	}
 
-	for (auto& e : path.directories)
-	{
+	for (auto& e : path.directories) {
 		if (isMenuBar) {
 			if (ImGui::BeginMenu((e.path.filename().string()).c_str())) {
 				clicked = RecursiveDirectoryList(e, selectedItem, isMenuBar, currDepth + 1);
 				ImGui::EndMenu();
 			}
-		}
-		else {
+		} else {
 			if (ImGui::CollapsingHeader((depthStr + e.path.filename().string()).c_str())) {
 				clicked = RecursiveDirectoryList(e, selectedItem, isMenuBar, currDepth + 1);
 			}
 		}
 	}
 
-	for (auto& e : path.files)
-	{
+	for (auto& e : path.files) {
 		std::string name = e.path.filename().string().substr(0, e.path.filename().string().find_last_of("."));
 		if (!isMenuBar) {
 			name = depthStr + name;
@@ -317,9 +288,8 @@ std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory &
 
 	return clicked;
 }
-void Game::RenderObjectEditor()
-{
-	if(ImGui::Checkbox("Mirror Scene", &m_mirrorScene)) {
+void Game::RenderObjectEditor() {
+	if (ImGui::Checkbox("Mirror Scene", &m_mirrorScene)) {
 		if (m_mirrorScene) {
 			MirrorScene(m_mirrorLevel);
 		}
@@ -366,12 +336,11 @@ void Game::RenderObjectEditor()
 
 	ImGui::BeginChild("Objects pane");
 	int i = 0;
-	for (auto& e : m_objects)
-	{
+	for (auto& e : m_objects) {
 		if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), Contains<std::vector, int>(m_selectedObjects, i))) {
 			//m_selectedObjects.push_back(i);
 		}
-		
+
 		if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
 			if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
 				int min = m_selectedObjects.front();
@@ -381,17 +350,14 @@ void Game::RenderObjectEditor()
 				}
 
 				m_selectedObjects.clear();
-				for (int a = min; a <= max; a++)
-				{
+				for (int a = min; a <= max; a++) {
 					m_selectedObjects.push_back(a);
 				}
-			}
-			else if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
+			} else if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
 				if (!Contains<std::vector, int>(m_selectedObjects, i)) {
 					m_selectedObjects.push_back(i);
 				}
-			}
-			else {
+			} else {
 				m_selectedObjects.clear();
 				m_selectedObjects.push_back(i);
 			}
@@ -406,27 +372,24 @@ void Game::RenderObjectEditor()
 	if (!m_selectedObjects.empty()) {
 		size_t size = (int)m_objects.size();
 		size_t nSelected = (int)m_selectedObjects.size();
-		
+
 		if (ImGui::Button("Copy")) {
-			for (auto i : m_selectedObjects)
-			{
+			for (auto i : m_selectedObjects) {
 				Object* obj = new Object();
 				memcpy(obj, m_objects[i], sizeof(Object));
 				m_objects.push_back(obj);
 			}
 			m_selectedObjects.clear();
-			for (size_t i = size; i < size + nSelected; i++)
-			{
+			for (size_t i = size; i < size + nSelected; i++) {
 				m_selectedObjects.push_back(i);
 			}
 		}
-		
+
 		ImGui::SameLine();
-		
+
 		if (ImGui::Button("Delete")) {
 			std::sort(m_selectedObjects.begin(), m_selectedObjects.end(), std::greater <int>());
-			for (auto i : m_selectedObjects)
-			{
+			for (auto i : m_selectedObjects) {
 				delete m_objects[i];
 				m_objects.erase(m_objects.begin() + i);
 			}
@@ -457,19 +420,16 @@ void Game::RenderObjectEditor()
 				ImGui::DragFloat3("Rot", (float*)& m_objects[selectedObject]->transform.rotation, 0.1, -100, 100);
 				ImGui::DragFloat3("Scale", (float*)& m_objects[selectedObject]->transform.scale, 0.1, -100, 100);
 			}
-		}
-		else{
+		} else {
 
 			if (ImGui::Button("Reset Rotation")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.rotation = { 0,0,0 };
 				}
 			}
 
 			if (ImGui::Button("Random X-Rot")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.rotation.x = (rand() / (float)RAND_MAX) * 2 * 3.15;
 				}
 			}
@@ -477,8 +437,7 @@ void Game::RenderObjectEditor()
 			ImGui::SameLine();
 
 			if (ImGui::Button("Random Y-Rot")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.rotation.y = (rand() / (float)RAND_MAX) * 2 * 3.15;
 				}
 			}
@@ -486,8 +445,7 @@ void Game::RenderObjectEditor()
 			ImGui::SameLine();
 
 			if (ImGui::Button("Random Z-Rot")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.rotation.z = (rand() / (float)RAND_MAX) * 2 * 3.15;
 				}
 			}
@@ -495,26 +453,23 @@ void Game::RenderObjectEditor()
 			/////////////
 
 			if (ImGui::Button("Reset Position")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.pos = { 0,0,0 };
 				}
 			}
 
-			ImGui::DragFloat("Max random spread", &maxRandomPos, 1,0,10000);
+			ImGui::DragFloat("Max random spread", &maxRandomPos, 1, 0, 10000);
 
 			if (ImGui::Button("Random X-Pos")) {
-				for (auto i : m_selectedObjects)
-				{
-					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos/2;
+				for (auto i : m_selectedObjects) {
+					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
 				}
 			}
 
 			ImGui::SameLine();
 
 			if (ImGui::Button("Random Y-Pos")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
 				}
 			}
@@ -522,8 +477,7 @@ void Game::RenderObjectEditor()
 			ImGui::SameLine();
 
 			if (ImGui::Button("Random Z-Pos")) {
-				for (auto i : m_selectedObjects)
-				{
+				for (auto i : m_selectedObjects) {
 					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
 				}
 			}
@@ -561,8 +515,7 @@ void Game::RenderBlueprintWindow() {
 
 		if (selectedBP = m_rm->GetBlueprint(s)) {
 			selected = s;
-		}
-		else {
+		} else {
 			selected = "";
 		}
 	}
@@ -571,7 +524,7 @@ void Game::RenderBlueprintWindow() {
 	ImGui::NextColumn();
 
 	ImGui::BeginChild("Other pane");
-	if (selected != "") {	
+	if (selected != "") {
 		ImGui::Text(selected.c_str());
 
 		std::string meshName = "";
@@ -580,41 +533,39 @@ void Game::RenderBlueprintWindow() {
 			meshName = meshName.substr(0, meshName.find_last_of("."));
 			if (ImGui::BeginCombo("Mesh Select", meshName.c_str())) {
 				std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundMeshes, meshName);
-				if (clickedItem != "") {
-					size_t len1 = m_foundMeshes.path.string().length();
-					size_t len2 = clickedItem.string().length() - len1;
-
-					std::string s = clickedItem.string().substr(len1, len2);
-					//s = s.substr(0, s.find_last_of("."));
-
-					selectedBP->hasChanged = true;
-					selectedBP->mesh = m_rm->GetMesh(s);
-					int nNeededTextures = selectedBP->mesh->GetNumberOfSubMeshes() * 2;
-					for (size_t i = selectedBP->textures.size(); i < nNeededTextures; i++)
-					{
-						selectedBP->textures.push_back(m_dummyTexture);
-					}
-
-					if (selectedBP->textures.size() > nNeededTextures) {
-						selectedBP->textures.erase(selectedBP->textures.begin() + nNeededTextures, selectedBP->textures.end());
-					}
-
-					selectedBP->allGeometryIsOpaque = true;
-					selectedBP->alphaTested.clear();
-					for (size_t i = 0; i < selectedBP->mesh->GetNumberOfSubMeshes(); i++)
-					{
-						selectedBP->alphaTested.push_back(false);
-					}
-				}
+				//if (clickedItem != "") {
+				//	size_t len1 = m_foundMeshes.path.string().length();
+				//	size_t len2 = clickedItem.string().length() - len1;
+				//
+				//	std::string s = clickedItem.string().substr(len1, len2);
+				//	//s = s.substr(0, s.find_last_of("."));
+				//
+				//	selectedBP->hasChanged = true;
+				//	selectedBP->mesh = m_rm->GetMesh(s);
+				//	int nNeededTextures = selectedBP->mesh->GetNumberOfSubMeshes() * 2;
+				//	for (size_t i = selectedBP->textures.size(); i < nNeededTextures; i++)
+				//	{
+				//		selectedBP->textures.push_back(m_dummyTexture);
+				//	}
+				//
+				//	if (selectedBP->textures.size() > nNeededTextures) {
+				//		selectedBP->textures.erase(selectedBP->textures.begin() + nNeededTextures, selectedBP->textures.end());
+				//	}
+				//
+				//	selectedBP->allGeometryIsOpaque = true;
+				//	selectedBP->alphaTested.clear();
+				//	for (size_t i = 0; i < selectedBP->mesh->GetNumberOfSubMeshes(); i++)
+				//	{
+				//		selectedBP->alphaTested.push_back(false);
+				//	}
+				//}
 				ImGui::EndCombo();
 			}
 		}
 
 		ImGui::Separator();
-		if (ImGui::BeginTabBar("##Tabs3", ImGuiTabBarFlags_None))
-		{
-			if (ImGui::BeginTabItem("Geometries"))
-			{
+		if (ImGui::BeginTabBar("##Tabs3", ImGuiTabBarFlags_None)) {
+			if (ImGui::BeginTabItem("Geometries")) {
 				RenderGeometryWindow(selectedBP);
 				ImGui::EndTabItem();
 			}
@@ -636,8 +587,7 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 	static int selectedGeometry = 0;
 
 	if (bp->mesh) {
-		for (int i = 0; i < bp->mesh->GetNumberOfSubMeshes(); i++)
-		{
+		for (int i = 0; i < bp->mesh->GetNumberOfSubMeshes(); i++) {
 			if (ImGui::Selectable(bp->mesh->GetSubMesheName(i).c_str(), i == selectedGeometry)) {
 				selectedGeometry = i;
 			}
@@ -659,90 +609,70 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 		ImGui::BeginGroup();
 		ImGui::BeginChild("item view 2", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
 
-		bool b = bp->alphaTested[selectedGeometry];
-		if (ImGui::Checkbox("Alpha Tested", &b)) {
-			bp->hasChanged = true;
-			bp->alphaTested[selectedGeometry] = b;
-
-			bp->allGeometryIsOpaque = true;
-			for (bool b : bp->alphaTested) {
-				if (b) {
-					bp->allGeometryIsOpaque = false;
-					break;
-				}
-			}
-		}
-
-		std::string textureName;
-		int textureIndex;
-
-		textureIndex = selectedGeometry * 2;
-		textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
-		textureName = textureName.substr(0, textureName.find_last_of("."));
-		if (ImGui::BeginCombo("Albedo Texture", textureName.c_str())) {
-			std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
-			if (clickedItem != "") {
-				size_t len1 = m_foundTextures.path.string().length();
-				size_t len2 = clickedItem.string().length() - len1;
-
-				std::string s = clickedItem.string().substr(len1, len2);
-
-				bp->textures[textureIndex] = m_rm->GetTexture(s);
-				bp->hasChanged = true;
-			}
-			ImGui::EndCombo();
-		}
-
-
-		textureIndex++;
-		textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
-		textureName = textureName.substr(0, textureName.find_last_of("."));
-		if (ImGui::BeginCombo("NormalMap Texture", textureName.c_str())) {	
-			std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
-			if (clickedItem != "") {
-				size_t len1 = m_foundTextures.path.string().length();
-				size_t len2 = clickedItem.string().length() - len1;
-
-				std::string s = clickedItem.string().substr(len1, len2);
-
-
-				bp->textures[textureIndex] = m_rm->GetTexture(s);
-				bp->hasChanged = true;
-			}
-
-			ImGui::EndCombo();
-		}
+		//std::string textureName;
+		//int textureIndex;
+		//
+		//textureIndex = selectedGeometry * 2;
+		//textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
+		//textureName = textureName.substr(0, textureName.find_last_of("."));
+		//if (ImGui::BeginCombo("Albedo Texture", textureName.c_str())) {
+		//	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
+		//	if (clickedItem != "") {
+		//		size_t len1 = m_foundTextures.path.string().length();
+		//		size_t len2 = clickedItem.string().length() - len1;
+		//
+		//		std::string s = clickedItem.string().substr(len1, len2);
+		//
+		//		bp->textures[textureIndex] = m_rm->GetTexture(s);
+		//		bp->hasChanged = true;
+		//	}
+		//	ImGui::EndCombo();
+		//}
+		//
+		//
+		//textureIndex++;
+		//textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
+		//textureName = textureName.substr(0, textureName.find_last_of("."));
+		//if (ImGui::BeginCombo("NormalMap Texture", textureName.c_str())) {
+		//	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
+		//	if (clickedItem != "") {
+		//		size_t len1 = m_foundTextures.path.string().length();
+		//		size_t len2 = clickedItem.string().length() - len1;
+		//
+		//		std::string s = clickedItem.string().substr(len1, len2);
+		//
+		//
+		//		bp->textures[textureIndex] = m_rm->GetTexture(s);
+		//		bp->hasChanged = true;
+		//	}
+		//
+		//	ImGui::EndCombo();
+		//}
 		ImGui::EndChild();
 		ImGui::EndGroup();
 	}
 }
-void Game::RenderLightsAndCameraEditor()
-{
+void Game::RenderLightsAndCameraEditor() {
 	if (!m_cameras.empty()) {
 		ImGui::DragFloat3("Camera Pos", (float*)& m_cameras.front()->GetPosition(), 0.1, -1000, 1000);
 		ImGui::DragFloat3("Camera Targ", (float*)& m_cameras.front()->GetTarget(), 0.1, -1000, 1000);
-	}
-	else {
+	} else {
 		ImGui::Text("No Cameras Exist");
 	}
 
 	if (!m_lights.empty()) {
 		ImGui::DragFloat3("Light Center", (float*)& m_lights.front().m_position_center, 0.1, -1000, 1000);
 		ImGui::DragFloat3("Light Current", (float*)& m_lights.front().m_position_animated, 0.1, -1000, 1000);
-	}
-	else {
+	} else {
 		ImGui::Text("No Lights Exist");
 	}
 }
 void Game::RenderSettingWindow() {
 	//static bool open = true;
 	ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Scene Settings", NULL, ImGuiWindowFlags_MenuBar))
-	{
-		if (ImGui::BeginMenuBar())
-		{
-			if (ImGui::BeginMenu("Scene"))
-			{
+	if (ImGui::Begin("Scene Settings", NULL, ImGuiWindowFlags_MenuBar)) {
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Scene")) {
 				if (ImGui::MenuItem("Refresh Resources")) {
 					RefreshSceneList();
 				}
@@ -754,8 +684,7 @@ void Game::RenderSettingWindow() {
 
 				ImGui::Separator();
 
-				if (ImGui::BeginMenu("Load Scene"))
-				{
+				if (ImGui::BeginMenu("Load Scene")) {
 					if (ImGui::MenuItem("New Scene")) {
 						NewScene();
 					}
@@ -771,8 +700,7 @@ void Game::RenderSettingWindow() {
 
 						if (LoadScene(s)) {
 							m_currentSceneName = s;
-						}
-						else {
+						} else {
 							m_currentSceneName = "";
 						}
 					}
@@ -794,26 +722,20 @@ void Game::RenderSettingWindow() {
 			ImGui::EndMenuBar();
 		}
 
-		if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
-		{
-			if (ImGui::BeginTabItem("Edit Blueprints"))
-			{
+		if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
+			if (ImGui::BeginTabItem("Edit Blueprints")) {
 				RenderBlueprintWindow();
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Edit Scene"))
-			{
-				if (ImGui::BeginTabBar("##Tabs2", ImGuiTabBarFlags_None))
-				{
-					if (ImGui::BeginTabItem("Objects"))
-					{
+			if (ImGui::BeginTabItem("Edit Scene")) {
+				if (ImGui::BeginTabBar("##Tabs2", ImGuiTabBarFlags_None)) {
+					if (ImGui::BeginTabItem("Objects")) {
 						RenderObjectEditor();
 						ImGui::EndTabItem();
 					}
 
-					if (ImGui::BeginTabItem("Camera and lights"))
-					{
+					if (ImGui::BeginTabItem("Camera and lights")) {
 						RenderLightsAndCameraEditor();
 						ImGui::EndTabItem();
 					}
@@ -822,8 +744,7 @@ void Game::RenderSettingWindow() {
 				ImGui::EndTabItem();
 			}
 
-			if (ImGui::BeginTabItem("Scene Options"))
-			{
+			if (ImGui::BeginTabItem("Scene Options")) {
 				if (ImGui::Checkbox("Animated Light", &m_animateLight)) {}
 				ImGui::SameLine();
 				ImGui::DragFloat("Light Anim time", &m_time_lightAnim, 0.001, 0, 1);
@@ -903,10 +824,8 @@ void Game::RenderGUI() {
 		ImGui::ShowDemoWindow(&b);
 
 	// ===========Menu==============
-	if (ImGui::BeginMainMenuBar())
-	{
-		if (ImGui::BeginMenu("Project"))
-		{
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Project")) {
 			if (ImGui::MenuItem("New Project", "")) {
 
 			}
@@ -917,8 +836,7 @@ void Game::RenderGUI() {
 			//ShowExampleMenuFile();
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu("Scene"))
-		{
+		if (ImGui::BeginMenu("Scene")) {
 			if (ImGui::MenuItem("New Scene", "")) {
 
 			}
@@ -926,8 +844,7 @@ void Game::RenderGUI() {
 			//ShowExampleMenuFile();
 			ImGui::EndMenu();
 		}
-		if (ImGui::BeginMenu("Edit"))
-		{
+		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
 			if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
 			ImGui::Separator();
@@ -943,8 +860,7 @@ void Game::RenderGUI() {
 
 
 }
-void Game::MirrorScene(int lvl)
-{
+void Game::MirrorScene(int lvl) {
 	int n_mirrored = 0;
 	float dx = 44.587;
 	float dz = 48.785;
@@ -957,10 +873,8 @@ void Game::MirrorScene(int lvl)
 	}
 	m_objects_mirrored.clear();
 
-	for (int x = -lvl; x <= lvl; x++)
-	{
-		for (int z = -lvl; z <= lvl; z++)
-		{
+	for (int x = -lvl; x <= lvl; x++) {
+		for (int z = -lvl; z <= lvl; z++) {
 			if (x == 0 && z == 0) {
 				continue;
 			}
@@ -968,13 +882,11 @@ void Game::MirrorScene(int lvl)
 			fx = (((x + lvl * 2) % 2) * 2 - 1) * -1;
 			fz = (((z + lvl * 2) % 2) * 2 - 1) * -1;
 
-			for (auto& o : m_objects)
-			{
+			for (auto& o : m_objects) {
 				Object* m = nullptr;
 				if (n_mirrored < m_objects_mirrored.size()) {
 					m = m_objects_mirrored[n_mirrored];
-				}
-				else {
+				} else {
 					m = new Object();
 					m_objects_mirrored.push_back(m);
 				}
@@ -1011,8 +923,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	std::string sceneName;
 
 	if (saveAsNew || m_currentSceneName == "") {
-		while (!nameOK)
-		{
+		while (!nameOK) {
 			sceneName = "Scene" + std::to_string(i);
 			scenePath = m_sceneFolderPath + sceneName + ".scene";
 			if (!std::filesystem::exists(scenePath)) {
@@ -1022,23 +933,21 @@ bool Game::SaveScene(bool saveAsNew) {
 		}
 
 		m_currentSceneName = sceneName;
-	}
-	else {
+	} else {
 		scenePath = m_sceneFolderPath + m_currentSceneName + ".scene";
 	}
 
 	std::ofstream outFile(scenePath);
-	
+
 	if (m_mirrorScene) {
 		outFile << "Mirror\n" << m_mirrorLevel << "\n";
 	}
-	
+
 	//Save Camera
 	outFile << "Cameras\n";
 	outFile << m_cameras.size() << "\n";
 
-	for (auto& e : m_cameras)
-	{
+	for (auto& e : m_cameras) {
 		outFile << e->GetPosition().x << " "
 			<< e->GetPosition().y << " "
 			<< e->GetPosition().z << "\n";
@@ -1052,8 +961,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	outFile << "Lights\n";
 	outFile << m_time_lightAnim << "\n";
 	outFile << m_lights.size() << "\n";
-	for (auto& e : m_lights)
-	{
+	for (auto& e : m_lights) {
 		outFile << e.m_position_center.x << " "
 			<< e.m_position_center.y << " "
 			<< e.m_position_center.z << "\n";
@@ -1062,8 +970,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	//Save Objects
 	outFile << "Objects\n";
 	outFile << m_objects.size() << "\n";
-	for (auto& e : m_objects)
-	{
+	for (auto& e : m_objects) {
 		outFile << m_rm->GetBlueprintName(e->blueprint) << "\n";
 
 		outFile << e->transform.pos.x << " "
@@ -1084,8 +991,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	return true;
 }
 
-bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag)
-{
+bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag) {
 	std::ifstream inFile(path);
 
 	if (!std::filesystem::exists(path) || !inFile.is_open()) {
@@ -1101,23 +1007,19 @@ bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to
 
 	bool allGood = true;
 
-	while (std::getline(inFile, line))
-	{
+	while (std::getline(inFile, line)) {
 		if (line[0] == '#') {
 			continue;
-		}
-		else if (line == "Objects") {
+		} else if (line == "Objects") {
 			//Load Objects
 			inFile >> tempSizeT;
 			inFile.ignore();
-			for (size_t i = 0; i < tempSizeT; i++)
-			{
+			for (size_t i = 0; i < tempSizeT; i++) {
 				std::getline(inFile, line);
 				if (m_rm->PreLoadBlueprint(line, assets_to_load_flag)) {
 					allGood = false;
 				}
-				for (size_t i = 0; i < 3; i++)
-				{
+				for (size_t i = 0; i < 3; i++) {
 					std::getline(inFile, line);
 				}
 			}
@@ -1145,23 +1047,19 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 	Float3 tempFloat;
 	size_t tempSizeT;
 	int tempInt;
-	while (std::getline(inFile, line))
-	{
+	while (std::getline(inFile, line)) {
 		if (line[0] == '#') {
 			continue;
-		}
-		else if (line == "Mirror") {
+		} else if (line == "Mirror") {
 			m_mirrorScene = true;
 			inFile >> m_mirrorLevel;
-		}
-		else if (line == "Cameras" && !m_loadSettingkeepKamera) {
+		} else if (line == "Cameras" && !m_loadSettingkeepKamera) {
 
 			inFile >> tempSizeT;
 
 			Int2 dim = m_windows[0]->GetDimensions();
 			float aspRatio = dim.x / dim.y;
-			for (size_t i = 0; i < tempSizeT; i++)
-			{
+			for (size_t i = 0; i < tempSizeT; i++) {
 				Camera* cam = m_renderAPI->MakeCamera();
 
 				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
@@ -1172,8 +1070,7 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 				cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
 				m_cameras.push_back(cam);
 			}
-		}
-		else if (line == "Lights") {
+		} else if (line == "Lights") {
 			inFile >> m_time_lightAnim;
 			inFile >> tempSizeT;
 			for (size_t i = 0; i < tempSizeT; i++) {
@@ -1182,13 +1079,11 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 				ls.m_position_center = (tempFloat);
 				m_lights.push_back(ls);
 			}
-		}
-		else if (line == "Objects") {
+		} else if (line == "Objects") {
 			//Load Objects
 			inFile >> tempSizeT;
 			Blueprint* bp;
-			for (size_t i = 0; i < tempSizeT; i++)
-			{
+			for (size_t i = 0; i < tempSizeT; i++) {
 				inFile.ignore();
 				std::getline(inFile, line);
 				if ((bp = m_rm->GetBlueprint(line)) == nullptr) {
@@ -1293,64 +1188,63 @@ void Game::RefreshSceneList() {
 #ifdef PERFORMANCE_TESTING
 	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
 #endif // PERFORMANCE_TESTING
-	FileSystem::ListDirectory(m_foundScenes,     m_sceneFolderPath, { ".scene" });
+	FileSystem::ListDirectory(m_foundScenes, m_sceneFolderPath, { ".scene" });
 	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
-	FileSystem::ListDirectory(m_foundMeshes,     m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });
-	FileSystem::ListDirectory(m_foundTextures,   m_rm->GetAssetPath() + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
+	FileSystem::ListDirectory(m_foundMeshes, m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });
+	FileSystem::ListDirectory(m_foundTextures, m_rm->GetAssetPath() + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
 }
 void Game::ReloadShaders() {
 	m_reloadShaders = false;
 
-	std::vector<ShaderDefine> defines;
-	if (m_def_NO_NORMAL_MAP) {
-		defines.push_back({ L"NO_NORMAL_MAP" });
-	}
-
-	if (m_def_NO_SHADOWS) {
-		defines.push_back({ L"NO_SHADOWS" });
-	}
-
-	if (m_def_NO_SHADING) {
-		defines.push_back({ L"NO_SHADING" });
-	}
-
-	if (m_def_CLOSEST_HIT_ALPHA_TEST_1) {
-		defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_1"});
-	}
-
-	if (m_def_CLOSEST_HIT_ALPHA_TEST_2) {
-		defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_2"});
-	}
-
-	if (m_def_TRACE_NON_OPAQUE_SEPARATELY) {
-		defines.push_back({ L"TRACE_NON_OPAQUE_SEPARATELY" });
-	}
-
-	if (m_def_RAY_GEN_ALPHA_TEST) {
-		defines.push_back({ L"RAY_GEN_ALPHA_TEST" });
-	}
-
-	if (m_def_DEBUG_RECURSION_DEPTH) {
-		defines.push_back({ L"DEBUG_RECURSION_DEPTH" });
-		
-		if (m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY) {
-			defines.push_back({ L"DEBUG_RECURSION_DEPTH_MISS_ONLY" });
-		}
-
-		if (m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY) {
-			defines.push_back({ L"DEBUG_RECURSION_DEPTH_HIT_ONLY" });
-		}
-	}
-
-	if (m_def_DEBUG_DEPTH) {
-		defines.push_back({ L"DEBUG_DEPTH" });
-		defines.push_back({ L"DEBUG_DEPTH_EXP", std::to_wstring(m_def_DEBUG_DEPTH_EXP) });
-	}
-
-	m_renderer->Refresh(&defines);
+	//std::vector<ShaderDefine> defines;
+	//if (m_def_NO_NORMAL_MAP) {
+	//	defines.push_back({ L"NO_NORMAL_MAP" });
+	//}
+	//
+	//if (m_def_NO_SHADOWS) {
+	//	defines.push_back({ L"NO_SHADOWS" });
+	//}
+	//
+	//if (m_def_NO_SHADING) {
+	//	defines.push_back({ L"NO_SHADING" });
+	//}
+	//
+	//if (m_def_CLOSEST_HIT_ALPHA_TEST_1) {
+	//	defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_1" });
+	//}
+	//
+	//if (m_def_CLOSEST_HIT_ALPHA_TEST_2) {
+	//	defines.push_back({ L"CLOSEST_HIT_ALPHA_TEST_2" });
+	//}
+	//
+	//if (m_def_TRACE_NON_OPAQUE_SEPARATELY) {
+	//	defines.push_back({ L"TRACE_NON_OPAQUE_SEPARATELY" });
+	//}
+	//
+	//if (m_def_RAY_GEN_ALPHA_TEST) {
+	//	defines.push_back({ L"RAY_GEN_ALPHA_TEST" });
+	//}
+	//
+	//if (m_def_DEBUG_RECURSION_DEPTH) {
+	//	defines.push_back({ L"DEBUG_RECURSION_DEPTH" });
+	//
+	//	if (m_def_DEBUG_RECURSION_DEPTH_MISS_ONLY) {
+	//		defines.push_back({ L"DEBUG_RECURSION_DEPTH_MISS_ONLY" });
+	//	}
+	//
+	//	if (m_def_DEBUG_RECURSION_DEPTH_HIT_ONLY) {
+	//		defines.push_back({ L"DEBUG_RECURSION_DEPTH_HIT_ONLY" });
+	//	}
+	//}
+	//
+	//if (m_def_DEBUG_DEPTH) {
+	//	defines.push_back({ L"DEBUG_DEPTH" });
+	//	defines.push_back({ L"DEBUG_DEPTH_EXP", std::to_wstring(m_def_DEBUG_DEPTH_EXP) });
+	//}
+	//
+	//m_renderer->Refresh(&defines);
 }
 
-void Game::ReloadShaders(const std::vector<ShaderDefine>& defines)
-{
-	m_renderer->Refresh(&defines);
-}
+//void Game::ReloadShaders(const std::vector<ShaderDefine>& defines) {
+//	//m_renderer->Refresh(&defines);
+//}

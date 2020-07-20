@@ -5,13 +5,11 @@
 #include "D3D12VertexBufferLoader.hpp"
 #include <d3d12.h>
 
-D3D12VertexBuffer::D3D12VertexBuffer(D3D12API* renderer)
-{
+D3D12VertexBuffer::D3D12VertexBuffer(D3D12API* renderer) {
 	m_renderer = renderer;
 }
 
-D3D12VertexBuffer::D3D12VertexBuffer(const D3D12VertexBuffer& buffer)
-{
+D3D12VertexBuffer::D3D12VertexBuffer(const D3D12VertexBuffer& buffer) {
 	m_NumOfElements = buffer.m_NumOfElements;
 	m_ElementSize = buffer.m_ElementSize;
 	m_renderer = buffer.m_renderer;
@@ -25,20 +23,19 @@ D3D12VertexBuffer::D3D12VertexBuffer(const D3D12VertexBuffer& buffer)
 	m_view->SizeInBytes = m_ElementSize * m_ElementSize;
 }
 
-D3D12VertexBuffer::~D3D12VertexBuffer()
-{
-	if (m_view)
-	{
+D3D12VertexBuffer::~D3D12VertexBuffer() {
+	if (m_view) {
 		delete m_view;
 	}
-	if (m_resource)
-	{
+	if (m_resource) {
 		m_resource->Release();
 	}
 }
 
-bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
-{
+bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data) {
+	if (m_resource) {
+		return true;
+	}
 	m_NumOfElements = nElements;
 	m_ElementSize = elementSize;
 
@@ -74,7 +71,7 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 
 	if (FAILED(hr))
 		return false;
-	
+
 	// Transfer data to upload heap
 	void* dataBegin = nullptr;
 	D3D12_RANGE range = { 0, 0 }; //We do not intend to read this resource on the CPU.
@@ -108,22 +105,18 @@ bool D3D12VertexBuffer::Initialize(int nElements, int elementSize, void* data)
 	return true;
 }
 
-ID3D12Resource1 * D3D12VertexBuffer::GetResource()
-{
+ID3D12Resource1* D3D12VertexBuffer::GetResource() {
 	return m_resource;
 }
 
-D3D12_VERTEX_BUFFER_VIEW * D3D12VertexBuffer::GetView()
-{
+D3D12_VERTEX_BUFFER_VIEW* D3D12VertexBuffer::GetView() {
 	return m_view;
 }
 
-int D3D12VertexBuffer::GetNumberOfElements() const
-{
+int D3D12VertexBuffer::GetNumberOfElements() const {
 	return m_NumOfElements;
 }
 
-int D3D12VertexBuffer::GetElementSize() const
-{
+int D3D12VertexBuffer::GetElementSize() const {
 	return m_ElementSize;
 }

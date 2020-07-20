@@ -5,6 +5,7 @@
 #include "..\D3D12Texture.hpp"
 #include "..\D3D12API.hpp"
 #include "..\DXR\DXRBase.h"
+#include "..\D3D12ShaderManager.hpp"
 
 #include "../../External/IMGUI/imgui.h"
 #include "../../External/IMGUI/imgui_impl_win32.h"
@@ -18,21 +19,33 @@
 #include <iostream>
 #include <Filesystem>
 
-D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12)
-{
+D3D12RaytracerRenderer::D3D12RaytracerRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12) {
 	m_dxrBase = MY_NEW DXRBase(m_d3d12);
 }
 
-D3D12RaytracerRenderer::~D3D12RaytracerRenderer()
-{
+D3D12RaytracerRenderer::~D3D12RaytracerRenderer() {
 	if (m_dxrBase) {
 		delete m_dxrBase;
 	}
 
+	for (auto& e : m_commandLists) {
+		if (e) {
+			e->Release();
+		}
+	}
+	for (auto& e : m_commandAllocators) {
+		if (e) {
+			e->Release();
+		}
+	}
+	for (auto& e : m_outputTextures) {
+		if (e) {
+			e->Release();
+		}
+	}
 }
 
-bool D3D12RaytracerRenderer::Initialize()
-{
+bool D3D12RaytracerRenderer::Initialize() {
 	if (!m_dxrBase->Initialize()) {
 		return false;
 	}
@@ -44,17 +57,14 @@ bool D3D12RaytracerRenderer::Initialize()
 	return true;
 }
 
-bool D3D12RaytracerRenderer::InitializeCommandInterfaces()
-{
+bool D3D12RaytracerRenderer::InitializeCommandInterfaces() {
 	HRESULT hr;
 
-	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++)
-	{
+	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++) {
 		hr = m_d3d12->GetDevice()->CreateCommandAllocator(
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
 			IID_PPV_ARGS(&m_commandAllocators[i]));
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			return false;
 		}
 
@@ -65,8 +75,7 @@ bool D3D12RaytracerRenderer::InitializeCommandInterfaces()
 			m_commandAllocators[i],
 			nullptr,
 			IID_PPV_ARGS(&m_commandLists[i]));
-		if (FAILED(hr))
-		{
+		if (FAILED(hr)) {
 			return false;
 		}
 
@@ -78,8 +87,7 @@ bool D3D12RaytracerRenderer::InitializeCommandInterfaces()
 	return true;
 }
 
-bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window)
-{
+bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window) {
 	//If window output has not changed keep the old resources, else create new
 	if (window->GetDimensions() == m_outputDim) {
 		return true;
@@ -103,8 +111,7 @@ bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window)
 	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	D3D12_CLEAR_VALUE clearValue = { textureDesc.Format, { 0.00f, 0.00f, 0.00f, 1.0f } };
 
-	for (int i = 0; i < NUM_GPU_BUFFERS; i++)
-	{
+	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
 		if (m_outputTextures[i]) {
 			m_outputTextures[i]->Release();
 		}
@@ -120,8 +127,7 @@ bool D3D12RaytracerRenderer::InitializeOutputTextures(D3D12Window* window)
 	return true;
 }
 
-void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index)
-{
+void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index) {
 	HRESULT hr;
 	hr = m_commandAllocators[index]->Reset();
 	if (!SUCCEEDED(hr)) {
@@ -134,21 +140,18 @@ void D3D12RaytracerRenderer::ResetCommandListAndAllocator(int index)
 	}
 }
 
-void D3D12RaytracerRenderer::Submit(const SubmissionItem& item, Camera* camera, unsigned char layer)
-{
+void D3D12RaytracerRenderer::Submit(const SubmissionItem& item, Camera* camera, unsigned char layer) {
 	m_renderItems.emplace_back(item);
 }
 
-void D3D12RaytracerRenderer::ClearSubmissions()
-{
+void D3D12RaytracerRenderer::ClearSubmissions() {
 	m_renderItems.clear();
 }
 
-void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
-{
+void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera) {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	InitializeOutputTextures(static_cast<D3D12Window*>(window));
-	
+
 	ResetCommandListAndAllocator(bufferIndex);
 	if (m_renderItems.size() == 0) {
 		return;
@@ -158,9 +161,12 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	//D3D12_GPU_VIRTUAL_ADDRESS rtAddr = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetGPUDescriptorHandle().ptr;	
 	//D3D12Texture* tex = static_cast<D3D12Texture*>(m_OpaqueItems[0].blueprint->textures[0]);
 
+	D3D12ShaderManager* sm = m_d3d12->GetShaderManager_D3D12();
 	m_dxrBase->UpdateSceneData(static_cast<D3D12Camera*>(camera), m_lights);
 	m_dxrBase->UpdateAccelerationStructures(m_renderItems, cmdlist);
-	m_dxrBase->Dispatch(cmdlist);
+	m_dxrBase->UpdateDescriptorHeap(cmdlist);
+	m_dxrBase->UpdateShaderTable(sm);
+	m_dxrBase->Dispatch(cmdlist, sm);
 
 	///Copy final output to window resource
 	ID3D12Resource* windowOutput = static_cast<D3D12Window*>(window)->GetCurrentRenderTargetResource();
@@ -172,12 +178,11 @@ void D3D12RaytracerRenderer::Frame(Window* window, Camera* camera)
 	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 }
 
-void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
-{
+void D3D12RaytracerRenderer::Present(Window* window, GUI* gui) {
 	D3D12Window* w = static_cast<D3D12Window*>(window);
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
 	ID3D12GraphicsCommandList4* cmdlist = m_commandLists[bufferIndex];
-	
+
 	/////////////////
 	//Render GUI
 	if (gui) {
@@ -217,23 +222,15 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui)
 	m_d3d12->IncGPUBufferIndex();
 }
 
-void D3D12RaytracerRenderer::ClearFrame()
-{
+void D3D12RaytracerRenderer::ClearFrame() {
 
 }
 
-void D3D12RaytracerRenderer::Refresh(const std::vector<ShaderDefine>* defines)
-{
-	m_dxrBase->ReloadShaders(defines);
-}
-
-void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lights)
-{
+void D3D12RaytracerRenderer::SetLightSources(const std::vector<LightSource>& lights) {
 	m_lights = lights;
 }
 
-void D3D12RaytracerRenderer::SetSetting(const std::string& setting, float value)
-{
+void D3D12RaytracerRenderer::SetSetting(const std::string& setting, float value) {
 	if (setting == "anyhit") {
 		m_dxrBase->SetAllowAnyHitShader(value > 0);
 	}
@@ -243,15 +240,13 @@ void D3D12RaytracerRenderer::SetSetting(const std::string& setting, void* value)
 
 }
 
-float D3D12RaytracerRenderer::GetSetting(const std::string& setting)
-{
+float D3D12RaytracerRenderer::GetSetting(const std::string& setting) {
 	if (setting == "anyhit") {
 		return 0;
 	}
 }
 
-bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
-{
+bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file) {
 	//Wait for the current frame to finnish rendering.
 	m_d3d12->WaitForGPU_ALL();
 
@@ -307,7 +302,7 @@ bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 
 
 	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
-	cmdlist->CopyTextureRegion(&copyLocDest, 0,0,0, &copyLocSource, nullptr);
+	cmdlist->CopyTextureRegion(&copyLocDest, 0, 0, 0, &copyLocSource, nullptr);
 	D3D12Utils::SetResourceTransitionBarrier(cmdlist, m_outputTextures[bufferIndex], D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 
 	hr = cmdlist->Close();
@@ -324,7 +319,7 @@ bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 	imageData.resize(bufferSize);
 
 	void* mappedData;
-	readBackRes->Map(0, nullptr, &mappedData);	
+	readBackRes->Map(0, nullptr, &mappedData);
 	memcpy(imageData.data(), mappedData, bufferSize);
 	readBackRes->Unmap(0, nullptr);
 
@@ -338,8 +333,7 @@ bool D3D12RaytracerRenderer::SaveLastFrame(const std::string& file)
 }
 
 #ifdef PERFORMANCE_TESTING
-double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue)
-{
+double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue) {
 	return m_dxrBase->GetGPU_Timers(nValues, firstValue);
 }
 #endif // PERFORMANCE_TESTING

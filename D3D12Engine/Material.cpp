@@ -8,7 +8,7 @@ Material::~Material() {
 }
 
 bool Material::LoadFromFile(const char* name, ResourceManager& resourceManager) {
-	ConfigLoader::ConfigTreeNode* configRoot = new ConfigLoader::ConfigTreeNode();
+	ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode();
 	std::string errorString;
 	bool result = ConfigLoader::Load(name, *configRoot, &errorString);
 
@@ -37,7 +37,7 @@ bool Material::LoadFromFile(const char* name, ResourceManager& resourceManager) 
 					}
 				} else if (settingName == "shaderGroup") {
 					if (settingType == ConfigLoader::ConfigTreeNodeType::String) {
-						m_shaderGroup = settingValue;
+						m_shaderProgram = resourceManager.GetShaderProgramHandle(settingValue);
 					}
 				} else {
 					//Undefined setting

@@ -11,17 +11,15 @@ struct ID3D12Resource1;
 struct ID3D12Heap;
 struct ID3D12Fence1;
 
-struct GPUBuffer
-{
+struct GPUBuffer {
 	ID3D12Resource1* resource = nullptr;
 	int nElements = 0;
 	int elementSize = 0;
 };
 
-class D3D12VertexBufferLoader
-{
+class D3D12VertexBufferLoader {
 public:
-	D3D12VertexBufferLoader(D3D12API* renderer);
+	D3D12VertexBufferLoader(D3D12API* d3d12);
 	~D3D12VertexBufferLoader();
 
 	bool Initialize();
@@ -32,15 +30,15 @@ private:
 	void WaitForGPU(const unsigned typeIndex);
 	bool InitializeCommandInterfaces(const unsigned typeIndex);
 
-	D3D12API* m_renderer;
+	D3D12API* m_d3d12;
 
 	static const unsigned COPY_INDEX = 0U;
 	static const unsigned DIRECT_INDEX = 1U;
 
-	ID3D12CommandQueue* m_commandQueues[2U];
-	ID3D12CommandAllocator* m_commandAllocators[2U];
-	ID3D12GraphicsCommandList3* m_commandLists[2U];
-	
+	ID3D12CommandQueue* m_commandQueues[2U] = { nullptr };
+	ID3D12CommandAllocator* m_commandAllocators[2U] = { nullptr };
+	ID3D12GraphicsCommandList3* m_commandLists[2U] = { nullptr };
+
 	ID3D12Fence1* m_fence = nullptr;
 	HANDLE m_eventHandle = nullptr;
 	UINT64 m_fenceValue;

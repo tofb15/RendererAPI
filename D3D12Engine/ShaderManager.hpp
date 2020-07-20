@@ -1,44 +1,47 @@
 #pragma once
-
+#include <string>
 enum class ShaderType {
-	UNKNOWN,
+	UNKNOWN = 0,
+	//Raster
 	VS,
 	GS,
 	FS,
+	//DXR
+	INTERSECTION,
+	ANY_HIT,
+	CLOSEST_HIT,
 };
 
 struct ShaderDescription {
-	ShaderType type;
-	const char* name;
-	const char* defines;
+	ShaderType type = ShaderType::UNKNOWN;
+	std::wstring filename;
+	std::wstring entrypoint;
+	std::wstring defines;
 };
 
-struct Shader {
-	ShaderType type;
-	int handle;
+typedef int ShaderHandle;
+typedef int ShaderProgramHandle;
+
+struct ShaderProgramDescription {
+	ShaderHandle VS = -1;//Vertex Shader
+	ShaderHandle GS = -1;//Geometry Shader
+	ShaderHandle FS = -1;//Fragment Shader
+	//DXR		   
+	ShaderHandle IS = -1; //Intersection Shader
+	ShaderHandle AHS = -1;//Any-hit Shader
+	ShaderHandle CHS = -1;//Closest Shader
 };
 
-struct ShaderProgram {
-	Shader VS;
-	Shader GS;
-	Shader FS;
-};
 
-class ShaderManager
-{
+
+class ShaderManager {
 public:
 
 	virtual ~ShaderManager();
 
-	/*
-		@return Shader index, -1 if the shader could not compile
-	*/
-	virtual Shader CompileShader(const ShaderDescription& sd) = 0;
+	virtual ShaderHandle RegisterShader(const ShaderDescription& shaderDescription) = 0;
+	virtual ShaderProgramHandle RegisterShaderProgram(const ShaderProgramDescription& shaderDescription) = 0;
 
-	/*
-		@return Program index, -1 if the program could not be created
-	*/
-	//virtual int CreateShaderProgram(Shader VS, Shader GS, Shader PS) = 0;
 protected:
 	ShaderManager();
 

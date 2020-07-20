@@ -1,3 +1,2 @@
 mesh=Tree.obj
-materials={opaque,alphaTest}
-textures={tree\bark_0004.png,emplyNormal.png,tree\DB2X2_L01.png,tree\DB2X2_L01.png}
+materials={bark_material.txt,foliage_material.txt}

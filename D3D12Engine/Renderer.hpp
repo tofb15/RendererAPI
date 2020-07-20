@@ -10,13 +10,8 @@ class Technique;
 class Mesh;
 class Texture;
 
-struct ShaderDefine {
-	std::wstring define;
-	_Maybenull_ std::wstring value;
-};
-
 struct SubmissionItem {
-	Blueprint* blueprint;
+	Blueprint* blueprint = nullptr;
 	Transform transform;
 };
 
@@ -25,8 +20,7 @@ public:
 	virtual void RenderGUI() = 0;
 };
 
-class Renderer
-{
+class Renderer {
 public:
 	virtual ~Renderer();
 	virtual bool Initialize() = 0;
@@ -68,12 +62,6 @@ public:
 		Clears the backbuffer
 	*/
 	virtual void  ClearFrame() = 0;
-	/*
-		Used to recompile raytracing shaders in runtime.
-
-		@param defines, the defines to use during the recompile.
-	*/
-	virtual void  Refresh(const std::vector<ShaderDefine>* defines = nullptr) {};
 	virtual void  SetLightSources(const std::vector<LightSource>& lights) = 0;
 	/*
 		Used to pass unique settings to the renderer.

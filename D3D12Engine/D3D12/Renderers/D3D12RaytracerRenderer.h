@@ -5,8 +5,7 @@ constexpr UINT NUM_ACCELERATION_STRUCTURES = 2;
 
 class DXRBase;
 class D3D12Window;
-class D3D12RaytracerRenderer : public D3D12Renderer
-{
+class D3D12RaytracerRenderer : public D3D12Renderer {
 public:
 	D3D12RaytracerRenderer(D3D12API* d3d12);
 	~D3D12RaytracerRenderer();
@@ -26,9 +25,8 @@ private:
 	virtual void Frame(Window* window, Camera* camera) override;
 	virtual void Present(Window* window, GUI* gui = nullptr) override;
 	virtual void ClearFrame() override;
-	virtual void Refresh(const std::vector<ShaderDefine>* defines) override;
 	virtual void SetLightSources(const std::vector<LightSource>& lights) override;
-	
+
 	virtual void  SetSetting(const std::string& setting, float value) override;
 	virtual void  SetSetting(const std::string& setting, void* value) override;
 	virtual float GetSetting(const std::string& setting) override;

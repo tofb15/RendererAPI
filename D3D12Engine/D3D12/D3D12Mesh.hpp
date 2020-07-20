@@ -9,13 +9,13 @@ class D3D12API;
 	Used to contain a model.
 	Basicly just a collection of related vertexbuffers.
 */
-class D3D12Mesh : public Mesh{
+class D3D12Mesh : public Mesh {
 public:
 	D3D12Mesh(D3D12API* renderer, unsigned short id);
 	virtual ~D3D12Mesh();
 
 	// Note: this is limited to only reading triangles as of now
-	virtual bool LoadFromFile(const char * fileName, MeshLoadFlag loadFlag) override;
+	virtual bool LoadFromFile(const char* fileName, MeshLoadFlag loadFlag) override;
 	virtual bool InitializeCube(unsigned int vertexBufferFlags) override;
 	virtual bool InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) override;
 	virtual int GetNumberOfSubMeshes() override;
@@ -28,7 +28,7 @@ public:
 
 	std::unordered_map<VertexBufferFlag, D3D12VertexBuffer*>* GetVertexBuffers();
 	std::vector<D3D12VertexBuffer*> GetVertexBuffers_vec();
-	
+
 	unsigned short GetID() const;
 
 private:

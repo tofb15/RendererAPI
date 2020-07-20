@@ -21,7 +21,10 @@ DXILShaderCompiler::~DXILShaderCompiler() {
 HRESULT DXILShaderCompiler::init() {
 #ifdef _WIN64
 	HMODULE dll = LoadLibraryA("dxcompiler.dll");
-	if (!dll) MessageBoxW(0, L"dxcompiler.dll is missing", L"Error", 0);
+	if (!dll) {
+		MessageBoxW(0, L"dxcompiler.dll is missing", L"Error", 0);
+		return E_FAIL;
+	}
 #else
 	return E_FAIL;
 #endif
@@ -81,22 +84,25 @@ HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult, std::wstrin
 					} else {
 						IDxcBlobEncoding* pPrintBlob = nullptr;
 						if (SUCCEEDED(pResult->GetErrorBuffer(&pPrintBlob))) {
-							// We can use the library to get our preferred encoding.
-							IDxcBlobEncoding* pPrintBlob16 = nullptr;
-							m_library->GetBlobAsUtf16(pPrintBlob, &pPrintBlob16);
+							if (pPrintBlob) {
+								// We can use the library to get our preferred encoding.
+								IDxcBlobEncoding* pPrintBlob16 = nullptr;
+
+								m_library->GetBlobAsUtf16(pPrintBlob, &pPrintBlob16);
 
 #ifdef _DEBUG
-							MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
+								MessageBoxW(0, (LPCWSTR)pPrintBlob16->GetBufferPointer(), L"", 0);
 #endif // _DEBUG
-							if (errorMessage) {
+								if (errorMessage) {
 
-								OutputDebugStringW((LPCWSTR)pPrintBlob16->GetBufferPointer());
-								*errorMessage = (LPCWSTR)pPrintBlob16->GetBufferPointer();
+									OutputDebugStringW((LPCWSTR)pPrintBlob16->GetBufferPointer());
+									*errorMessage = (LPCWSTR)pPrintBlob16->GetBufferPointer();
 
+								}
+
+								pPrintBlob->Release();
+								pPrintBlob16->Release();
 							}
-
-							pPrintBlob->Release();
-							pPrintBlob16->Release();
 						}
 					}
 

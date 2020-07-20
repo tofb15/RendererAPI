@@ -2,7 +2,6 @@
 
 #include "../Technique.hpp"
 
-struct ShaderProgram;
 class D3D12RenderState;
 class D3D12API;
 class D3D12ShaderManager;
@@ -15,10 +14,10 @@ struct ID3D12RootSignature;
 
 	TODO: integrate it with RTX
 */
-class D3D12Technique : public Technique{
+class D3D12Technique : public Technique {
 public:
 	D3D12Technique(D3D12API* d3d12, unsigned short id);
-	virtual bool Initialize(D3D12RenderState* rs, ShaderProgram* sp, D3D12ShaderManager* sm);
+	virtual bool Initialize(D3D12RenderState* rs, /*ShaderProgramHandle& sp,*/ D3D12ShaderManager* sm);
 	bool InitializeRootSignature();
 
 	virtual ~D3D12Technique();
@@ -33,8 +32,8 @@ public:
 
 private:
 	unsigned short m_id;
-	D3D12API* m_d3d12;
-	D3D12RenderState* m_rs;
+	D3D12API* m_d3d12 = nullptr;
+	D3D12RenderState* m_rs = nullptr;
 	ID3D12PipelineState* m_pipelineState = nullptr;
 	ID3D12RootSignature* m_rootSignature = nullptr;
 };

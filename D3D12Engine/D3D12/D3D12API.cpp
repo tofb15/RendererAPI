@@ -46,26 +46,37 @@ D3D12API::D3D12API() {
 }
 D3D12API::~D3D12API() {
 	WaitForGPU_ALL();
-	m_Fence->Release();
-	m_CommandQueue_direct->Release();
 
-	m_textureLoader->Kill();	//Notify the other thread to stop.
-	//m_thread_texture.join();	//Wait for the other thread to stop.
-	if (m_textureLoader)
-		delete m_textureLoader;
-
-	if (m_vertexBufferLoader)
-		delete m_vertexBufferLoader;
-
-	HRESULT hr = m_device->GetDeviceRemovedReason();
-	if (FAILED(hr)) {
-		_com_error err2(hr);
-		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+	if (m_Fence) {
+		m_Fence->Release();
 	}
 
-	m_device->Release();
+	if (m_CommandQueue_direct) {
+		m_CommandQueue_direct->Release();
+	}
 
-	int i;
+	if (m_textureLoader) {
+		m_textureLoader->Kill();	//Notify the other thread to stop.
+		delete m_textureLoader;
+	}
+
+	if (m_vertexBufferLoader) {
+		delete m_vertexBufferLoader;
+	}
+
+	if (m_shadermanager) {
+		delete m_shadermanager;
+		m_shadermanager = nullptr;
+	}
+
+	if (m_device) {
+		HRESULT hr = m_device->GetDeviceRemovedReason();
+		if (FAILED(hr)) {
+			_com_error err2(hr);
+			std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+		}
+		m_device->Release();
+	}
 }
 
 bool D3D12API::Initialize() {
@@ -99,6 +110,11 @@ bool D3D12API::Initialize() {
 		return false;
 	}
 
+	m_shadermanager = MY_NEW D3D12ShaderManager(this);
+	if (!m_shadermanager->Initialize()) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -124,20 +140,20 @@ Terrain* D3D12API::MakeTerrain() {
 	return MY_NEW D3D12Terrain(this);
 }
 Material* D3D12API::MakeMaterial() {
-	return MY_NEW D3D12Material;
+	return MY_NEW D3D12Material(this);
 }
 RenderState* D3D12API::MakeRenderState() {
 	return MY_NEW D3D12RenderState;
 }
 Technique* D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) {
-	if (++m_techniquesCreated == 0)
-		return nullptr;
-
-	D3D12Technique* tech = MY_NEW D3D12Technique(this, m_techniquesCreated);
-	if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), sp, static_cast<D3D12ShaderManager*>(sm))) {
-		delete tech;
-		return nullptr;
-	}
+	//if (++m_techniquesCreated == 0)
+	//	return nullptr;
+	//
+	//D3D12Technique* tech = MY_NEW D3D12Technique(this, m_techniquesCreated);
+	//if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), /*sp,*/ static_cast<D3D12ShaderManager*>(sm))) {
+	//	delete tech;
+	//	return nullptr;
+	//}
 	//Next Frame Frame
 	//int* closestTechnique_temp = MY_NEW int[m_techniquesCreated];
 	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
@@ -157,12 +173,14 @@ Technique* D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderMan
 	//closestTechnique_temp[m_techniquesCreated - 1] = 0;
 	//delete m_closestTechnique_lastFrame;
 	//m_closestTechnique_lastFrame = closestTechnique_temp;
-
-	return tech;
+	//return tech;
+	return nullptr;
 }
-ShaderManager* D3D12API::MakeShaderManager() {
-	D3D12ShaderManager* sm = MY_NEW D3D12ShaderManager(this);
-	return sm;
+ShaderManager* D3D12API::GetShaderManager() {
+	return m_shadermanager;
+}
+D3D12ShaderManager* D3D12API::GetShaderManager_D3D12() {
+	return m_shadermanager;
 }
 D3D12VertexBuffer* D3D12API::MakeVertexBuffer() {
 	return MY_NEW D3D12VertexBuffer(this);
@@ -247,6 +265,10 @@ bool D3D12API::InitializeDirect3DDevice() {
 	ID3D12Debug* debugController = nullptr;
 
 	HMODULE mD3D12 = GetModuleHandle("D3D12.dll");
+	if (mD3D12 == 0) {
+		return false;
+	}
+
 	PFN_D3D12_GET_DEBUG_INTERFACE f = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(mD3D12, "D3D12GetDebugInterface");
 	if (SUCCEEDED(f(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();

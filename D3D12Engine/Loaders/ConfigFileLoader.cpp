@@ -67,7 +67,7 @@ int ConfigParser::ParseExpression::Check(char*& current, void* parrentNode) cons
 
 int ConfigParser::Setting::Check(char*& current, ConfigTreeNode* parrentNode) const {
 	const char* start = current;
-	ConfigTreeNode* myNode = new ConfigTreeNode;
+	ConfigTreeNode* myNode = MY_NEW ConfigTreeNode;
 	myNode->type = ConfigTreeNodeType::Setting;
 
 	//Detect the setting name, if found it is pushed to myNode
@@ -100,7 +100,7 @@ int ConfigParser::Setting::Check(char*& current, ConfigTreeNode* parrentNode) co
 
 int ConfigParser::SettingName::Check(char*& current, ConfigTreeNode* parrentNode) const {
 	const char* start = current;
-	ConfigTreeNode* myNode = new ConfigTreeNode;
+	ConfigTreeNode* myNode = MY_NEW ConfigTreeNode;
 	myNode->type = ConfigTreeNodeType::String;
 
 	int i;
@@ -118,7 +118,7 @@ int ConfigParser::SettingName::Check(char*& current, ConfigTreeNode* parrentNode
 
 int ConfigParser::SettingValue::Check(char*& current, ConfigTreeNode* parrentNode) const {
 	const char* start = current;
-	ConfigTreeNode* myNode = new ConfigTreeNode;
+	ConfigTreeNode* myNode = MY_NEW ConfigTreeNode;
 
 	int i;
 	if ((i = RegularExp::Strings::g_string_letters_tokens_digits.Check(current, myNode)) > 0) {
@@ -202,7 +202,7 @@ int ConfigParser::InlineComment::Check(char*& current, ConfigTreeNode* parrentNo
 
 int ConfigParser::Array::Check(char*& current, ConfigTreeNode* parrentNode) const {
 	const char* start = current;
-	ConfigTreeNode* myNode = new ConfigTreeNode;
+	ConfigTreeNode* myNode = MY_NEW ConfigTreeNode;
 	myNode->type = ConfigTreeNodeType::Array;
 
 	//Detect Begining Of Array "{"

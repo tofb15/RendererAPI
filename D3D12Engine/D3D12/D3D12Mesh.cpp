@@ -9,45 +9,19 @@
 #include <sstream>
 #include <fstream>
 
-D3D12Mesh::D3D12Mesh(D3D12API* renderer, unsigned short id) : m_id(id)
-{
+D3D12Mesh::D3D12Mesh(D3D12API* renderer, unsigned short id) : m_id(id) {
 	m_d3d12 = renderer;
 }
 
-D3D12Mesh::~D3D12Mesh()
-{
-	//for (auto& buffer : m_vertexBuffers)
-	//{
-	//	delete buffer.second;
-	//}
-
-	for (auto& obj : m_subObjects)
-	{
-		for (auto& buffer : obj.second)
-		{
+D3D12Mesh::~D3D12Mesh() {
+	for (auto& obj : m_subObjects) {
+		for (auto& buffer : obj.second) {
 			delete buffer.second;
 		}
 	}
 }
 
-bool D3D12Mesh::LoadFromFile(const char * fileName, MeshLoadFlag loadFlag)
-{
-	// Open .obj file
-	// TODO: generalize for other file formats
-	//std::string fullPath = fileName;
-	//std::ifstream inFile(fullPath);
-	//if (!inFile.is_open())
-	//	return false;
-
-	//std::string line, type;
-	//
-	//std::vector<Float3> all_positions;
-	//std::vector<Float3> all_normals;
-	//std::vector<Float2> all_uvs;
-
-	//std::string currentMaterialName;
-
-
+bool D3D12Mesh::LoadFromFile(const char* fileName, MeshLoadFlag loadFlag) {
 	if (loadFlag & MESH_LOAD_FLAG_USE_INDEX) {
 		//TODO: FIX INDEXBUFFERS - Indexbuffer not yet supported
 
@@ -89,8 +63,7 @@ bool D3D12Mesh::LoadFromFile(const char * fileName, MeshLoadFlag loadFlag)
 			}
 		}
 		*/
-	}
-	else {
+	} else {
 		std::unordered_map<std::string, std::vector<Float3>> material_facePositions;
 		std::unordered_map<std::string, std::vector<Float3>> material_faceNormals;
 		std::unordered_map<std::string, std::vector<Float2>> material_faceUVs;
@@ -98,20 +71,17 @@ bool D3D12Mesh::LoadFromFile(const char * fileName, MeshLoadFlag loadFlag)
 		if (!LOADER::LoadOBJ(fileName, material_facePositions, material_faceNormals, material_faceUVs)) {
 			return false;
 		}
-	
-		for (auto& e : material_facePositions)
-		{
+
+		for (auto& e : material_facePositions) {
 			if (!AddVertexBuffer(static_cast<int>(e.second.size()), sizeof(Float3), e.second.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION, e.first))
 				return false;
 
-			if (material_faceNormals.count(e.first))
-			{
+			if (material_faceNormals.count(e.first)) {
 				if (!AddVertexBuffer(static_cast<int>(material_faceNormals[e.first].size()), sizeof(Float3), material_faceNormals[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL, e.first))
 					return false;
 			}
 
-			if (material_faceUVs.count(e.first))
-			{
+			if (material_faceUVs.count(e.first)) {
 				if (!AddVertexBuffer(static_cast<int>(material_faceUVs[e.first].size()), sizeof(Float2), material_faceUVs[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV, e.first))
 					return false;
 			}
@@ -122,12 +92,10 @@ bool D3D12Mesh::LoadFromFile(const char * fileName, MeshLoadFlag loadFlag)
 		}
 	}
 
-
 	return true;
 }
 
-bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
-{
+bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags) {
 
 	if (vertexBufferFlags & Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION) {
 
@@ -139,19 +107,19 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 			//Right
 			{ 0.5f,  0.5, -0.5f }, { 0.5f,  0.5, 0.5f }, { 0.5f,  -0.5, 0.5f },
 			{ 0.5f,  -0.5, 0.5f }, { 0.5f,  -0.5, -0.5f }, { 0.5f,  0.5, -0.5f },
-	
+
 			//Back
 			{ 0.5f,  0.5, 0.5f }, { -0.5f,  -0.5, 0.5f }, { 0.5f,  -0.5, 0.5f },
 			{ -0.5f,  -0.5, 0.5f }, { 0.5f,  0.5, 0.5f }, { -0.5f,  0.5, 0.5f },
-		
+
 			//Left
 			{ -0.5f,  0.5, 0.5f }, { -0.5f,  0.5, -0.5f }, { -0.5f,  -0.5, -0.5f },
 			{ -0.5f,  -0.5, -0.5f }, { -0.5f,  -0.5, 0.5f }, { -0.5f,  0.5, 0.5f },
-		
+
 			//Top
 			{ -0.5f,  0.5, 0.5f}, { 0.5f,  0.5, 0.5f }, { 0.5f,  0.5, -0.5f },
 			{ 0.5f,  0.5, -0.5f}, { -0.5f,  0.5, -0.5f }, { -0.5f,  0.5, 0.5f },
-		
+
 			//Bottom
 			{ 0.5f,  -0.5, -0.5f }, { 0.5f,  -0.5, 0.5f }, { -0.5f,  -0.5, 0.5f },
 			{ -0.5f,  -0.5, 0.5f }, { -0.5f,  -0.5, -0.5f }, { 0.5f,  -0.5, -0.5f },
@@ -161,7 +129,7 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 		if (!AddVertexBuffer(sizeof(data) / sizeof(Float3), sizeof(Float3), data, Mesh::VERTEX_BUFFER_FLAG_POSITION, "cube"))
 			return false;
 	}
-	
+
 	if (vertexBufferFlags & Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL) {
 
 		Float3 data[] = {
@@ -290,21 +258,17 @@ bool D3D12Mesh::InitializeCube(unsigned int vertexBufferFlags)
 	return true;
 }
 
-bool D3D12Mesh::InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections)
-{
+bool D3D12Mesh::InitializeSphere(const uint16_t verticalSections, const uint16_t horizontalSections) {
 	return true;
 }
 
-int D3D12Mesh::GetNumberOfSubMeshes()
-{
+int D3D12Mesh::GetNumberOfSubMeshes() {
 	return m_subObjects.size();
 }
 
-std::string D3D12Mesh::GetSubMesheName(int i)
-{
+std::string D3D12Mesh::GetSubMesheName(int i) {
 	int j = 0;
-	for (auto& e : m_subObjects)
-	{
+	for (auto& e : m_subObjects) {
 		if (i == j)
 			return e.first;
 		j++;
@@ -313,13 +277,10 @@ std::string D3D12Mesh::GetSubMesheName(int i)
 	return std::string();
 }
 
-bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType, std::string subObject)
-{
+bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh::VertexBufferFlag bufferType, std::string subObject) {
 	std::unordered_map<VertexBufferFlag, D3D12VertexBuffer*>& m_subObject = m_subObjects[subObject];
 	if (m_subObject.count(bufferType))
 		return false;
-	
-	//m_VertexBufferFlags |= bufferType;
 
 	//Create Vertexbuffer
 	D3D12VertexBuffer* vertexBuffer = m_d3d12->MakeVertexBuffer();
@@ -332,8 +293,7 @@ bool D3D12Mesh::AddVertexBuffer(int nElements, int elementSize, void* data, Mesh
 	return true;
 }
 
-bool D3D12Mesh::AddVertexBuffer(D3D12VertexBuffer* buffer, Mesh::VertexBufferFlag bufferType, std::string subObject)
-{
+bool D3D12Mesh::AddVertexBuffer(D3D12VertexBuffer* buffer, Mesh::VertexBufferFlag bufferType, std::string subObject) {
 	if (!buffer) {
 		return false;
 	}
@@ -349,35 +309,22 @@ bool D3D12Mesh::AddVertexBuffer(D3D12VertexBuffer* buffer, Mesh::VertexBufferFla
 	return true;
 }
 
-D3D12VertexBuffer* D3D12Mesh::GetVertexBuffer(Mesh::VertexBufferFlag bufferType)
-{
-	for (auto& e : m_subObjects)
-	{
+D3D12VertexBuffer* D3D12Mesh::GetVertexBuffer(Mesh::VertexBufferFlag bufferType) {
+	for (auto& e : m_subObjects) {
 		return e.second[bufferType];
 	}
 
 	return nullptr;
 }
 
-std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& D3D12Mesh::GetSubObjects()
-{
+std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& D3D12Mesh::GetSubObjects() {
 	return m_subObjects;
 }
 
-bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements, std::string subObject )
-{
-	//int condition = VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION | VertexBufferFlag::VERTEX_BUFFER_FLAG_UV;
-	//if ((m_VertexBufferFlags & condition) != condition || m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL) {
-	//	return false;
-	//}
-
-	//Needed Variables
-	//D3D12VertexBuffer* positions = m_vertexBuffers[0];
-	//D3D12VertexBuffer* uvs = m_vertexBuffers[(m_VertexBufferFlags & VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL) ? 2 : 1];
+bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int nElements, std::string subObject) {
 	std::vector<Float3> tangentsAndBinormal;
 
-	for (size_t i = 0; i < nElements; i+=3)
-	{
+	for (size_t i = 0; i < nElements; i += 3) {
 		Float3 vL[2];			// Vectors between vertices in Local space
 		Float2 vT[2];			// Vectors between vertices in tangent space
 		float denominator;
@@ -406,31 +353,27 @@ bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int 
 		tempTangent.normalize();
 		tempBinormal.normalize();
 
-		for (size_t j = 0; j < 3; j++)
-		{
+		for (size_t j = 0; j < 3; j++) {
 			tangentsAndBinormal.push_back({ tempTangent.x, tempTangent.y, tempTangent.z });		//add Tangent
 			tangentsAndBinormal.push_back({ tempBinormal.x, tempBinormal.y, tempBinormal.z });	//add Binormal
 		}
 
 	}
 
-	if (!AddVertexBuffer(tangentsAndBinormal.size()/2 , sizeof(Float3)*2, (void*)&tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL, subObject))
+	if (!AddVertexBuffer(tangentsAndBinormal.size() / 2, sizeof(Float3) * 2, (void*)& tangentsAndBinormal[0], Mesh::VERTEX_BUFFER_FLAG_TANGENT_BINORMAL, subObject))
 		return false;
 
 	return true;
 }
 
-std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers()
-{
+std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>* D3D12Mesh::GetVertexBuffers() {
 	return nullptr;
 }
 
-std::vector<D3D12VertexBuffer*> D3D12Mesh::GetVertexBuffers_vec()
-{
+std::vector<D3D12VertexBuffer*> D3D12Mesh::GetVertexBuffers_vec() {
 	std::vector<D3D12VertexBuffer*> vec;
 
-	for (auto& e : m_subObjects)
-	{
+	for (auto& e : m_subObjects) {
 		if (e.second.count(VERTEX_BUFFER_FLAG_POSITION)) {
 			vec.push_back(e.second[VERTEX_BUFFER_FLAG_POSITION]);
 		}
@@ -454,7 +397,6 @@ std::vector<D3D12VertexBuffer*> D3D12Mesh::GetVertexBuffers_vec()
 	return vec;
 }
 
-unsigned short D3D12Mesh::GetID() const
-{
+unsigned short D3D12Mesh::GetID() const {
 	return m_id;
 }

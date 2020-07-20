@@ -1,0 +1,3 @@
+closesthit   = {closestHitTriangle,final.hlsl}
+#anyhit       = anyHitAlphaTest.txt
+#intersection = hej

@@ -4,8 +4,7 @@ struct ID3D12Resource1;
 struct D3D12_VERTEX_BUFFER_VIEW;
 class D3D12API;
 
-class D3D12VertexBuffer
-{
+class D3D12VertexBuffer {
 public:
 	D3D12VertexBuffer(D3D12API* renderer);
 	D3D12VertexBuffer(const D3D12VertexBuffer& buffer);
@@ -19,8 +18,8 @@ public:
 	int GetElementSize() const;
 
 private:
-	int m_NumOfElements;
-	int m_ElementSize;
+	int m_NumOfElements = 0;
+	int m_ElementSize = 0;
 
 	D3D12API* m_renderer = nullptr;
 	ID3D12Resource1* m_resource = nullptr;

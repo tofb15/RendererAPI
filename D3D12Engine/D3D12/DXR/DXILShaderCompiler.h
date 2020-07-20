@@ -10,10 +10,10 @@ public:
 
 	struct Desc {
 		LPCVOID source = nullptr;
-		UINT32 sourceSize;
-		LPCWSTR filePath;
-		LPCWSTR entryPoint;
-		LPCWSTR targetProfile;
+		UINT32 sourceSize = 0;
+		LPCWSTR filePath = nullptr;
+		LPCWSTR entryPoint = nullptr;
+		LPCWSTR targetProfile = nullptr;
 		std::vector<LPCWSTR> compileArguments;
 		std::vector<DxcDefine> defines;
 	};
@@ -28,11 +28,9 @@ public:
 	HRESULT compile(Desc* desc, IDxcBlob** ppResult, std::wstring* errorMessage = nullptr);
 
 private:
-	IDxcLibrary* m_library;
-	IDxcCompiler* m_compiler;
-	IDxcIncludeHandler* m_includeHandler;
-
-
-	IDxcLinker* m_linker;
+	IDxcLibrary* m_library = nullptr;
+	IDxcCompiler* m_compiler = nullptr;
+	IDxcIncludeHandler* m_includeHandler = nullptr;
+	IDxcLinker* m_linker = nullptr;
 
 };

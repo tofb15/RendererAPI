@@ -15,8 +15,10 @@
 #include <vector>
 #include <Windows.h>
 #include <unordered_map>
+#include <unordered_set>
 
 class D3D12Texture;
+class D3D12ShaderManager;
 
 typedef void* _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS;
 typedef unsigned int BLAS_ID;
@@ -36,14 +38,15 @@ public:
 	*/
 	bool Initialize();
 	/*
-		Set the output resources of the dispatch ray call which can be used to create an UAV. 
+		Set the output resources of the dispatch ray call which can be used to create an UAV.
 	*/
 	void SetOutputResources(ID3D12Resource** output, Int2 dim);
-	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
 
 	void UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource>& lights);
-	void Dispatch(ID3D12GraphicsCommandList4* cmdList);
-	void ReloadShaders(const std::vector<ShaderDefine>* defines);
+	void UpdateAccelerationStructures(std::vector<SubmissionItem>& items, ID3D12GraphicsCommandList4* cmdList);
+	void UpdateShaderTable(D3D12ShaderManager* sm);
+	void UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
+	void Dispatch(ID3D12GraphicsCommandList4* cmdList, D3D12ShaderManager* sm);
 
 	//Settings
 	void SetAllowAnyHitShader(bool b);
@@ -54,7 +57,7 @@ public:
 			force the CPU to wait for all GPU work to finnish.
 
 		@param nValues the size of the returned array will be stored here
-		
+
 		@return an array countaining all the timer values. It's size will be given in @param nValues
 	*/
 	virtual double* GetGPU_Timers(int& nValues, int& firstValue);
@@ -85,8 +88,7 @@ private:
 			as = other.as;
 			needsRebuild = other.needsRebuild;
 			nGeometries = other.nGeometries;
-			for (size_t i = 0; i < nGeometries; i++)
-			{
+			for (size_t i = 0; i < nGeometries; i++) {
 				geometryBuffers[i] = other.geometryBuffers[i];
 			}
 			items = other.items;
@@ -96,25 +98,18 @@ private:
 	};
 
 private:
-	bool InitializeRootSignatures();
+	//bool InitializeRootSignatures();
 	bool InitializeConstanBuffers();
 
 	// Acceleration structures
 	void CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsCommandList4* cmdList);
 	void CreateBLAS(const SubmissionItem& renderCommand, _D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, ID3D12GraphicsCommandList4* cmdList, AccelerationStructureBuffers* sourceBufferForUpdate = nullptr);
-	void UpdateShaderTable();
 
-	void UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList);
 	void createInitialShaderResources(bool remake = false);
 
 	// Root signature creation
-	// TODO: create them dynamically after parsing the shader source (like ShaderPipeline does)
-	bool CreateDXRGlobalRootSignature();
-	bool CreateRayGenLocalRootSignature();
-	bool CreateHitGroupLocalRootSignature();
-	bool CreateMissLocalRootSignature();
-	bool CreateEmptyLocalRootSignature();
-	bool CreateRaytracingPSO(const std::vector<ShaderDefine>* defines);
+
+	//bool CreateRaytracingPSO(const std::vector<ShaderDefine>* defines);
 	bool CreateDescriptorHeap();
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentDescriptorHandle();
@@ -135,7 +130,7 @@ private:
 
 	static constexpr int N_TIMER_VALUES = 1000;
 	FR::D3D12Timer m_gpuTimer;
-	double m_timerValue[N_TIMER_VALUES] = {0};
+	double m_timerValue[N_TIMER_VALUES] = { 0 };
 	unsigned int m_nextTimerIndex = 0;
 	double m_averageTime = 0;
 	int m_nUnExtractedTimerValues = 0;
@@ -146,15 +141,6 @@ private:
 
 	AccelerationStructureBuffers m_TLAS_buffers[NUM_GPU_BUFFERS];
 	std::unordered_map<Blueprint*, BottomLayerData> m_BLAS_buffers[NUM_GPU_BUFFERS];
-
-	D3D12Utils::RootSignature m_globalRootSignature;
-	//TODO: generate local signatures
-	D3D12Utils::RootSignature m_localRootSignature_rayGen;
-	D3D12Utils::RootSignature m_localRootSignature_miss;
-	D3D12Utils::RootSignature m_localRootSignature_hitGroups;
-	D3D12Utils::RootSignature m_localRootSignature_empty;
-
-	ID3D12StateObject* m_rtxPipelineState = nullptr;
 
 	//==Descriptor Heap==
 	UINT m_descriptorSize;
@@ -178,20 +164,6 @@ private:
 	DXRUtils::ShaderTableData m_shaderTable_hitgroup[NUM_GPU_BUFFERS];
 
 	uint m_hitGroupShaderRecordsNeededThisFrame;
-
-	//==Shader Names==
-	const WCHAR* m_shader_rayGenName = L"rayGen";
-	const WCHAR* m_shader_closestHitName = L"closestHitTriangle";
-	const WCHAR* m_shader_closestHitAlphaTestName = L"closestHitAlphaTest";
-	const WCHAR* m_shader_anyHitName = L"anyHitAlphaTest";
-	const WCHAR* m_shader_missName = L"miss";
-
-	const WCHAR* m_shader_shadowMissName = L"shadow_GeometryMiss";
-
-	//==Shader Group Names==
-	const WCHAR* m_group1 = L"hitGroup";
-	const WCHAR* m_group_alphaTest = L"hitGroup_alphaTest";
-	const WCHAR* m_group_alphaTest_shadow = L"hitGroup_alphaTest_shadow";
 
 	//Settings
 	bool m_allowAnyhitshaders = true;

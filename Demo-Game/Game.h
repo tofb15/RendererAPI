@@ -43,8 +43,7 @@ struct Object {
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
 
-class Game : public GUI
-{
+class Game : public GUI {
 public:
 	Game();
 	virtual ~Game();
@@ -64,7 +63,7 @@ public:
 	void RenderWindows();
 	/*
 		Save the current scene to file. The filename of the scene will be decided by m_currentSceneName.
-		
+
 		@param saveAsNew, if true m_currentSceneName will be set a non existing generated filename
 			before saving in order to avoid overwriting a previusly saved scene.
 			If Set to false m_currentSceneName will be used as the filename and potentially overwrite
@@ -103,7 +102,7 @@ public:
 		Triggers the renderer to recompile shaders with the current shader defines and settings
 	*/
 	void ReloadShaders();
-	void ReloadShaders(const std::vector<ShaderDefine>& defines);
+	//void ReloadShaders(const std::vector<ShaderDefine>& defines);
 
 	//===========ImGui Rendering============
 	/**

@@ -10,18 +10,16 @@
 
 #include <iostream>
 #include <d3d12.h>
+#include <cassert>
 
-D3D12Texture::D3D12Texture(D3D12API* renderer, unsigned short index) : m_Renderer(renderer)
-{
+D3D12Texture::D3D12Texture(D3D12API* renderer, unsigned short index) : m_Renderer(renderer) {
 	m_index = index;
 }
 
-D3D12Texture::~D3D12Texture()
-{
+D3D12Texture::~D3D12Texture() {
 }
 
-bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
-{
+bool D3D12Texture::LoadFromFile(const char* fileName, unsigned flags) {
 	if (flags == 0)
 		return false;
 
@@ -52,8 +50,7 @@ bool D3D12Texture::LoadFromFile(const char * fileName, unsigned flags)
 	return true;
 }
 
-bool D3D12Texture::IsLoaded()
-{
+bool D3D12Texture::IsLoaded() {
 	return m_GPU_Loader_index != -1;
 }
 
@@ -61,22 +58,21 @@ bool D3D12Texture::IsDDS() {
 	return m_isDDS;
 }
 
-int D3D12Texture::GetTextureIndex() const
-{
+int D3D12Texture::GetTextureIndex() const {
 	return m_GPU_Loader_index;
 }
 
-void D3D12Texture::UpdatePixel(const Int2& pos, const unsigned char * data, int size)
-{
+void D3D12Texture::UpdatePixel(const Int2& pos, const unsigned char* data, int size) {
+	assert(pos.x >= 0 && pos.y >= 0 && "Pixel pos must be positive!");
+
 	if (m_Flags & Texture_Load_Flags::TEXTURE_USAGE_CPU_FLAG) {
-		std::memcpy(&m_Image_CPU[m_BytesPerPixel * (pos.y*m_Width + pos.x)], data, size);
+		std::memcpy(&m_Image_CPU[m_BytesPerPixel * ((unsigned int)pos.y * m_Width + (unsigned int)pos.x)], data, size);
 		//&m_Image_CPU[m_BytesPerPixel * (pos.y*m_Width + pos.x)] = data * size;
 		m_hasChanged = true;
 	}
 }
 
-void D3D12Texture::ApplyChanges()
-{
+void D3D12Texture::ApplyChanges() {
 	if (m_hasChanged) {
 		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
 		m_Renderer->GetTextureLoader()->SynchronizeWork();
@@ -84,18 +80,15 @@ void D3D12Texture::ApplyChanges()
 	}
 }
 
-std::vector<unsigned char>& D3D12Texture::GetData_addr()
-{
+std::vector<unsigned char>& D3D12Texture::GetData_addr() {
 	return m_Image_CPU;
 }
 
-const std::vector<unsigned char>& D3D12Texture::GetData_addr_const() const
-{
+const std::vector<unsigned char>& D3D12Texture::GetData_addr_const() const {
 	return m_Image_CPU;
 }
 
-std::vector<unsigned char> D3D12Texture::GetData_cpy() const
-{
+std::vector<unsigned char> D3D12Texture::GetData_cpy() const {
 	return m_Image_CPU;
 }
 
@@ -107,8 +100,7 @@ D3D12_RESOURCE_DESC D3D12Texture::GetTextureDescription() {
 	return m_textureDesc;
 }
 
-bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource)
-{
+bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource) {
 	if (m_fileName.extension() == ".png") {
 		unsigned error = lodepng::decode(m_Image_CPU, m_Width, m_Height, m_fileName.string());
 
@@ -167,7 +159,7 @@ bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource)
 		} else {
 			//TODO:: Handle Error
 		}
-	}else if (m_isDDS) {
+	} else if (m_isDDS) {
 		std::wstring wide_string = m_fileName.c_str();
 
 		HRESULT hr = DirectX::LoadDDSTextureFromFile(m_Renderer->GetDevice(), wide_string.c_str(), ddsResource, ddsData, m_subresources);
@@ -175,7 +167,7 @@ bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource)
 			ddsResource = nullptr;
 			return false;
 		}
-		
+
 		//m_Renderer->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &m_textureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(ddsResource));
 		//ddsData.release();
 		m_textureDesc = (*ddsResource)->GetDesc();

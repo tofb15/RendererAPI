@@ -5,7 +5,7 @@
 int CodeParse::DataType::Check(char*& current, ParseTreeNode* parrentNode) const {
 	const char* start = current;
 
-	ParseTreeNode* myNode = new ParseTreeNode;
+	ParseTreeNode* myNode = MY_NEW ParseTreeNode;
 	myNode->type = ParseTreeNodeType_DataType;
 
 	if (pars_name.Check(current, myNode) >= 0) {
@@ -27,7 +27,7 @@ int CodeParse::DataType::Check(char*& current, ParseTreeNode* parrentNode) const
 int CodeParse::Function::Check(char*& current, ParseTreeNode* parrentNode) const {
 	const char* start = current;
 
-	ParseTreeNode* myNode = new ParseTreeNode;
+	ParseTreeNode* myNode = MY_NEW ParseTreeNode;
 	myNode->type = ParseTreeNodeType_Function;
 
 	if (pars_dataType.Check(current, myNode) >= 0) {
@@ -52,7 +52,7 @@ int CodeParse::Function::Check(char*& current, ParseTreeNode* parrentNode) const
 
 int CodeParse::Parameter::Check(char*& current, ParseTreeNode* parrentNode) const {
 	const char* start = current;
-	ParseTreeNode* myNode = new ParseTreeNode;
+	ParseTreeNode* myNode = MY_NEW ParseTreeNode;
 	myNode->type = ParseTreeNodeType_Variable;
 
 	if (pars_dataType.Check(current, myNode) >= 0 && RegularExp::Special::g_seperator_atleastOne.Check(current, myNode) >= 0) {
@@ -69,7 +69,7 @@ int CodeParse::Parameter::Check(char*& current, ParseTreeNode* parrentNode) cons
 
 int CodeParse::Name::Check(char*& current, ParseTreeNode* parrentNode) const {
 	const char* start = current;
-	ParseTreeNode* myNode = new ParseTreeNode;
+	ParseTreeNode* myNode = MY_NEW ParseTreeNode;
 	myNode->type = ParseTreeNodeType_Name;
 
 	int i = reg_variableName_allowNameSpace_AtleastOne.Check(current, myNode);
@@ -110,7 +110,7 @@ CodeParse::Scope::Scope() {
 
 int CodeParse::Scope::Check(char*& current, ParseTreeNode* parrentNode) const {
 	const char* start = current;
-	ParseTreeNode* myNode = new ParseTreeNode;
+	ParseTreeNode* myNode = MY_NEW ParseTreeNode;
 	myNode->type = ParseTreeNodeType_Scope;
 
 	if (reg_scope_start.Check(current, myNode) >= 0) {
