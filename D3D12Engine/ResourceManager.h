@@ -82,9 +82,12 @@ public:
 	*/
 	Texture* GetTextureCopy(const std::string& name, const std::string& copyName);
 
+	//TODO: redo all GetName functions so thet dont have to search the map.
 	std::string GetMeshName(Mesh* mesh);
 	std::string GetTextureName(Texture* texture);
 	std::string GetBlueprintName(Blueprint* bp);
+	std::string GetMaterialName(Material* material);
+
 	bool IsBlueprintLoaded(const std::string& name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
 

@@ -533,32 +533,23 @@ void Game::RenderBlueprintWindow() {
 			meshName = meshName.substr(0, meshName.find_last_of("."));
 			if (ImGui::BeginCombo("Mesh Select", meshName.c_str())) {
 				std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundMeshes, meshName);
-				//if (clickedItem != "") {
-				//	size_t len1 = m_foundMeshes.path.string().length();
-				//	size_t len2 = clickedItem.string().length() - len1;
-				//
-				//	std::string s = clickedItem.string().substr(len1, len2);
-				//	//s = s.substr(0, s.find_last_of("."));
-				//
-				//	selectedBP->hasChanged = true;
-				//	selectedBP->mesh = m_rm->GetMesh(s);
-				//	int nNeededTextures = selectedBP->mesh->GetNumberOfSubMeshes() * 2;
-				//	for (size_t i = selectedBP->textures.size(); i < nNeededTextures; i++)
-				//	{
-				//		selectedBP->textures.push_back(m_dummyTexture);
-				//	}
-				//
-				//	if (selectedBP->textures.size() > nNeededTextures) {
-				//		selectedBP->textures.erase(selectedBP->textures.begin() + nNeededTextures, selectedBP->textures.end());
-				//	}
-				//
-				//	selectedBP->allGeometryIsOpaque = true;
-				//	selectedBP->alphaTested.clear();
-				//	for (size_t i = 0; i < selectedBP->mesh->GetNumberOfSubMeshes(); i++)
-				//	{
-				//		selectedBP->alphaTested.push_back(false);
-				//	}
-				//}
+				if (clickedItem != "") {
+					size_t len1 = m_foundMeshes.path.string().length();
+					size_t len2 = clickedItem.string().length() - len1;
+
+					std::string s = clickedItem.string().substr(len1, len2);
+
+					selectedBP->hasChanged = true;
+					selectedBP->mesh = m_rm->GetMesh(s);
+					int nNeededMaterials = selectedBP->mesh->GetNumberOfSubMeshes();
+					for (size_t i = selectedBP->materials.size(); i < nNeededMaterials; i++) {
+						selectedBP->materials.push_back(selectedBP->materials.back());
+					}
+
+					if (selectedBP->materials.size() > nNeededMaterials) {
+						selectedBP->materials.erase(selectedBP->materials.begin() + nNeededMaterials, selectedBP->materials.end());
+					}
+				}
 				ImGui::EndCombo();
 			}
 		}
@@ -609,45 +600,26 @@ void Game::RenderGeometryWindow(Blueprint* bp) {
 		ImGui::BeginGroup();
 		ImGui::BeginChild("item view 2", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
 
-		//std::string textureName;
-		//int textureIndex;
-		//
-		//textureIndex = selectedGeometry * 2;
-		//textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
-		//textureName = textureName.substr(0, textureName.find_last_of("."));
-		//if (ImGui::BeginCombo("Albedo Texture", textureName.c_str())) {
-		//	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
-		//	if (clickedItem != "") {
-		//		size_t len1 = m_foundTextures.path.string().length();
-		//		size_t len2 = clickedItem.string().length() - len1;
-		//
-		//		std::string s = clickedItem.string().substr(len1, len2);
-		//
-		//		bp->textures[textureIndex] = m_rm->GetTexture(s);
-		//		bp->hasChanged = true;
-		//	}
-		//	ImGui::EndCombo();
-		//}
-		//
-		//
-		//textureIndex++;
-		//textureName = m_rm->GetTextureName(bp->textures[textureIndex]);
-		//textureName = textureName.substr(0, textureName.find_last_of("."));
-		//if (ImGui::BeginCombo("NormalMap Texture", textureName.c_str())) {
-		//	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundTextures, textureName);
-		//	if (clickedItem != "") {
-		//		size_t len1 = m_foundTextures.path.string().length();
-		//		size_t len2 = clickedItem.string().length() - len1;
-		//
-		//		std::string s = clickedItem.string().substr(len1, len2);
-		//
-		//
-		//		bp->textures[textureIndex] = m_rm->GetTexture(s);
-		//		bp->hasChanged = true;
-		//	}
-		//
-		//	ImGui::EndCombo();
-		//}
+		std::string materialName;
+		int materialIndex;
+
+		materialIndex = selectedGeometry;
+		materialName = m_rm->GetMaterialName(bp->materials[materialIndex]);
+		materialName = materialName.substr(0, materialName.find_last_of("."));
+		if (ImGui::BeginCombo("Material: ", materialName.c_str())) {
+			std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundMaterials, materialName);
+			if (clickedItem != "") {
+				size_t len1 = m_foundMaterials.path.string().length();
+				size_t len2 = clickedItem.string().length() - len1;
+
+				std::string s = clickedItem.string().substr(len1, len2);
+
+				bp->materials[materialIndex] = m_rm->GetMaterial(s);
+				bp->hasChanged = true;
+			}
+			ImGui::EndCombo();
+		}
+
 		ImGui::EndChild();
 		ImGui::EndGroup();
 	}
@@ -1192,6 +1164,7 @@ void Game::RefreshSceneList() {
 	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
 	FileSystem::ListDirectory(m_foundMeshes, m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });
 	FileSystem::ListDirectory(m_foundTextures, m_rm->GetAssetPath() + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
+	FileSystem::ListDirectory(m_foundMaterials, m_rm->GetAssetPath() + std::string(MATERIAL_FOLDER_NAME), { ".txt" });
 }
 void Game::ReloadShaders() {
 	m_reloadShaders = false;

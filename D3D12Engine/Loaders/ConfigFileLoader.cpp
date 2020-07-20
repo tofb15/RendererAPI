@@ -177,6 +177,23 @@ bool ConfigLoader::Load(const char* fileName, ConfigLoader::ConfigTreeNode& root
 	return true;
 }
 
+bool ConfigLoader::Save(const char* fileName, ConfigTreeNode& configRoot, std::string* error) {
+	std::ofstream out_file(fileName);
+	if (!out_file.is_open()) {
+		if (error) {
+			*error = "ConfigLoader failed to save: " + std::string(fileName) + ". File could not be opened!";
+		}
+		return false;
+	}
+
+	std::string s;
+	configRoot.ToString(s);
+	out_file << s;
+	out_file.close();
+
+	return true;
+}
+
 int ConfigParser::InlineComment::Check(char*& current, ConfigTreeNode* parrentNode) const {
 	const char* start = current;
 	//Skip all spaces and tabs
@@ -253,4 +270,101 @@ void ConfigLoader::ConfigTreeNode::Print(std::vector<bool>& b, int depth) {
 		e->Print(b, depth + 1);
 	}
 	b.erase(b.begin() + b.size() - 1);
+}
+
+void ConfigLoader::ConfigTreeNode::ToString(std::string& s) {
+	size_t size = 0;
+	size_t i = 0;
+	switch (type) {
+	case ConfigLoader::ConfigTreeNodeType::Root:
+		s = "";
+		size = subnodes.size();
+		i = 0;
+		for (auto& e : subnodes) {
+			e->ToString(s);
+			if (++i < size) {
+				s += "\n";
+			}
+		}
+		break;
+	case ConfigLoader::ConfigTreeNodeType::Setting:
+		subnodes[0]->ToString(s);
+		s += " = ";
+		subnodes[1]->ToString(s);
+		break;
+	case ConfigLoader::ConfigTreeNodeType::Array:
+		s += "{";
+		size = subnodes.size();
+		i = 0;
+		for (auto& e : subnodes) {
+			e->ToString(s);
+			if (++i < size) {
+				s += ",";
+			}
+		}
+		s += "}";
+		break;
+	case ConfigLoader::ConfigTreeNodeType::String:
+	case ConfigLoader::ConfigTreeNodeType::Integer:
+		s += value;
+		break;
+	default:
+		s += "#Save not implemented for node type: \"" + ConfigTreeNodeType_String[(int)type] + "\"";
+		break;
+	}
+}
+
+ConfigLoader::ConfigTreeNode* ConfigLoader::ConfigTreeNode::operator [](int i) {
+	if (i < subnodes.size()) {
+		return nullptr;
+	} else {
+		return subnodes[i];
+	}
+}
+
+ConfigLoader::ConfigTreeNode* ConfigLoader::ConfigTreeNode::operator[](std::string settingName) {
+	//Slow. TODO: Make Fast!
+	for (auto& e : subnodes) {
+		if (e->type == ConfigTreeNodeType::Setting) {
+			if (e->subnodes.size() >= 2 && e->subnodes[0]->value == settingName) {
+				return e->subnodes[1];
+			}
+		}
+	}
+	return nullptr;
+}
+
+
+void ConfigLoader::ConfigTreeSettingNode::SetName(std::string name) {
+	subnodes[0]->value = name;
+}
+
+bool ConfigLoader::ConfigTreeSettingNode::SetValue(ConfigTreeNode*& value) {
+	if (value == nullptr) {
+		return false;
+	}
+	if (value->type == ConfigTreeNodeType::String || value->type == ConfigTreeNodeType::Integer || value->type == ConfigTreeNodeType::Array) {
+		subnodes[1]->Delete();
+		subnodes.pop_back();
+		subnodes.push_back(value);
+		value = nullptr;
+		return true;
+	}
+	return false;
+}
+
+bool ConfigLoader::ConfigTreeValueArrayNode::AddElement(int element) {
+	ConfigTreeNode* node = new ConfigTreeNode;
+	node->type = ConfigTreeNodeType::Integer;
+	node->value = std::to_string(element);
+	subnodes.push_back(node);
+	return true;
+}
+
+bool ConfigLoader::ConfigTreeValueArrayNode::AddElement(std::string element) {
+	ConfigTreeNode* node = new ConfigTreeNode;
+	node->type = ConfigTreeNodeType::String;
+	node->value = element;
+	subnodes.push_back(node);
+	return true;
 }

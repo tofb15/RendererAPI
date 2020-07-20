@@ -21,47 +21,33 @@ ResourceManager* ResourceManager::GetInstance(RenderAPI* api) {
 }
 
 bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions) {
-	for (auto& e : bpDescriptions) {
-		std::string fName = std::string(BLUEPRINT_FOLDER_NAME) + e.blueprintName + ".bp";
-		std::ofstream out(fName);
-
-		//out << e.blueprintName << "\n";
-		out << e.meshPath << "\n";
-		out << e.alphaTested.size() << "\n";
-		for (auto b : e.alphaTested) {
-			out << (b ? "alphaTested" : "opaque") << "\n";
-		}
-
-		out << e.texturePaths.size() << "\n";
-		for (auto& t : e.texturePaths) {
-			out << t << "\n";
-		}
-
-		out.close();
-	}
-
-	return true;
+	return false;
 }
 
 bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, const std::string& bpName) {
 	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName + ".bp";
 	std::ofstream out(fName);
 
-	out << GetMeshName(bp->mesh) << "\n";
-	//out << ((bp->allGeometryIsOpaque) ? "opaque" : "transparent") << "\n";
-
-	//out << bp->alphaTested.size() << "\n";
-	//for (auto b : bp->alphaTested) {
-	//	out << (b ? "alphaTested" : "opaque") << "\n";
-	//}
-
-	//out << bp->textures.size() << "\n";
-	//for (auto& t : bp->textures) {
-	//	out << GetTextureName(t) << "\n";
-	//}
+	out << "#===Blueprint file===\n";
+	out << "#Avaiable settings:\n";
+	out << "#mesh (requierd): path to the mesh relative the mesh folder.\n";
+	out << "#materials (requierd): Array with comma seperated material paths relative the material folder.\n";
+	out << "#\tThe materials pointed to will be used to render the parts within the selected mesh.\n";
+	out << "#====================\n";
+	out << "\n";
+	out << "mesh = " << GetMeshName(bp->mesh) << "\n";
+	out << "materials = {";
+	size_t size = bp->materials.size();
+	size_t i = 0;
+	for (auto material : bp->materials) {
+		out << GetMaterialName(material);
+		if (++i < size) {
+			out << ", ";
+		}
+	}
+	out << "}\n";
 
 	out.close();
-
 	return true;
 }
 
@@ -127,12 +113,13 @@ Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name) {
 		}
 	} else {
 		std::cout << "Could not load blueprint: " + errorString + " \n";
+		delete bp;
+		bp = nullptr;
 	}
 
 	//TODO:: Remove this printing
 	std::vector<bool> b = { false };
 	configRoot->Print(b);
-
 	configRoot->Delete();
 	return bp;
 }
@@ -445,6 +432,15 @@ Blueprint* ResourceManager::CreateBlueprint(const std::string& name) {
 std::string ResourceManager::GetBlueprintName(Blueprint* bp) {
 	for (auto& e : m_blueprints) {
 		if (e.second == bp) {
+			return e.first;
+		}
+	}
+	return std::string();
+}
+
+std::string ResourceManager::GetMaterialName(Material* material) {
+	for (auto& e : m_materials) {
+		if (e.second == material) {
 			return e.first;
 		}
 	}

@@ -175,6 +175,7 @@ private:
 	FileSystem::Directory m_foundBluePrints;	//Blueprints files found in Blueprint folder
 	FileSystem::Directory m_foundMeshes;		//Meshes files found in Meshe folder
 	FileSystem::Directory m_foundTextures;		//Textures files found in Texture folder
+	FileSystem::Directory m_foundMaterials;		//Textures files found in Texture folder
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
