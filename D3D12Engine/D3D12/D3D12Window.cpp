@@ -11,6 +11,8 @@
 #include "../External/IMGUI/imgui.h"
 #include "../External/IMGUI/imgui_impl_win32.h"
 #include "../External/IMGUI/imgui_impl_dx12.h"
+#include "D3D12TextureLoader.hpp"
+#include "D3D12Texture.hpp"
 
 #pragma comment (lib, "DXGI.lib")
 //#pragma comment (lib, "d3d12.lib")
@@ -113,11 +115,11 @@ D3D12Window::~D3D12Window() {
 	if (m_DepthStencilHeap) {
 		m_DepthStencilHeap->Release();
 	}
-	if (m_SwapChain4) {
-		m_SwapChain4->Release();
-	}
 	if (m_GUIDescriptHeap) {
 		m_GUIDescriptHeap->Release();
+	}
+	if (m_SwapChain4) {
+		m_SwapChain4->Release();
 	}
 }
 
@@ -185,12 +187,20 @@ bool D3D12Window::Create(int dimensionX, int dimensionY) {
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = 1;
+	desc.NumDescriptors = m_GuiDescriptorHeapSize;
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	if (m_d3d12->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_GUIDescriptHeap)) != S_OK)
 		return false;
 
 	// Setup Platform/Renderer bindings
+	m_srv_descriptorSize = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_descriptorHeap_start.cdh = m_GUIDescriptHeap->GetCPUDescriptorHandleForHeapStart();
+	m_descriptorHeap_start.gdh = m_GUIDescriptHeap->GetGPUDescriptorHandleForHeapStart();
+
+	m_unreserved_handle_start = m_descriptorHeap_start;
+	m_unreserved_handle_start += m_srv_descriptorSize * 1;
+	m_unused_handle_start_this_frame = m_unreserved_handle_start;
+
 	ImGui_ImplWin32_Init(m_Wnd);
 	ImGui_ImplDX12_Init(m_d3d12->GetDevice(), NUM_SWAP_BUFFERS,
 		DXGI_FORMAT_R8G8B8A8_UNORM, m_GUIDescriptHeap,
@@ -488,6 +498,7 @@ bool D3D12Window::InitializeRenderTargets() {
 
 	//Create resources for the render targets.
 	m_RenderTargetDescriptorSize = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
 	//mCBV_SRV_UAV_DescriptorSize = mDevice5->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_RenderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
@@ -612,7 +623,22 @@ void D3D12Window::ApplyResize() {
 }
 
 void D3D12Window::BeginUIRendering() {
+	m_unused_handle_start_this_frame = m_unreserved_handle_start;
+	//m_unused_handle_start_this_frame += m_srv_descriptorSize * (m_GuiDescriptorHeapSize - 1);
+}
 
+void* D3D12Window::PrepareTextureForGuiRendering(Texture* texture, bool permanent) {
+	D3D12_GPU_DESCRIPTOR_HANDLE target_GPU_Addr;
+
+	//if (m_unused_handle_start_this_frame.gdh.ptr != m_unreserved_handle_start.gdh.ptr) {
+	target_GPU_Addr = m_unused_handle_start_this_frame.gdh;
+	//}
+
+	auto current_CPU_Addr = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(texture));
+	m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, current_CPU_Addr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	m_unused_handle_start_this_frame += m_srv_descriptorSize;
+	return (void*)target_GPU_Addr.ptr;
 }
 
 void D3D12Window::EndUIRendering() {

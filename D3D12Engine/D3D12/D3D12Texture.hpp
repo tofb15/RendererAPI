@@ -16,7 +16,7 @@ struct ID3D12Resource;
 */
 class D3D12Texture : public Texture {
 public:
-	D3D12Texture(D3D12API* renderer, unsigned short index);
+	D3D12Texture(D3D12API* d3d12, unsigned short index);
 	virtual ~D3D12Texture();
 
 	// Inherited via Texture
@@ -49,7 +49,7 @@ private:
 	std::vector<D3D12_SUBRESOURCE_DATA> m_subresources;
 
 	std::vector<unsigned char> m_Image_CPU; //the raw pixels stored on the CPU.
-	D3D12API* m_Renderer;
+	D3D12API* m_d3d12;
 
 	D3D12_RESOURCE_DESC m_textureDesc;
 	/*Used by the Texture loader to find the right GPU address for this specific texture*/

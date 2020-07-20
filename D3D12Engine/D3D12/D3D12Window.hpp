@@ -2,7 +2,7 @@
 
 #include "../Window.hpp"
 #include "D3D12API.hpp"
-
+#include "DXR/D3D12Utils.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -100,6 +100,9 @@ public:
 		Not used anymore
 	*/
 	virtual void BeginUIRendering() override;
+
+	virtual void* PrepareTextureForGuiRendering(Texture* texture, bool permanent) override;
+
 	/*
 		Not used anymore
 	*/
@@ -112,6 +115,12 @@ private:
 	IDXGISwapChain4* m_SwapChain4 = nullptr;
 	HWND						m_Wnd;
 	ID3D12DescriptorHeap* m_GUIDescriptHeap = nullptr;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_descriptorHeap_start;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unreserved_handle_start;
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unused_handle_start_this_frame;
+	UINT m_srv_descriptorSize = 0;
+	int m_GuiDescriptorHeapSize = 50;
+
 
 	ID3D12DescriptorHeap* m_RenderTargetsHeap = nullptr;
 	ID3D12Resource1* m_RenderTargets[NUM_SWAP_BUFFERS] = {};

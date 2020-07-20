@@ -1,5 +1,7 @@
 #include "Game.h"
 #include "../D3D12Engine/Utills/Utills.h"
+#include "GameObject.h"
+#include "EditorGui.h"
 
 Game::Game() {}
 
@@ -19,10 +21,18 @@ Game::~Game() {
 		delete e;
 	}
 
-	delete m_renderer;
-	delete m_renderAPI;
-	delete m_rm;
-	delete m_sm;
+	if (m_editor_gui) {
+		delete m_editor_gui;
+	}
+	if (m_renderer) {
+		delete m_renderer;
+	}
+	if (m_renderAPI) {
+		delete m_renderAPI;
+	}
+	if (m_rm) {
+		delete m_rm;
+	}
 }
 int Game::Initialize() {
 
@@ -34,19 +44,20 @@ int Game::Initialize() {
 
 	m_rm = ResourceManager::GetInstance(m_renderAPI);
 	m_rm->SetAssetPath("../assets/");
-	m_sceneFolderPath = "../assets/Scenes/";
 
 	//Preload one texture into memory. The first texture loaded will be used as default or "missing"-texture.
 	m_dummyTexture = m_rm->GetTexture("emplyNormal.png");
 	m_lights.emplace_back();
 
-	RefreshSceneList();
-	for (auto scene : m_foundScenes.files) {
+	m_rm->RefreshFileSystemResourceLists();
+	for (auto scene : m_rm->m_foundScenes.files) {
 		if (scene.path.stem() == "example_scene") {
 			LoadScene(scene.path);
 			break;
 		}
 	}
+
+	m_editor_gui = new EditorGUI(&m_objects, &m_windows[0]->GetGlobalWindowInputHandler(), m_rm, m_windows[0]);
 
 	return 0;
 }
@@ -335,35 +346,7 @@ void Game::RenderObjectEditor() {
 	ImGui::NextColumn();
 
 	ImGui::BeginChild("Objects pane");
-	int i = 0;
-	for (auto& e : m_objects) {
-		if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), Contains<std::vector, int>(m_selectedObjects, i))) {
-			//m_selectedObjects.push_back(i);
-		}
-
-		if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
-			if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
-				int min = m_selectedObjects.front();
-				int max = i;
-				if (min > max) {
-					std::swap(min, max);
-				}
-
-				m_selectedObjects.clear();
-				for (int a = min; a <= max; a++) {
-					m_selectedObjects.push_back(a);
-				}
-			} else if (!m_selectedObjects.empty() && Window::GetGlobalWindowInputHandler().IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
-				if (!Contains<std::vector, int>(m_selectedObjects, i)) {
-					m_selectedObjects.push_back(i);
-				}
-			} else {
-				m_selectedObjects.clear();
-				m_selectedObjects.push_back(i);
-			}
-		}
-		i++;
-	}
+	//Scene Objects Removed
 	ImGui::EndChild();
 	ImGui::NextColumn();
 
@@ -422,65 +405,7 @@ void Game::RenderObjectEditor() {
 			}
 		} else {
 
-			if (ImGui::Button("Reset Rotation")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.rotation = { 0,0,0 };
-				}
-			}
 
-			if (ImGui::Button("Random X-Rot")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.rotation.x = (rand() / (float)RAND_MAX) * 2 * 3.15;
-				}
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Random Y-Rot")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.rotation.y = (rand() / (float)RAND_MAX) * 2 * 3.15;
-				}
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Random Z-Rot")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.rotation.z = (rand() / (float)RAND_MAX) * 2 * 3.15;
-				}
-			}
-
-			/////////////
-
-			if (ImGui::Button("Reset Position")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.pos = { 0,0,0 };
-				}
-			}
-
-			ImGui::DragFloat("Max random spread", &maxRandomPos, 1, 0, 10000);
-
-			if (ImGui::Button("Random X-Pos")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.pos.x = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
-				}
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Random Y-Pos")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.pos.y = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
-				}
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Random Z-Pos")) {
-				for (auto i : m_selectedObjects) {
-					m_objects[i]->transform.pos.z = (rand() / (float)RAND_MAX) * maxRandomPos - maxRandomPos / 2;
-				}
-			}
 		}
 	}
 
@@ -646,7 +571,7 @@ void Game::RenderSettingWindow() {
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Scene")) {
 				if (ImGui::MenuItem("Refresh Resources")) {
-					RefreshSceneList();
+					m_rm->RefreshFileSystemResourceLists();
 				}
 
 				if (ImGui::BeginMenu("Load Settings")) {
@@ -790,6 +715,10 @@ void Game::RenderSettingWindow() {
 	ImGui::End();
 }
 void Game::RenderGUI() {
+	if (m_editor_gui) {
+		m_editor_gui->RenderGUI();
+	}
+	return;
 	//UI SETUP HERE
 	static bool b = false;
 	if (b)
@@ -885,8 +814,9 @@ void Game::MirrorScenePermanent() {
 
 
 bool Game::SaveScene(bool saveAsNew) {
-	if (!std::filesystem::exists(m_sceneFolderPath)) {
-		std::filesystem::create_directories(m_sceneFolderPath);
+	std::string sceneFolderPath = m_rm->GetSceneFolderFullPath();
+	if (!std::filesystem::exists(sceneFolderPath)) {
+		std::filesystem::create_directories(sceneFolderPath);
 	}
 
 	int i = 0;
@@ -897,7 +827,7 @@ bool Game::SaveScene(bool saveAsNew) {
 	if (saveAsNew || m_currentSceneName == "") {
 		while (!nameOK) {
 			sceneName = "Scene" + std::to_string(i);
-			scenePath = m_sceneFolderPath + sceneName + ".scene";
+			scenePath = sceneFolderPath + sceneName + ".scene";
 			if (!std::filesystem::exists(scenePath)) {
 				nameOK = true;
 			}
@@ -906,7 +836,7 @@ bool Game::SaveScene(bool saveAsNew) {
 
 		m_currentSceneName = sceneName;
 	} else {
-		scenePath = m_sceneFolderPath + m_currentSceneName + ".scene";
+		scenePath = sceneFolderPath + m_currentSceneName + ".scene";
 	}
 
 	std::ofstream outFile(scenePath);
@@ -958,7 +888,7 @@ bool Game::SaveScene(bool saveAsNew) {
 			<< e->transform.rotation.z << "\n";
 	}
 
-	RefreshSceneList();
+	m_rm->RefreshFileSystemResourceLists();
 
 	return true;
 }
@@ -1107,7 +1037,7 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 
 bool Game::LoadScene(const std::string& name, bool clearOld) {
 	std::filesystem::path scenePath;
-	scenePath = (m_sceneFolderPath + name + ".scene");
+	scenePath = (m_rm->GetSceneFolderFullPath() + name + ".scene");
 	m_currentSceneName = name;
 
 	return LoadScene(scenePath, clearOld);
@@ -1156,16 +1086,7 @@ void Game::ClearScene(bool clearName) {
 
 	m_lights.clear();
 }
-void Game::RefreshSceneList() {
-#ifdef PERFORMANCE_TESTING
-	FileSystem::ListDirectory(m_TestScenes, m_sceneFolderPath + "TestScenes/", { ".scene" });
-#endif // PERFORMANCE_TESTING
-	FileSystem::ListDirectory(m_foundScenes, m_sceneFolderPath, { ".scene" });
-	FileSystem::ListDirectory(m_foundBluePrints, m_rm->GetAssetPath() + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
-	FileSystem::ListDirectory(m_foundMeshes, m_rm->GetAssetPath() + std::string(MESH_FOLDER_NAME), { ".obj" });
-	FileSystem::ListDirectory(m_foundTextures, m_rm->GetAssetPath() + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
-	FileSystem::ListDirectory(m_foundMaterials, m_rm->GetAssetPath() + std::string(MATERIAL_FOLDER_NAME), { ".txt" });
-}
+
 void Game::ReloadShaders() {
 	m_reloadShaders = false;
 

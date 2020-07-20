@@ -6,8 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "ShaderManager.hpp"
-
-//#include "RenderAPI.hpp"
+#include "Utills/FileSystem.h"
 
 class Mesh;
 class Texture;
@@ -15,13 +14,13 @@ class Material;
 class Technique;
 class RenderAPI;
 
+const char SCENE_FOLDER_NAME[] = "Scenes/";
 const char MESH_FOLDER_NAME[] = "Models/";
 const char TEXTURE_FODLER_NAME[] = "Textures/";
 const char BLUEPRINT_FOLDER_NAME[] = "Blueprints/";
 const char MATERIAL_FOLDER_NAME[] = "Materials/";
 const char SHADER_FOLDER_NAME[] = "Shaders/";
 const char SHADER_PROGRAMS_FOLDER_NAME[] = "ShaderPrograms/";
-
 
 typedef size_t MaterialHandle;
 
@@ -62,6 +61,7 @@ public:
 	~ResourceManager();
 
 	void SetAssetPath(const std::string& s);
+	std::string GetSceneFolderFullPath();
 	std::string GetAssetPath();
 	Blueprint* LoadBlueprintFromFile(const std::string& path);
 	Blueprint* GetBlueprint(const std::string& name);
@@ -94,6 +94,20 @@ public:
 	bool DoesFileExist(const std::string& s);
 
 	void WaitUntilResourcesIsLoaded();
+
+	/*
+		Refresh resources list.
+	*/
+	void RefreshFileSystemResourceLists();
+	//Files found on the filesystem. (Not nesecarily loaded to ram)
+	FileSystem::Directory m_foundScenes;		//Scenes files found in Scene folder
+	FileSystem::Directory m_foundBluePrints;	//Blueprints files found in Blueprint folder
+	FileSystem::Directory m_foundMeshes;		//Meshes files found in Meshe folder
+	FileSystem::Directory m_foundTextures;		//Textures files found in Texture folder
+	FileSystem::Directory m_foundMaterials;		//Textures files found in Texture folder
+	FileSystem::Directory m_foundShaderPrograms;//Textures files found in Texture folder
+	FileSystem::Directory m_foundShaders;		//Textures files found in Texture folder
+
 public:
 
 private:

@@ -62,13 +62,17 @@ void ResourceManager::SetAssetPath(const std::string& s) {
 	m_assetPath = s;
 }
 
+std::string ResourceManager::GetSceneFolderFullPath() {
+	return m_assetPath + SCENE_FOLDER_NAME;
+}
+
 std::string ResourceManager::GetAssetPath() {
 	return m_assetPath;
 }
 
 Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name) {
 	Blueprint* bp = MY_NEW Blueprint;
-	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name + ".bp";
+	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name;
 
 	ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode;
 
@@ -349,7 +353,7 @@ ShaderProgramHandle ResourceManager::LoadShaderProgramFromFile(const std::string
 
 ShaderProgramHandle ResourceManager::GetShaderProgramHandle(const std::string& name) {
 	ShaderProgramHandle sph = -1;
-	std::string fName = m_assetPath + SHADER_PROGRAMS_FOLDER_NAME + name + ".txt";
+	std::string fName = m_assetPath + SHADER_PROGRAMS_FOLDER_NAME + name;
 
 	auto search = m_shaderPrograms.find(name);
 	if (search == m_shaderPrograms.end()) {
@@ -465,4 +469,14 @@ void ResourceManager::WaitUntilResourcesIsLoaded() {
 
 
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api) {
+}
+
+void ResourceManager::RefreshFileSystemResourceLists() {
+	FileSystem::ListDirectory(m_foundScenes, m_assetPath + SCENE_FOLDER_NAME, { ".scene" });
+	FileSystem::ListDirectory(m_foundBluePrints, m_assetPath + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
+	FileSystem::ListDirectory(m_foundMeshes, m_assetPath + std::string(MESH_FOLDER_NAME), { ".obj" });
+	FileSystem::ListDirectory(m_foundTextures, m_assetPath + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
+	FileSystem::ListDirectory(m_foundMaterials, m_assetPath + std::string(MATERIAL_FOLDER_NAME), { ".mat" });
+	FileSystem::ListDirectory(m_foundShaderPrograms, m_assetPath + std::string(SHADER_PROGRAMS_FOLDER_NAME), { ".sp" });
+	FileSystem::ListDirectory(m_foundShaders, m_assetPath + std::string(SHADER_FOLDER_NAME), { ".hlsl" });
 }

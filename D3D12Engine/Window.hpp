@@ -3,6 +3,7 @@
 #include "Math.hpp"
 #include "WindowInput.hpp"
 
+class Texture;
 
 /*
 	Used to store global input, dont use this directly.
@@ -92,6 +93,9 @@ public:
 		5) Present()
 	*/
 	virtual void BeginUIRendering() = 0;
+
+	virtual void* PrepareTextureForGuiRendering(Texture* texture, bool permanent = false) = 0;
+
 	/*
 		Call this after BeginUIRendering() but before present
 

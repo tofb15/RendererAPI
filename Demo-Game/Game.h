@@ -23,25 +23,12 @@
 #define AT_OFFICE
 //#define PERFORMACE_TEST
 //#define PRELOAD_RESOURCES
-/*
-	GameObject/Entity that can interact with the world and be rendered.
-*/
-struct Object {
-	Blueprint* blueprint;
-	Transform transform;
 
-	/*
-		Used to clone a blueprint and create a GameObject
-
-		@param bp, the blueprint that should be used to create this object.
-
-		@return, A Object cloned from the input blueprint.
-	*/
-	static Object* CreateObjectFromBlueprint(Blueprint* bp) { return nullptr; };
-};
 
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
+class EditorGUI;
+class Object;
 
 class Game : public GUI {
 public:
@@ -94,10 +81,6 @@ public:
 		Clears the scene
 	*/
 	void ClearScene(bool clearName = true);
-	/*
-		Refresh all assets stored in the filesystem.
-	*/
-	void RefreshSceneList();
 	/*
 		Triggers the renderer to recompile shaders with the current shader defines and settings
 	*/
@@ -166,7 +149,6 @@ private:
 	bool m_mirrorScene = false;
 	int m_mirrorLevel = 1;
 
-	std::string m_sceneFolderPath;
 	std::string m_currentSceneName = "";
 
 	std::vector<int> m_selectedObjects;
@@ -208,5 +190,5 @@ private:
 
 	//Scene Load Settings	
 	bool m_loadSettingkeepKamera = false;
-
+	EditorGUI* m_editor_gui;
 };

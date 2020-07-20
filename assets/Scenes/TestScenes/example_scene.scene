@@ -8,11 +8,11 @@ Lights
 -50.1 58.9 50
 Objects
 2
-floor_and_wall
+floor_and_wall.bp
 0 0 0
 1 1 1
 0 0 0
-tree
+tree.bp
 0 0 0
 10 10 10
 0 0 0

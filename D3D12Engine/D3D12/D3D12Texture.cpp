@@ -12,7 +12,7 @@
 #include <d3d12.h>
 #include <cassert>
 
-D3D12Texture::D3D12Texture(D3D12API* renderer, unsigned short index) : m_Renderer(renderer) {
+D3D12Texture::D3D12Texture(D3D12API* d3d12, unsigned short index) : m_d3d12(d3d12) {
 	m_index = index;
 }
 
@@ -34,7 +34,7 @@ bool D3D12Texture::LoadFromFile(const char* fileName, unsigned flags) {
 	//If GPU_USAGE_FLAG is set, create a texture recorce on the GPU.
 	if (flags & Texture_Load_Flags::TEXTURE_USAGE_GPU_FLAG) {
 		//This should be done by a copy queue on a seperate thread.
-		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
+		m_d3d12->GetTextureLoader()->LoadTextureToGPU(this);
 		//mRenderer->GetTextureLoader()->SynchronizeWork();//Force this thread to wait until all work is done.
 	}
 
@@ -74,8 +74,8 @@ void D3D12Texture::UpdatePixel(const Int2& pos, const unsigned char* data, int s
 
 void D3D12Texture::ApplyChanges() {
 	if (m_hasChanged) {
-		m_Renderer->GetTextureLoader()->LoadTextureToGPU(this);
-		m_Renderer->GetTextureLoader()->SynchronizeWork();
+		m_d3d12->GetTextureLoader()->LoadTextureToGPU(this);
+		m_d3d12->GetTextureLoader()->SynchronizeWork();
 		m_hasChanged = false;
 	}
 }
@@ -162,13 +162,13 @@ bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource) {
 	} else if (m_isDDS) {
 		std::wstring wide_string = m_fileName.c_str();
 
-		HRESULT hr = DirectX::LoadDDSTextureFromFile(m_Renderer->GetDevice(), wide_string.c_str(), ddsResource, ddsData, m_subresources);
+		HRESULT hr = DirectX::LoadDDSTextureFromFile(m_d3d12->GetDevice(), wide_string.c_str(), ddsResource, ddsData, m_subresources);
 		if (FAILED(hr)) {
 			ddsResource = nullptr;
 			return false;
 		}
 
-		//m_Renderer->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &m_textureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(ddsResource));
+		//m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &m_textureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(ddsResource));
 		//ddsData.release();
 		m_textureDesc = (*ddsResource)->GetDesc();
 	}

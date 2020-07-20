@@ -5,15 +5,14 @@ namespace FileSystem {
 	/*
 		Recursively fills a FileSystem::Directory with all sub elements untill maxDepth is reached.
 	*/
-	bool ListDir(FileSystem::Directory& dirPath, const std::unordered_set<std::string>& extList, unsigned int curDepth, unsigned int maxDepth)
-	{
-		for (auto file : std::filesystem::directory_iterator(dirPath.path))
-		{
-			if (file.is_directory() && curDepth < maxDepth) {
+	bool ListDir(FileSystem::Directory& dirPath, const std::unordered_set<std::string>& extList, unsigned int curDepth, unsigned int maxDepth) {
+		for (auto file : std::filesystem::directory_iterator(dirPath.path)) {
+			if (file.is_directory()) {
 				dirPath.directories.push_back({ file });
-				ListDir(dirPath.directories.back(), extList, curDepth + 1, maxDepth);
-			}
-			else {
+				if (curDepth < maxDepth) {
+					ListDir(dirPath.directories.back(), extList, curDepth + 1, maxDepth);
+				}
+			} else {
 				if (extList.empty() || extList.count(file.path().extension().string())) {
 					dirPath.files.push_back({ file });
 				}
@@ -23,8 +22,7 @@ namespace FileSystem {
 		return true;
 	}
 
-	bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::unordered_set<std::string>& extList, unsigned int maxDepth)
-	{
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, const std::unordered_set<std::string>& extList, unsigned int maxDepth) {
 		root.Clear();
 		if (!std::filesystem::exists(root.path)) {
 			return false;
@@ -33,8 +31,7 @@ namespace FileSystem {
 		return FileSystem::ListDir(root, extList, 0, maxDepth);
 	}
 
-	bool FileSystem::ListDirectory(FileSystem::Directory& root, unsigned int maxDepth)
-	{
+	bool FileSystem::ListDirectory(FileSystem::Directory& root, unsigned int maxDepth) {
 		return FileSystem::ListDirectory(root, std::unordered_set<std::string>(), maxDepth);
 	}
 
