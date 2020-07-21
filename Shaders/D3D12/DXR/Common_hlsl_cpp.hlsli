@@ -23,6 +23,7 @@ typedef unsigned int uint;
 namespace DXRShaderCommon {
 #endif
 
+	static const int MAX_LIGHTS = 16;
 	static const int N_RAY_TYPES = 2;
 	static const unsigned int MAX_RAY_RECURSION_DEPTH = 10;
 
@@ -38,15 +39,21 @@ namespace DXRShaderCommon {
 
 	struct PointLight {
 		float3 position;
-		float padding;
+		float reachRadius;
+		float3 color;	
+		float padding2;
 	};
+
+
+
 
 	struct SceneCBuffer {
 		float4x4 projectionToWorld; //Used for raygeneration
 		float4x4 viewToWorld;
 		float3 cameraPosition;
-		float padding;
-		PointLight pLight;
+		int nLights;
+		PointLight pLight[MAX_LIGHTS];
+
 		/*
 	   float4x4 padding;
 	   float3x3 padding;
@@ -57,4 +64,48 @@ namespace DXRShaderCommon {
 #ifndef HLSL
 	// C++ only
 } // End namespace
+#endif
+
+
+/////////////////////////////////////////////////////////////
+//Standard HLSL things
+
+#ifdef HLSL
+static const uint g_SHADOW_RAY_FLAGS = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+static const float RAY_T_MAX = 2000.0f;
+
+// Barycentric interpolation
+float2 barrypolation(float3 barry, float2 in1, float2 in2, float2 in3) {
+	return barry.x * in1 + barry.y * in2 + barry.z * in3;
+}
+float3 barrypolation(float3 barry, float3 in1, float3 in2, float3 in3) {
+	return barry.x * in1 + barry.y * in2 + barry.z * in3;
+}
+
+float3 HitWorldPosition() {
+	return WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+}
+
+//===Global Signature===
+RaytracingAccelerationStructure gAS : register(t0, space0);
+RaytracingAccelerationStructure gAS_alpha : register(t0, space1);
+
+ConstantBuffer<SceneCBuffer> CB_SceneData : register(b0, space0);
+sampler samp : register(s0);
+
+struct TanBinorm {
+	float3 tangent;
+	float3 binormal;
+};
+//===Raygen Signature===
+RWTexture2D<float4> outputTexture : register(u1);
+
+//===ClosestHit Signature===
+StructuredBuffer<float3> vertices_pos : register(t1, space0);
+StructuredBuffer<float3> vertices_normal : register(t1, space1);
+StructuredBuffer<float2> vertices_uv : register(t1, space2);
+StructuredBuffer<TanBinorm> vertices_tan_bi : register(t1, space3);
+
+Texture2D<float4> sys_texAlbedo : register(t2, space0);
+Texture2D<float4> sys_texAlphaMap[] : register(t3, space0);
 #endif

@@ -7,12 +7,24 @@ Lights
 1
 -50.1 58.9 50
 Objects
-2
+5
+tree.bp
+-9.4 -5.7 14.6
+10 10 10
+0 0 0
+floor_and_wall.bp
+0 0 100
+1 1 -1
+0 0 0
+floor_and_wall.bp
+-100 0 100
+-1 1 -1
+0 0 0
+floor_and_wall.bp
+-100 0 0
+-1 1 1
+0 0 0
 floor_and_wall.bp
 0 0 0
 1 1 1
-0 0 0
-tree.bp
-0 0 0
-10 10 10
 0 0 0

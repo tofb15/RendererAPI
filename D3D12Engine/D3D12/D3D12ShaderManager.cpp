@@ -211,6 +211,7 @@ ID3DBlob* D3D12ShaderManager::GetShaderBlob(const ShaderHandle& shader) {
 }
 
 bool D3D12ShaderManager::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines) {
+	m_d3d12->WaitForGPU_ALL();
 	if (m_rtxPipelineState) {
 		m_rtxPipelineState->Release();
 	}
@@ -322,6 +323,10 @@ ShaderProgramHandle D3D12ShaderManager::RegisterShaderProgram(const ShaderProgra
 
 	m_psoNeedsRebuild = true;
 	return handle;
+}
+
+void D3D12ShaderManager::RecompileShaders() {
+	CreateRaytracingPSO({});
 }
 
 const LPCWSTR D3D12ShaderManager::GetRaygenShaderIdentifier() {

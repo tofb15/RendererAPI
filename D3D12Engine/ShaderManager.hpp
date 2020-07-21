@@ -41,7 +41,7 @@ public:
 
 	virtual ShaderHandle RegisterShader(const ShaderDescription& shaderDescription) = 0;
 	virtual ShaderProgramHandle RegisterShaderProgram(const ShaderProgramDescription& shaderDescription) = 0;
-
+	virtual void RecompileShaders() = 0;
 protected:
 	ShaderManager();
 

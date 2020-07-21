@@ -1,5 +1,6 @@
 #include "../D3D12Engine/RenderAPI.hpp"
 #include "../D3D12Engine/Utills/FileSystem.h"
+#include "../D3D12Engine/Light/LightSource.h"
 
 #include <vector>
 
@@ -21,7 +22,7 @@ enum class ResourceTypes {
 
 class EditorGUI : public GUI {
 public:
-	EditorGUI(std::vector<Object*>* sceneObjects, WindowInput* windowInput, ResourceManager* resourceManager, Window* w);
+	EditorGUI(std::vector<Object*>* sceneObjects, std::vector<LightSource>* light, WindowInput* windowInput, ResourceManager* resourceManager, Window* w);
 	~EditorGUI();
 
 	// Inherited via GUI
@@ -51,6 +52,7 @@ private:
 	bool m_showResourceWindow = true;
 
 	std::vector<Object*>* m_objects = nullptr;
+	std::vector<LightSource>* m_lights = nullptr;
 	ResourceManager* m_resourceManager = nullptr;
 	const WindowInput* m_windowInput = nullptr;
 	Window* m_window;
@@ -85,6 +87,9 @@ private:
 	void RenderMenuBar();
 	void RenderSceneWindow();
 	void RenderResourceWindow();
+
+	//Debug, Sandbox window
+	void RenderDebugWindow();
 
 	//PropertyWindow
 	void RenderPropertiesWindow();

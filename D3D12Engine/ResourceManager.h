@@ -96,6 +96,7 @@ public:
 
 	void WaitUntilResourcesIsLoaded();
 
+	void RecompileShaders();
 	void PrepareRendering();
 
 	/*
@@ -123,4 +124,6 @@ private:
 	std::unordered_map<std::string, ShaderProgramHandle> m_shaderPrograms;
 
 	std::string m_assetPath = "../assets/";
+
+	bool m_recompileShaders = false;
 };

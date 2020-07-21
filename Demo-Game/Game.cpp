@@ -57,7 +57,7 @@ int Game::Initialize() {
 		}
 	}
 
-	m_editor_gui = new EditorGUI(&m_objects, &m_windows[0]->GetGlobalWindowInputHandler(), m_rm, m_windows[0]);
+	m_editor_gui = new EditorGUI(&m_objects, &m_lights, &m_windows[0]->GetGlobalWindowInputHandler(), m_rm, m_windows[0]);
 
 	return 0;
 }

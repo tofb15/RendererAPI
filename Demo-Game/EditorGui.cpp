@@ -16,13 +16,23 @@
 #include <unordered_set>
 #include <iterator> 
 
-EditorGUI::EditorGUI(std::vector<Object*>* sceneObjects, WindowInput* windowInput, ResourceManager* resourceManager, Window* w) {
+EditorGUI::EditorGUI(std::vector<Object*>* sceneObjects, std::vector<LightSource>* lights, WindowInput* windowInput, ResourceManager* resourceManager, Window* w) {
 	m_objects = sceneObjects;
+	m_lights = lights;
 	m_windowInput = windowInput;
 	m_resourceManager = resourceManager;
 	m_window = w;
 
 	FileSystem::ListDirectory(m_resourceFileBrowser, m_resourceManager->GetAssetPath(), 1);
+
+	m_icon_blueprint_id = nullptr;
+	m_icon_material_id = nullptr;
+	m_icon_scene_id = nullptr;
+	m_icon_shader_id = nullptr;
+	m_icon_up_folder_id = nullptr;
+	m_icon_down_folder_id = nullptr;
+	m_icon_object_id = nullptr;
+	m_icon_unknown_id = nullptr;
 }
 
 EditorGUI::~EditorGUI() {
@@ -41,7 +51,7 @@ void EditorGUI::RenderGUI() {
 
 	//static bool b = true;
 	//ImGui::ShowDemoWindow(&b);
-
+	RenderDebugWindow();
 	RenderMenuBar();
 	RenderSceneWindow();
 	RenderPropertiesWindow();
@@ -372,6 +382,35 @@ void EditorGUI::RenderResourceWindow() {
 			}
 
 			ImGui::EndTabBar();
+		}
+	}
+	ImGui::End();
+}
+
+void EditorGUI::RenderDebugWindow() {
+	ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Once);
+	//ImGui::SetNextWindowPos(ImVec2(1920 - 420, 20), ImGuiCond_Once);
+
+	if (ImGui::Begin("Debug", NULL, ImGuiWindowFlags_None)) {
+		if (ImGui::Button("Extra light")) {
+			if (m_lights->size() < 2) {
+				LightSource ls;
+				ls.m_position_center = Float3(5, 30, 0);
+				m_lights->push_back(ls);
+			} else if (m_lights->size() < 3) {
+				m_lights->back().m_color = Float3(0.1, 1, 0.1);
+				LightSource ls;
+				ls.m_position_center = Float3(0, 5, 10);
+				ls.m_color = Float3(1, 0.1, 0.1);
+				m_lights->push_back(ls);
+			} else {
+				m_lights->pop_back();
+				m_lights->pop_back();
+			}
+		}
+
+		if (ImGui::Button("Recompile Shader")) {
+			m_resourceManager->RecompileShaders();
 		}
 	}
 	ImGui::End();

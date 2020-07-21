@@ -59,6 +59,8 @@ HRESULT DXILShaderCompiler::compile(Desc* desc, IDxcBlob** ppResult, std::wstrin
 			hr = m_library->CreateBlobFromFile(desc->filePath, nullptr, &source);
 		}
 
+		//desc->defines.push_back({ L"HLSL" });
+
 		if (SUCCEEDED(hr)) {
 			IDxcOperationResult* pResult = nullptr;
 			if (SUCCEEDED(hr = m_compiler->Compile(

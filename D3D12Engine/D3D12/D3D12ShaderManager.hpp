@@ -33,6 +33,7 @@ public:
 	// Inherited via ShaderManager
 	virtual ShaderHandle RegisterShader(const ShaderDescription& shaderDescription) override;
 	virtual ShaderProgramHandle RegisterShaderProgram(const ShaderProgramDescription& shaderDescription) override;
+	virtual void RecompileShaders();
 
 	const LPCWSTR GetRaygenShaderIdentifier();
 	const LPCWSTR GetMissShaderIdentifier();

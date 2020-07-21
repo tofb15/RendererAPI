@@ -157,9 +157,19 @@ void DXRBase::UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource
 	DirectX::XMStoreFloat4x4(&sceneData->projectionToWorld, viewProj_inv);
 
 	if (!lights.empty()) {
-		sceneData->pLight.position = lights.back().m_position_animated;
+		int i = 0;
+		for (auto& e : lights) {
+			sceneData->pLight[i].position = e.m_position_center;
+			sceneData->pLight[i].reachRadius = e.m_reachRadius;
+			sceneData->pLight[i++].color = e.m_color;
+
+			if (i == DXRShaderCommon::MAX_LIGHTS) {
+				break;
+			}
+		}
+		sceneData->nLights = i;
 	} else {
-		sceneData->pLight.position = Float3(-10, 50, -10);
+		sceneData->pLight[0].position = Float3(-10, 50, -10);
 	}
 
 	m_cb_scene->Unmap(0, nullptr);

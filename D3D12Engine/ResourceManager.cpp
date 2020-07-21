@@ -476,6 +476,10 @@ void ResourceManager::WaitUntilResourcesIsLoaded() {
 	}
 }
 
+void ResourceManager::RecompileShaders() {
+	m_recompileShaders = true;
+}
+
 void ResourceManager::PrepareRendering() {
 	for (auto& mat1 : m_materials) {
 		if (mat1.second->HasChanged()) {
@@ -490,6 +494,11 @@ void ResourceManager::PrepareRendering() {
 
 			mat1.second->SetHasChanged(false);
 		}
+	}
+
+	if (m_recompileShaders) {
+		m_api->GetShaderManager()->RecompileShaders();
+		m_recompileShaders = false;
 	}
 }
 
