@@ -3,9 +3,9 @@ materialType=nonpbr
 
 #Textures. Which textures is needed is defined by materialType. (default: )
 textureColor     = default.png
-textureNormal    = emplyNormal.png
-textureRoughness = emplyNormal.png
-textureMetalness = emplyNormal.png
+textureNormal    = emptyNormal.png
+textureRoughness = emptyNormal.png
+textureMetalness = emptyNormal.png
 
 #shaderGroup
 shaderGroup=opaqueShaderGroup.sp

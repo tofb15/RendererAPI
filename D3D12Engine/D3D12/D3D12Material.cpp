@@ -25,6 +25,11 @@ bool D3D12Material::LoadFromFile(const char* name, ResourceManager& resourceMana
 	return result;
 }
 
+void D3D12Material::SetShaderProgram(ShaderProgramHandle sp) {
+	Material::SetShaderProgram(sp);
+	m_isOpaque = m_d3d12->GetShaderManager_D3D12()->IsHitGroupOpaque(m_shaderProgram);
+}
+
 bool D3D12Material::IsOpaque() {
 	return m_isOpaque;
 }

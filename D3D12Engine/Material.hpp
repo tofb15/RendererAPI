@@ -38,9 +38,14 @@ public:
 		//Non_PBR_Material_Data nonPbrData;
 	} m_materialData;
 
-	ShaderProgramHandle m_shaderProgram;
+	ShaderProgramHandle GetShaderProgram() const;
+	virtual void SetShaderProgram(ShaderProgramHandle sp);
+	bool HasChanged();
+	void SetHasChanged(bool b);
 protected:
 	Material();
+	ShaderProgramHandle m_shaderProgram;
+	bool m_changed = false;
 	//MaterialType type;
 private:
 };

@@ -5,13 +5,16 @@
 
 class Object;
 class WindowInput;
-enum class FileTypes {
-	Scene = 0,
+enum class ResourceTypes {
+	None = 0,
+	Scene,
+	Object,
 	Blueprint,
 	Material,
 	Texture,
 	Shader,
 	ShaderProgram,
+	Other,
 	///////////////////////
 	SIZE_KEEP_THIS_LAST,
 };
@@ -43,7 +46,6 @@ private:
 	void* m_icon_object_id;
 	void* m_icon_unknown_id;
 
-
 	bool m_showSceneWindow = false;
 	bool m_showPropertiesWindow = true;
 	bool m_showResourceWindow = true;
@@ -53,22 +55,31 @@ private:
 	const WindowInput* m_windowInput = nullptr;
 	Window* m_window;
 
-	std::vector<int> m_selectedSceneObjects;
+	ResourceTypes m_selectedResourceType = ResourceTypes::None;
+	std::vector<void*> m_selectedResources;
 	std::unordered_set<Blueprint*> m_selectedSceneObjectBlueprints;
+	std::vector<std::string> m_selectedFileNames;
+	std::string m_lastClickedFileName;
 	FileSystem::Directory m_resourceFileBrowser;
 	std::string m_hoveredFile = "";
-	std::string m_selectedFile = "";
-	Blueprint* m_selectedBlueprint = nullptr;
 
-	enum PropertyWindowState {
-		None = 0,
-		SceneObject,
-		BlueprintEditor,
-		MaterialEditor,
-	};
+	//void* m_selectedResource = nullptr;
 
-	PropertyWindowState m_currentPropertyWindowState = SceneObject;
+	//enum class PropertyWindowState {
+	//	None = 0,
+	//	SceneEditor,
+	//	BlueprintEditor,
+	//	MaterialEditor,
+	//};
+
+	//PropertyWindowState m_currentPropertyWindowState = SceneObject;
 	float m_maxRandomPos = 100;
+
+	bool ClearSelectedResources();
+	bool IsResourceSelected(void* res, ResourceTypes type);
+	bool SetSelectedResource(void* res, ResourceTypes type);
+	bool AddSelectedResource(void* res, ResourceTypes type);
+	bool AddRemoveSelectedResource(void* res, ResourceTypes type);
 
 	////////////////////
 	void RenderMenuBar();
@@ -79,6 +90,7 @@ private:
 	void RenderPropertiesWindow();
 	void RenderPropertyWindowSceneObject();
 	void RenderPropertyWindowBlueprint();
+	void RenderPropertyWindowMaterial();
 
 	//Resource Browser
 	void HandleResourceClick(std::filesystem::path clickedResource);

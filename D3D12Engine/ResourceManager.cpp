@@ -451,6 +451,15 @@ std::string ResourceManager::GetMaterialName(Material* material) {
 	return std::string();
 }
 
+std::string ResourceManager::GetShaderProgramName(ShaderProgramHandle sph) {
+	for (auto& e : m_shaderPrograms) {
+		if (e.second == sph) {
+			return e.first;
+		}
+	}
+	return std::string();
+}
+
 std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
 	return m_blueprints;
 }
@@ -463,6 +472,23 @@ void ResourceManager::WaitUntilResourcesIsLoaded() {
 	for (auto& e : m_textures) {
 		while (!e.second->IsLoaded()) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+	}
+}
+
+void ResourceManager::PrepareRendering() {
+	for (auto& mat1 : m_materials) {
+		if (mat1.second->HasChanged()) {
+			for (auto& bp : m_blueprints) {
+				for (auto& mat2 : bp.second->materials) {
+					if (mat1.second == mat2) {
+						bp.second->hasChanged = true;
+						break;
+					}
+				}
+			}
+
+			mat1.second->SetHasChanged(false);
 		}
 	}
 }

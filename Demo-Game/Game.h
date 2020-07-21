@@ -104,15 +104,7 @@ public:
 	/*
 		ImGui subwindow
 	*/
-	void RenderObjectEditor();
-	/*
-		ImGui subwindow
-	*/
 	void RenderBlueprintWindow();
-	/*
-		ImGui subwindow
-	*/
-	void RenderGeometryWindow(Blueprint* bp);
 	/*
 		ImGui subwindow
 	*/
@@ -131,9 +123,6 @@ public:
 		Changing Blueprints or other assets used by the renderer here must be done with care to avoid crashes.
 	*/
 	void RenderGUI() override;
-
-	void MirrorScene(int lvl = 1);
-	void MirrorScenePermanent();
 private:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;

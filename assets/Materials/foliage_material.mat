@@ -4,8 +4,8 @@ materialType=nonpbr
 #Textures. Which textures is needed is defined by materialType. (default: )
 textureColor     = tree\DB2X2_L01.png
 textureNormal    = tree\DB2X2_L01.png
-textureRoughness = emplyNormal.png
-textureMetalness = emplyNormal.png
+textureRoughness = emptyNormal.png
+textureMetalness = emptyNormal.png
 
 #shaderGroup
 shaderGroup=alphaTestedShaderGroup.sp

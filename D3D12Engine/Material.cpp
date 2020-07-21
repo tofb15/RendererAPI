@@ -55,3 +55,18 @@ bool Material::LoadFromFile(const char* name, ResourceManager& resourceManager) 
 
 Material::Material() {
 }
+
+ShaderProgramHandle Material::GetShaderProgram() const {
+	return m_shaderProgram;
+}
+void Material::SetShaderProgram(ShaderProgramHandle sp) {
+	m_changed = true;
+	m_shaderProgram = sp;
+}
+
+bool Material::HasChanged() {
+	return m_changed;
+}
+void Material::SetHasChanged(bool b) {
+	m_changed = b;
+}

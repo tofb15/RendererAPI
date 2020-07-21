@@ -46,7 +46,7 @@ int Game::Initialize() {
 	m_rm->SetAssetPath("../assets/");
 
 	//Preload one texture into memory. The first texture loaded will be used as default or "missing"-texture.
-	m_dummyTexture = m_rm->GetTexture("emplyNormal.png");
+	m_dummyTexture = m_rm->GetTexture("emptyNormal.png");
 	m_lights.emplace_back();
 
 	m_rm->RefreshFileSystemResourceLists();
@@ -257,6 +257,7 @@ void Game::RenderWindows() {
 		//Draw all meshes in the submit list.
 		//TODO: Do we want to support multiple Frame calls in a row? What if we want to render split-screen? Could differend threads prepare different frames?
 
+		m_rm->PrepareRendering();
 		m_renderer->Frame(window, cam0);
 		m_renderer->Present(window, this);
 	}
@@ -299,256 +300,19 @@ std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory& 
 
 	return clicked;
 }
-void Game::RenderObjectEditor() {
-	if (ImGui::Checkbox("Mirror Scene", &m_mirrorScene)) {
-		if (m_mirrorScene) {
-			MirrorScene(m_mirrorLevel);
-		}
-	}
 
-	ImGui::SameLine();
-
-	if (ImGui::DragInt("Mirror Level", &m_mirrorLevel, 1, 1, 5)) {
-		if (m_mirrorScene) {
-			MirrorScene(m_mirrorLevel);
-		}
-	}
-
-	if (ImGui::Button("Apply Mirror Permanent")) {
-		MirrorScenePermanent();
-	}
-
-	ImGui::Columns(3);
-	ImGui::Text("Available Blueprints");
-	ImGui::NextColumn();
-	ImGui::Text("Scene Objects");
-	ImGui::NextColumn();
-	ImGui::Text(("Selected Objects: " + std::to_string(m_selectedObjects.size())).c_str());
-	ImGui::NextColumn();
-	ImGui::Separator();
-
-	ImGui::BeginChild("Blueprints pane");
-
-	std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundBluePrints, "");
-	if (clickedItem != "") {
-		size_t len1 = m_foundBluePrints.path.string().length();
-		size_t len2 = clickedItem.string().length() - len1;
-
-		std::string s = clickedItem.string().substr(len1, len2);
-		s = s.substr(0, s.find_last_of("."));
-
-		Object* obj = new Object;
-		obj->blueprint = m_rm->GetBlueprint(s);
-		m_objects.push_back(obj);
-	}
-
-	ImGui::EndChild();
-	ImGui::NextColumn();
-
-	ImGui::BeginChild("Objects pane");
-	//Scene Objects Removed
-	ImGui::EndChild();
-	ImGui::NextColumn();
-
-	ImGui::BeginChild("Object pane");
-
-	if (!m_selectedObjects.empty()) {
-		size_t size = (int)m_objects.size();
-		size_t nSelected = (int)m_selectedObjects.size();
-
-		if (ImGui::Button("Copy")) {
-			for (auto i : m_selectedObjects) {
-				Object* obj = new Object();
-				memcpy(obj, m_objects[i], sizeof(Object));
-				m_objects.push_back(obj);
-			}
-			m_selectedObjects.clear();
-			for (size_t i = size; i < size + nSelected; i++) {
-				m_selectedObjects.push_back(i);
-			}
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Delete")) {
-			std::sort(m_selectedObjects.begin(), m_selectedObjects.end(), std::greater <int>());
-			for (auto i : m_selectedObjects) {
-				delete m_objects[i];
-				m_objects.erase(m_objects.begin() + i);
-			}
-
-			m_selectedObjects.clear();
-			if (!m_objects.empty()) {
-				m_selectedObjects.push_back(0);
-			}
-		}
-
-		if (m_selectedObjects.size() == 1) {
-			int& selectedObject = m_selectedObjects.front();
-
-			if (selectedObject < m_objects.size()) {
-				if (ImGui::Button("Select All Identical")) {
-					Object* selected = m_objects[m_selectedObjects.front()];
-					m_selectedObjects.clear();
-					int index = 0;
-					for (auto i : m_objects) {
-						if (i->blueprint == selected->blueprint) {
-							m_selectedObjects.push_back(index);
-						}
-						index++;
-					}
-				}
-
-				ImGui::DragFloat3("Pos", (float*)& m_objects[selectedObject]->transform.pos, 0.1, -100, 100);
-				ImGui::DragFloat3("Rot", (float*)& m_objects[selectedObject]->transform.rotation, 0.1, -100, 100);
-				ImGui::DragFloat3("Scale", (float*)& m_objects[selectedObject]->transform.scale, 0.1, -100, 100);
-			}
-		} else {
-
-
-		}
-	}
-
-
-	ImGui::EndChild();
-	ImGui::NextColumn();
-
-	//Reset
-	ImGui::Columns(1);
-}
 
 void Game::RenderBlueprintWindow() {
-	static std::string selected = "";
-	static Blueprint* selectedBP = nullptr;
 
-	ImGui::Columns(2);
-	ImGui::Text("Blueprints");
-	ImGui::NextColumn();
-	ImGui::Text("Other");
-	ImGui::NextColumn();
-	ImGui::Separator();
-	std::filesystem::path clickedItem;
+	//if (ImGui::Button("Revert")) {}
+	//ImGui::SameLine();
+	//if (ImGui::Button("Save")) {
+	//	m_rm->SaveBlueprintToFile(selectedBP, m_rm->GetBlueprintName(selectedBP));
+	//}
 
-	ImGui::BeginChild("Blueprints pane");
-	clickedItem = RecursiveDirectoryList(m_foundBluePrints, "");
-	if (clickedItem != "") {
-		size_t len1 = m_foundBluePrints.path.string().length();
-		size_t len2 = clickedItem.string().length() - len1;
-
-		std::string s = clickedItem.string().substr(len1, len2);
-		s = s.substr(0, s.find_last_of("."));
-
-		if (selectedBP = m_rm->GetBlueprint(s)) {
-			selected = s;
-		} else {
-			selected = "";
-		}
-	}
-
-	ImGui::EndChild();
-	ImGui::NextColumn();
-
-	ImGui::BeginChild("Other pane");
-	if (selected != "") {
-		ImGui::Text(selected.c_str());
-
-		std::string meshName = "";
-		if (selectedBP) {
-			meshName = m_rm->GetMeshName(selectedBP->mesh);
-			meshName = meshName.substr(0, meshName.find_last_of("."));
-			if (ImGui::BeginCombo("Mesh Select", meshName.c_str())) {
-				std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundMeshes, meshName);
-				if (clickedItem != "") {
-					size_t len1 = m_foundMeshes.path.string().length();
-					size_t len2 = clickedItem.string().length() - len1;
-
-					std::string s = clickedItem.string().substr(len1, len2);
-
-					selectedBP->hasChanged = true;
-					selectedBP->mesh = m_rm->GetMesh(s);
-					int nNeededMaterials = selectedBP->mesh->GetNumberOfSubMeshes();
-					for (size_t i = selectedBP->materials.size(); i < nNeededMaterials; i++) {
-						selectedBP->materials.push_back(selectedBP->materials.back());
-					}
-
-					if (selectedBP->materials.size() > nNeededMaterials) {
-						selectedBP->materials.erase(selectedBP->materials.begin() + nNeededMaterials, selectedBP->materials.end());
-					}
-				}
-				ImGui::EndCombo();
-			}
-		}
-
-		ImGui::Separator();
-		if (ImGui::BeginTabBar("##Tabs3", ImGuiTabBarFlags_None)) {
-			if (ImGui::BeginTabItem("Geometries")) {
-				RenderGeometryWindow(selectedBP);
-				ImGui::EndTabItem();
-			}
-			ImGui::EndTabBar();
-		}
-
-		if (ImGui::Button("Revert")) {}
-		ImGui::SameLine();
-		if (ImGui::Button("Save")) {
-			m_rm->SaveBlueprintToFile(selectedBP, m_rm->GetBlueprintName(selectedBP));
-		}
-	}
-	ImGui::EndChild();
-	ImGui::NextColumn();
 }
 
-void Game::RenderGeometryWindow(Blueprint* bp) {
-	ImGui::BeginChild("Geometry left pane", ImVec2(150, 0), true);
-	static int selectedGeometry = 0;
 
-	if (bp->mesh) {
-		for (int i = 0; i < bp->mesh->GetNumberOfSubMeshes(); i++) {
-			if (ImGui::Selectable(bp->mesh->GetSubMesheName(i).c_str(), i == selectedGeometry)) {
-				selectedGeometry = i;
-			}
-
-			if (ImGui::IsItemHovered()) {
-				ImGui::BeginTooltip();
-				ImGui::Text(bp->mesh->GetSubMesheName(i).c_str());
-				ImGui::EndTooltip();
-			}
-		}
-		ImGui::Separator();
-	}
-
-	ImGui::EndChild();
-	ImGui::SameLine();
-
-	// right
-	if (bp->mesh && selectedGeometry < bp->mesh->GetNumberOfSubMeshes()) {
-		ImGui::BeginGroup();
-		ImGui::BeginChild("item view 2", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
-
-		std::string materialName;
-		int materialIndex;
-
-		materialIndex = selectedGeometry;
-		materialName = m_rm->GetMaterialName(bp->materials[materialIndex]);
-		materialName = materialName.substr(0, materialName.find_last_of("."));
-		if (ImGui::BeginCombo("Material: ", materialName.c_str())) {
-			std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundMaterials, materialName);
-			if (clickedItem != "") {
-				size_t len1 = m_foundMaterials.path.string().length();
-				size_t len2 = clickedItem.string().length() - len1;
-
-				std::string s = clickedItem.string().substr(len1, len2);
-
-				bp->materials[materialIndex] = m_rm->GetMaterial(s);
-				bp->hasChanged = true;
-			}
-			ImGui::EndCombo();
-		}
-
-		ImGui::EndChild();
-		ImGui::EndGroup();
-	}
-}
 void Game::RenderLightsAndCameraEditor() {
 	if (!m_cameras.empty()) {
 		ImGui::DragFloat3("Camera Pos", (float*)& m_cameras.front()->GetPosition(), 0.1, -1000, 1000);
@@ -628,7 +392,6 @@ void Game::RenderSettingWindow() {
 			if (ImGui::BeginTabItem("Edit Scene")) {
 				if (ImGui::BeginTabBar("##Tabs2", ImGuiTabBarFlags_None)) {
 					if (ImGui::BeginTabItem("Objects")) {
-						RenderObjectEditor();
 						ImGui::EndTabItem();
 					}
 
@@ -719,99 +482,9 @@ void Game::RenderGUI() {
 		m_editor_gui->RenderGUI();
 	}
 	return;
-	//UI SETUP HERE
-	static bool b = false;
-	if (b)
-		ImGui::ShowDemoWindow(&b);
-
-	// ===========Menu==============
-	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu("Project")) {
-			if (ImGui::MenuItem("New Project", "")) {
-
-			}
-			if (ImGui::MenuItem("Open Project", "")) {}
-			if (ImGui::MenuItem("Save", "", false)) {}
-			if (ImGui::MenuItem("Save As", "", false)) {}
-
-			//ShowExampleMenuFile();
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Scene")) {
-			if (ImGui::MenuItem("New Scene", "")) {
-
-			}
-
-			//ShowExampleMenuFile();
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Edit")) {
-			if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-			if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-			ImGui::Separator();
-			if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-			if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-			if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-			ImGui::EndMenu();
-		}
-		ImGui::EndMainMenuBar();
-	}
 
 	RenderSettingWindow();
-
-
 }
-void Game::MirrorScene(int lvl) {
-	int n_mirrored = 0;
-	float dx = 44.587;
-	float dz = 48.785;
-
-	int fx;
-	int fz;
-
-	for (auto e : m_objects_mirrored) {
-		delete e;
-	}
-	m_objects_mirrored.clear();
-
-	for (int x = -lvl; x <= lvl; x++) {
-		for (int z = -lvl; z <= lvl; z++) {
-			if (x == 0 && z == 0) {
-				continue;
-			}
-
-			fx = (((x + lvl * 2) % 2) * 2 - 1) * -1;
-			fz = (((z + lvl * 2) % 2) * 2 - 1) * -1;
-
-			for (auto& o : m_objects) {
-				Object* m = nullptr;
-				if (n_mirrored < m_objects_mirrored.size()) {
-					m = m_objects_mirrored[n_mirrored];
-				} else {
-					m = new Object();
-					m_objects_mirrored.push_back(m);
-				}
-				m->blueprint = o->blueprint;
-				m->transform = o->transform;
-				m->transform.scale *= Float3(fx, 1, fz); //only work for 3x3
-				m->transform.pos *= Float3(fx, 1, fz);
-				m->transform.pos += Float3(dx * x, 0, dz * z);
-				n_mirrored++;
-			}
-		}
-	}
-}
-
-void Game::MirrorScenePermanent() {
-	m_objects.reserve(m_objects.size() + m_objects_mirrored.size());
-	m_objects.insert(m_objects.end(), m_objects_mirrored.begin(), m_objects_mirrored.end());
-
-	m_mirrorLevel = 1;
-	m_mirrorLevel = false;
-	m_objects_mirrored.clear();
-	m_objects_mirrored.shrink_to_fit();
-}
-
 
 bool Game::SaveScene(bool saveAsNew) {
 	std::string sceneFolderPath = m_rm->GetSceneFolderFullPath();
@@ -1028,10 +701,6 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 		m_lights.push_back(ls);
 	}
 
-	if (m_mirrorLevel) {
-		MirrorScene(m_mirrorLevel);
-	}
-
 	return true;
 }
 
@@ -1138,7 +807,3 @@ void Game::ReloadShaders() {
 	//
 	//m_renderer->Refresh(&defines);
 }
-
-//void Game::ReloadShaders(const std::vector<ShaderDefine>& defines) {
-//	//m_renderer->Refresh(&defines);
-//}

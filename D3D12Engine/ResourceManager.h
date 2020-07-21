@@ -87,6 +87,7 @@ public:
 	std::string GetTextureName(Texture* texture);
 	std::string GetBlueprintName(Blueprint* bp);
 	std::string GetMaterialName(Material* material);
+	std::string GetShaderProgramName(ShaderProgramHandle sph);
 
 	bool IsBlueprintLoaded(const std::string& name);
 	std::unordered_map<std::string, Blueprint*>& GetBlueprints();
@@ -94,6 +95,8 @@ public:
 	bool DoesFileExist(const std::string& s);
 
 	void WaitUntilResourcesIsLoaded();
+
+	void PrepareRendering();
 
 	/*
 		Refresh resources list.
@@ -107,8 +110,6 @@ public:
 	FileSystem::Directory m_foundMaterials;		//Textures files found in Texture folder
 	FileSystem::Directory m_foundShaderPrograms;//Textures files found in Texture folder
 	FileSystem::Directory m_foundShaders;		//Textures files found in Texture folder
-
-public:
 
 private:
 	ResourceManager(RenderAPI* api);

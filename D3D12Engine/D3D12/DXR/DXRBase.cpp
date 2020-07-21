@@ -448,7 +448,7 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 
 			//===Add Shader(group) Identifier===
 			D3D12Material* material = static_cast<D3D12Material*>(blas.first->materials[i]);
-			hitGroupTable.AddShader(sm->GetHitGroupIdentifier(material->m_shaderProgram));
+			hitGroupTable.AddShader(sm->GetHitGroupIdentifier(material->GetShaderProgram()));
 
 			//===Add vertexbuffer descriptors===
 			hitGroupTable.AddDescriptor(vb_pos, blasIndex);
@@ -468,7 +468,7 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 			if (!material->IsOpaque() && m_allowAnyhitshaders) {
 				//Alphatest geometry shadow hit shader
 				texture_gdh.ptr -= (UINT64)(m_descriptorSize * 2U);
-				hitGroupTable.AddShader(sm->GetHitGroupIdentifier(material->m_shaderProgram + 1));
+				hitGroupTable.AddShader(sm->GetHitGroupIdentifier(material->GetShaderProgram() + 1));
 
 				//===Add vertexbuffer descriptors===
 				hitGroupTable.AddDescriptor(vb_pos, blasIndex + 1);

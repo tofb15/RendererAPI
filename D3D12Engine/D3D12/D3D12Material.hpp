@@ -12,6 +12,7 @@ public:
 	virtual ~D3D12Material();
 
 	virtual bool LoadFromFile(const char* name, ResourceManager& resourceManager) override;
+	virtual void SetShaderProgram(ShaderProgramHandle sp) override;
 
 	bool IsOpaque();
 private:
