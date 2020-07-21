@@ -1,0 +1,11 @@
+#Material Types [pbr, nonpbr](default: non_pbr) 
+materialType=nonpbr
+
+#Textures. Which textures is needed is defined by materialType. (default: )
+textureColor     = pbr/bricks/Bricks_C.png
+textureNormal    = pbr/bricks/Bricks_N.png
+textureRoughness = pbr/bricks/Bricks_R.png
+textureMetalness = black.png
+
+#shaderGroup
+shaderGroup=opaqueShaderGroup.sp

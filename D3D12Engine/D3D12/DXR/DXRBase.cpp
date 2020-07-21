@@ -469,7 +469,10 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 			//===Add texture descriptors===
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
 			texture_gdh.ptr += m_descriptorSize;
-
+			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+			texture_gdh.ptr += m_descriptorSize;
+			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
+			texture_gdh.ptr += m_descriptorSize;
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
 			texture_gdh.ptr += m_descriptorSize;
 
@@ -477,7 +480,6 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 			//TODO:: Fix shadow for alpha tested geometry
 			if (!material->IsOpaque() && m_allowAnyhitshaders) {
 				//Alphatest geometry shadow hit shader
-				texture_gdh.ptr -= (UINT64)(m_descriptorSize * 2U);
 				hitGroupTable.AddShader(sm->GetHitGroupIdentifier(material->GetShaderProgram() + 1));
 
 				//===Add vertexbuffer descriptors===
@@ -487,11 +489,15 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 				hitGroupTable.AddDescriptor(vb_tan_Bi, blasIndex + 1);
 
 				//===Add texture descriptors===
+				texture_gdh.ptr -= (UINT64)(m_descriptorSize * 4U);
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
 				texture_gdh.ptr += m_descriptorSize;
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
 				texture_gdh.ptr += m_descriptorSize;
-
+				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
+				texture_gdh.ptr += m_descriptorSize;
+				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
+				texture_gdh.ptr += m_descriptorSize;
 			} else {
 				//Opaque geometry dont need a shadow hit shader
 				hitGroupTable.AddShader(L"NULL");
@@ -521,6 +527,14 @@ void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList) {
 			m_unused_handle_start_this_frame += m_descriptorSize;
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.normal));
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_unused_handle_start_this_frame += m_descriptorSize;
+
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.metalness));
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_unused_handle_start_this_frame += m_descriptorSize;
+
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.roughness));
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
 		}

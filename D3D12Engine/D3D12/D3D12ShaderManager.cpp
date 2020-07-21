@@ -177,8 +177,7 @@ bool D3D12ShaderManager::CreateHitGroupLocalRootSignature() {
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_Norm", 1, 1);
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_UV", 1, 2);
 	m_localRootSignature_hitGroups.AddSRV("VertexBuffer_TAN_BI", 1, 3);
-	m_localRootSignature_hitGroups.AddDescriptorTable("AlbedoColor", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-	m_localRootSignature_hitGroups.AddDescriptorTable("AlphaMapTextures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, -1);
+	m_localRootSignature_hitGroups.AddDescriptorTable("Textures", D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, -1);
 
 	if (!m_localRootSignature_hitGroups.Build(m_d3d12, D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)) {
 		return false;
@@ -212,9 +211,9 @@ ID3DBlob* D3D12ShaderManager::GetShaderBlob(const ShaderHandle& shader) {
 
 bool D3D12ShaderManager::CreateRaytracingPSO(const std::vector<ShaderDefine>* _defines) {
 	m_d3d12->WaitForGPU_ALL();
-	if (m_rtxPipelineState) {
-		m_rtxPipelineState->Release();
-	}
+
+	//Create the new pipelineStateObject in a temp variable for now. If the compile fails we can still use the old one (if we have one).
+	ID3D12StateObject* temp_rtxPipelineState = nullptr;
 
 	DXRUtils::PSOBuilder psoBuilder;
 	if (!psoBuilder.Initialize()) {
@@ -277,10 +276,15 @@ bool D3D12ShaderManager::CreateRaytracingPSO(const std::vector<ShaderDefine>* _d
 	psoBuilder.SetMaxRecursionDepth(DXRShaderCommon::MAX_RAY_RECURSION_DEPTH);
 	psoBuilder.SetGlobalSignature(m_globalRootSignature.Get());
 
-	m_rtxPipelineState = psoBuilder.Build(m_d3d12->GetDevice());
-	if (!m_rtxPipelineState) {
+	temp_rtxPipelineState = psoBuilder.Build(m_d3d12->GetDevice());
+	if (!temp_rtxPipelineState) {
 		return false;
 	}
+
+	if (m_rtxPipelineState) {
+		m_rtxPipelineState->Release();
+	}
+	m_rtxPipelineState = temp_rtxPipelineState;
 
 	m_psoNeedsRebuild = false;
 	return true;

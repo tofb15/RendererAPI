@@ -106,6 +106,10 @@ StructuredBuffer<float3> vertices_normal : register(t1, space1);
 StructuredBuffer<float2> vertices_uv : register(t1, space2);
 StructuredBuffer<TanBinorm> vertices_tan_bi : register(t1, space3);
 
-Texture2D<float4> sys_texAlbedo : register(t2, space0);
-Texture2D<float4> sys_texAlphaMap[] : register(t3, space0);
+#define ALBEDO_TEX_POS 0
+#define NORMAL_TEX_POS 1
+#define METAL_TEX_POS 2
+#define ROUGHNESS_TEX_POS 3
+
+Texture2D<float4> sys_textures[] : register(t2, space0);
 #endif

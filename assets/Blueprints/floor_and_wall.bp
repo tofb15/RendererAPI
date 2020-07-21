@@ -6,4 +6,4 @@
 #====================
 
 mesh = floor_and_wall.obj
-materials = {chessboard_material.mat}
+materials = {brick_material.mat}

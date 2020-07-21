@@ -392,14 +392,22 @@ void EditorGUI::RenderDebugWindow() {
 	//ImGui::SetNextWindowPos(ImVec2(1920 - 420, 20), ImGuiCond_Once);
 
 	if (ImGui::Begin("Debug", NULL, ImGuiWindowFlags_None)) {
+		static float lightReach = 100;
+		if (ImGui::DragFloat("Light Reach", &lightReach, 1, 1, 10000)) {
+			for (auto& e : *m_lights) {
+				e.m_reachRadius = lightReach;
+			}
+		}
 		if (ImGui::Button("Extra light")) {
 			if (m_lights->size() < 2) {
 				LightSource ls;
+				ls.m_reachRadius = lightReach;
 				ls.m_position_center = Float3(5, 30, 0);
 				m_lights->push_back(ls);
 			} else if (m_lights->size() < 3) {
 				m_lights->back().m_color = Float3(0.1, 1, 0.1);
 				LightSource ls;
+				ls.m_reachRadius = lightReach;
 				ls.m_position_center = Float3(0, 5, 10);
 				ls.m_color = Float3(1, 0.1, 0.1);
 				m_lights->push_back(ls);
@@ -408,6 +416,7 @@ void EditorGUI::RenderDebugWindow() {
 				m_lights->pop_back();
 			}
 		}
+
 
 		if (ImGui::Button("Recompile Shader")) {
 			m_resourceManager->RecompileShaders();
