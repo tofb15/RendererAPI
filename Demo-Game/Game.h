@@ -27,7 +27,7 @@
 
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
-class EditorGUI;
+class Editor;
 class Object;
 
 class Game : public GUI {
@@ -35,7 +35,7 @@ public:
 	Game();
 	virtual ~Game();
 
-	int Initialize();
+	virtual int Initialize();
 	bool InitializeRendererAndWindow();
 
 	void InitializeCameras();
@@ -49,17 +49,6 @@ public:
 	*/
 	void RenderWindows();
 	/*
-		Save the current scene to file. The filename of the scene will be decided by m_currentSceneName.
-
-		@param saveAsNew, if true m_currentSceneName will be set a non existing generated filename
-			before saving in order to avoid overwriting a previusly saved scene.
-			If Set to false m_currentSceneName will be used as the filename and potentially overwrite
-			any previusly saved scene.
-
-		@return true of succeeded
-	*/
-	bool SaveScene(bool saveAsNew);
-	/*
 		Loads a scene from file.
 		If the scene uses any assets not yet loaded into memory these will be loaded aswell.
 
@@ -71,12 +60,8 @@ public:
 		may fail to load even though it returns true.
 	*/
 	bool PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag = Asset_Type_Any);
-	bool LoadScene(const std::filesystem::path& path, bool clearOld = true);
 	bool LoadScene(const std::string& name, bool clearOld = true);
-	/*
-		Calls ClearScene() and sets up basic scene elements.
-	*/
-	void NewScene();
+
 	/*
 		Clears the scene
 	*/
@@ -108,10 +93,6 @@ public:
 	/*
 		ImGui subwindow
 	*/
-	void RenderLightsAndCameraEditor();
-	/*
-		ImGui subwindow
-	*/
 	void RenderSettingWindow();
 	/**
 		The root-function used to render all the ImGui windows.
@@ -122,31 +103,21 @@ public:
 		This function will be called i the middle of a render call.
 		Changing Blueprints or other assets used by the renderer here must be done with care to avoid crashes.
 	*/
-	void RenderGUI() override;
-private:
+	virtual void RenderGUI() override {};
+protected:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;
 
 	ShaderManager* m_sm;
 	std::vector<Window*>		m_windows;
+	WindowInput* m_globalWindowInput;
 
 	std::vector<Camera*>		m_cameras; // List of all cameras
 	std::vector<Object*>		m_objects; // List of All game objects
-	std::vector<Object*>		m_objects_mirrored;
-	std::vector<std::string>    m_unSavedBlueprints;
-
-	bool m_mirrorScene = false;
-	int m_mirrorLevel = 1;
 
 	std::string m_currentSceneName = "";
 
 	std::vector<int> m_selectedObjects;
-
-	FileSystem::Directory m_foundScenes;		//Scenes files found in Scene folder
-	FileSystem::Directory m_foundBluePrints;	//Blueprints files found in Blueprint folder
-	FileSystem::Directory m_foundMeshes;		//Meshes files found in Meshe folder
-	FileSystem::Directory m_foundTextures;		//Textures files found in Texture folder
-	FileSystem::Directory m_foundMaterials;		//Textures files found in Texture folder
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
@@ -179,5 +150,6 @@ private:
 
 	//Scene Load Settings	
 	bool m_loadSettingkeepKamera = false;
-	EditorGUI* m_editor_gui;
+
+	virtual void SubmitObjectsForRendering();
 };

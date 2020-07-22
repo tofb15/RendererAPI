@@ -1,0 +1,11 @@
+#Material Types [pbr, nonpbr](default: non_pbr) 
+materialType=nonpbr
+
+#Textures. Which textures is needed is defined by the materialType. (default: )
+textureColor     = white.png
+textureNormal    = white.png
+textureRoughness = black.png
+textureMetalness = white.png
+
+#shaderGroup
+shaderGroup=_unlit.sp

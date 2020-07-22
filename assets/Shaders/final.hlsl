@@ -73,7 +73,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 [shader("miss")]
 void miss(inout RayPayload payload) {
-	payload.color = float4(0.3f, 0.3f, 0.9f, 1.0f);
+	payload.color = float4(0.1f, 0.0f, 0.0f, 1.0f);
 	payload.hitT = RAY_T_MAX;
 }
 

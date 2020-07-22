@@ -26,6 +26,9 @@ namespace DXRShaderCommon {
 	static const int MAX_LIGHTS = 16;
 	static const int N_RAY_TYPES = 2;
 	static const unsigned int MAX_RAY_RECURSION_DEPTH = 10;
+	static const unsigned int HIT_BY_PRIMARY_RAYS_FLAG = 0x1;
+	static const unsigned int CASTING_SHADOW_FLAG = 0x2;
+	
 
 	struct RayPayload {
 		float4 color;
@@ -108,8 +111,22 @@ StructuredBuffer<TanBinorm> vertices_tan_bi : register(t1, space3);
 
 #define ALBEDO_TEX_POS 0
 #define NORMAL_TEX_POS 1
-#define METAL_TEX_POS 2
-#define ROUGHNESS_TEX_POS 3
+#define ROUGHNESS_TEX_POS 2
+#define METAL_TEX_POS 3
 
 Texture2D<float4> sys_textures[] : register(t2, space0);
+
+bool PointInShadow(float3 rayOrigin, float3 directionToLight, float distToLight){
+	//Check if the light is ocluded.
+	RayDesc shadowRay;
+	shadowRay.Origin = rayOrigin; 		
+	shadowRay.Direction = directionToLight; 
+	shadowRay.TMin = 0.00001;
+	shadowRay.TMax = distToLight;
+	RayPayload_shadow shadowPayload;
+	shadowPayload.inShadow = 1;
+	TraceRay(gAS, g_SHADOW_RAY_FLAGS, CASTING_SHADOW_FLAG, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
+
+	return shadowPayload.inShadow == 1;
+}
 #endif

@@ -2,9 +2,9 @@
 materialType=nonpbr
 
 #Textures. Which textures is needed is defined by the materialType. (default: )
-textureColor     = pbr\Bark\Bark_C.png
-textureNormal    = pbr\Bark\Bark_N.png
-textureRoughness = pbr\Bark\Bark_R.png
+textureColor     = pbr\Bark\Bark006_2K_Color.png
+textureNormal    = pbr\Bark\Bark006_2K_Normal.png
+textureRoughness = pbr\Bark\Bark006_2K_RAOM.png
 textureMetalness = black.png
 
 #shaderGroup

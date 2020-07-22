@@ -9,11 +9,16 @@ class Window;
 class Technique;
 class Mesh;
 class Texture;
-
+enum class RenderFlag {
+	None = 0,
+	Dont_Cast_Shadows = 1,
+};
 struct SubmissionItem {
 	Blueprint* blueprint = nullptr;
 	Transform transform;
+	int renderflag = (int)RenderFlag::None;
 };
+
 
 class GUI {
 public:

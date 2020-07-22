@@ -24,8 +24,13 @@ bool D3D12Texture::LoadFromFile(const char* fileName, unsigned flags) {
 		return false;
 
 	m_Flags = flags;
-	m_fileName = fileName;
 	m_BytesPerPixel = 4;
+
+	std::string temp_path = fileName;
+	for (auto& e : temp_path) {
+		e = std::tolower(e);
+	}
+	m_fileName = temp_path;
 
 	if (m_fileName.extension() == ".dds") {
 		m_isDDS = true;
@@ -171,6 +176,8 @@ bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource) {
 		//m_d3d12->GetDevice()->CreateCommittedResource(&D3D12Utils::sDefaultHeapProps, D3D12_HEAP_FLAG_NONE, &m_textureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(ddsResource));
 		//ddsData.release();
 		m_textureDesc = (*ddsResource)->GetDesc();
+	} else {
+		return false;
 	}
 
 	return true;

@@ -351,7 +351,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="EditorGui.cpp" />
+    <ClCompile Include="Editor.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -361,7 +361,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EditorGui.h" />
+    <ClInclude Include="Editor.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameObject.h" />
   </ItemGroup>

@@ -1,0 +1,1 @@
+closesthit   = {unlit, _unlit.hlsl}

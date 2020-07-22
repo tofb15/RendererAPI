@@ -1,7 +1,6 @@
 #include "Game.h"
 #include "../D3D12Engine/Utills/Utills.h"
 #include "GameObject.h"
-#include "EditorGui.h"
 
 Game::Game() {}
 
@@ -13,17 +12,10 @@ Game::~Game() {
 		delete e;
 	}
 
-	for (auto e : m_objects_mirrored) {
-		delete e;
-	}
-
 	for (auto e : m_windows) {
 		delete e;
 	}
 
-	if (m_editor_gui) {
-		delete m_editor_gui;
-	}
 	if (m_renderer) {
 		delete m_renderer;
 	}
@@ -40,6 +32,8 @@ int Game::Initialize() {
 		return -1;
 	}
 
+	m_globalWindowInput = &m_windows[0]->GetGlobalWindowInputHandler();
+
 	InitializeCameras();
 
 	m_rm = ResourceManager::GetInstance(m_renderAPI);
@@ -52,12 +46,14 @@ int Game::Initialize() {
 	m_rm->RefreshFileSystemResourceLists();
 	for (auto scene : m_rm->m_foundScenes.files) {
 		if (scene.path.stem() == "example_scene") {
-			LoadScene(scene.path);
+			size_t start = m_rm->m_foundScenes.path.string().length();
+			size_t count = scene.path.string().length() - start;
+			std::string s = scene.path.string().substr(start, count);
+
+			LoadScene(s);
 			break;
 		}
 	}
-
-	m_editor_gui = new EditorGUI(&m_objects, &m_lights, &m_windows[0]->GetGlobalWindowInputHandler(), m_rm, m_windows[0]);
 
 	return 0;
 }
@@ -232,10 +228,6 @@ void Game::ProcessLocalInput(double dt) {
 }
 
 void Game::RenderWindows() {
-	if (m_reloadShaders) {
-		ReloadShaders();
-	}
-	Camera* cam0 = m_cameras[0];
 	Window* window;
 
 	size_t nWindows = m_windows.size();
@@ -244,21 +236,11 @@ void Game::RenderWindows() {
 		m_renderer->SetLightSources(m_lights);
 		window = m_windows[i];
 
-		for (auto& e : m_objects) {
-			m_renderer->Submit({ e->blueprint, e->transform }, cam0);
-		}
+		SubmitObjectsForRendering();
 
-		if (m_mirrorScene) {
-			for (auto& e : m_objects_mirrored) {
-				m_renderer->Submit({ e->blueprint, e->transform }, cam0);
-			}
-		}
-
-		//Draw all meshes in the submit list.
 		//TODO: Do we want to support multiple Frame calls in a row? What if we want to render split-screen? Could differend threads prepare different frames?
-
 		m_rm->PrepareRendering();
-		m_renderer->Frame(window, cam0);
+		m_renderer->Frame(window, m_cameras[0]);
 		m_renderer->Present(window, this);
 	}
 }
@@ -301,88 +283,18 @@ std::filesystem::path Game::RecursiveDirectoryList(const FileSystem::Directory& 
 	return clicked;
 }
 
-
 void Game::RenderBlueprintWindow() {
-
 	//if (ImGui::Button("Revert")) {}
 	//ImGui::SameLine();
 	//if (ImGui::Button("Save")) {
 	//	m_rm->SaveBlueprintToFile(selectedBP, m_rm->GetBlueprintName(selectedBP));
 	//}
-
 }
 
-
-void Game::RenderLightsAndCameraEditor() {
-	if (!m_cameras.empty()) {
-		ImGui::DragFloat3("Camera Pos", (float*)& m_cameras.front()->GetPosition(), 0.1, -1000, 1000);
-		ImGui::DragFloat3("Camera Targ", (float*)& m_cameras.front()->GetTarget(), 0.1, -1000, 1000);
-	} else {
-		ImGui::Text("No Cameras Exist");
-	}
-
-	if (!m_lights.empty()) {
-		ImGui::DragFloat3("Light Center", (float*)& m_lights.front().m_position_center, 0.1, -1000, 1000);
-		ImGui::DragFloat3("Light Current", (float*)& m_lights.front().m_position_animated, 0.1, -1000, 1000);
-	} else {
-		ImGui::Text("No Lights Exist");
-	}
-}
 void Game::RenderSettingWindow() {
 	//static bool open = true;
 	ImGui::SetNextWindowSize(ImVec2(500, 440), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Scene Settings", NULL, ImGuiWindowFlags_MenuBar)) {
-		if (ImGui::BeginMenuBar()) {
-			if (ImGui::BeginMenu("Scene")) {
-				if (ImGui::MenuItem("Refresh Resources")) {
-					m_rm->RefreshFileSystemResourceLists();
-				}
-
-				if (ImGui::BeginMenu("Load Settings")) {
-					ImGui::Checkbox("Keep Kamera", &m_loadSettingkeepKamera);
-					ImGui::EndMenu();
-				}
-
-				ImGui::Separator();
-
-				if (ImGui::BeginMenu("Load Scene")) {
-					if (ImGui::MenuItem("New Scene")) {
-						NewScene();
-					}
-					ImGui::Separator();
-					std::filesystem::path clickedItem = RecursiveDirectoryList(m_foundScenes, m_currentSceneName, true);
-
-					if (clickedItem != "") {
-						size_t len1 = m_foundScenes.path.string().length();
-						size_t len2 = clickedItem.string().length() - len1;
-
-						std::string s = clickedItem.string().substr(len1, len2);
-						s = s.substr(0, s.find_last_of("."));
-
-						if (LoadScene(s)) {
-							m_currentSceneName = s;
-						} else {
-							m_currentSceneName = "";
-						}
-					}
-
-					ImGui::EndMenu();
-				}
-
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, m_currentSceneName == "");
-				if (ImGui::MenuItem("Save Scene")) {
-					SaveScene(false);
-				}
-				ImGui::PopItemFlag();
-
-				if (ImGui::MenuItem("Save Scene As New")) {
-					SaveScene(true);
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMenuBar();
-		}
-
 		if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
 			if (ImGui::BeginTabItem("Edit Blueprints")) {
 				RenderBlueprintWindow();
@@ -392,11 +304,6 @@ void Game::RenderSettingWindow() {
 			if (ImGui::BeginTabItem("Edit Scene")) {
 				if (ImGui::BeginTabBar("##Tabs2", ImGuiTabBarFlags_None)) {
 					if (ImGui::BeginTabItem("Objects")) {
-						ImGui::EndTabItem();
-					}
-
-					if (ImGui::BeginTabItem("Camera and lights")) {
-						RenderLightsAndCameraEditor();
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
@@ -477,93 +384,11 @@ void Game::RenderSettingWindow() {
 	}
 	ImGui::End();
 }
-void Game::RenderGUI() {
-	if (m_editor_gui) {
-		m_editor_gui->RenderGUI();
-	}
-	return;
 
-	RenderSettingWindow();
-}
-
-bool Game::SaveScene(bool saveAsNew) {
-	std::string sceneFolderPath = m_rm->GetSceneFolderFullPath();
-	if (!std::filesystem::exists(sceneFolderPath)) {
-		std::filesystem::create_directories(sceneFolderPath);
-	}
-
-	int i = 0;
-	bool nameOK = false;
-	std::filesystem::path scenePath;
-	std::string sceneName;
-
-	if (saveAsNew || m_currentSceneName == "") {
-		while (!nameOK) {
-			sceneName = "Scene" + std::to_string(i);
-			scenePath = sceneFolderPath + sceneName + ".scene";
-			if (!std::filesystem::exists(scenePath)) {
-				nameOK = true;
-			}
-			i++;
-		}
-
-		m_currentSceneName = sceneName;
-	} else {
-		scenePath = sceneFolderPath + m_currentSceneName + ".scene";
-	}
-
-	std::ofstream outFile(scenePath);
-
-	if (m_mirrorScene) {
-		outFile << "Mirror\n" << m_mirrorLevel << "\n";
-	}
-
-	//Save Camera
-	outFile << "Cameras\n";
-	outFile << m_cameras.size() << "\n";
-
-	for (auto& e : m_cameras) {
-		outFile << e->GetPosition().x << " "
-			<< e->GetPosition().y << " "
-			<< e->GetPosition().z << "\n";
-
-		outFile << e->GetTarget().x << " "
-			<< e->GetTarget().y << " "
-			<< e->GetTarget().z << "\n";
-	}
-
-	//Save Lights
-	outFile << "Lights\n";
-	outFile << m_time_lightAnim << "\n";
-	outFile << m_lights.size() << "\n";
-	for (auto& e : m_lights) {
-		outFile << e.m_position_center.x << " "
-			<< e.m_position_center.y << " "
-			<< e.m_position_center.z << "\n";
-	}
-
-	//Save Objects
-	outFile << "Objects\n";
-	outFile << m_objects.size() << "\n";
+void Game::SubmitObjectsForRendering() {
 	for (auto& e : m_objects) {
-		outFile << m_rm->GetBlueprintName(e->blueprint) << "\n";
-
-		outFile << e->transform.pos.x << " "
-			<< e->transform.pos.y << " "
-			<< e->transform.pos.z << "\n";
-
-		outFile << e->transform.scale.x << " "
-			<< e->transform.scale.y << " "
-			<< e->transform.scale.z << "\n";
-
-		outFile << e->transform.rotation.x << " "
-			<< e->transform.rotation.y << " "
-			<< e->transform.rotation.z << "\n";
+		m_renderer->Submit({ e->blueprint, e->transform }, m_cameras[0]);
 	}
-
-	m_rm->RefreshFileSystemResourceLists();
-
-	return true;
 }
 
 bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag) {
@@ -604,13 +429,14 @@ bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to
 	return allGood;
 }
 
-bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
+bool Game::LoadScene(const std::string& name, bool clearOld) {
 	if (clearOld) {
 		ClearScene();
 	}
 
+	m_currentSceneName = name;
+	std::filesystem::path path = m_rm->GetSceneFolderFullPath() + name;
 	std::ifstream inFile(path);
-
 	if (!std::filesystem::exists(path) || !inFile.is_open()) {
 		m_currentSceneName = "";
 		return false;
@@ -625,9 +451,6 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 	while (std::getline(inFile, line)) {
 		if (line[0] == '#') {
 			continue;
-		} else if (line == "Mirror") {
-			m_mirrorScene = true;
-			inFile >> m_mirrorLevel;
 		} else if (line == "Cameras" && !m_loadSettingkeepKamera) {
 
 			inFile >> tempSizeT;
@@ -704,34 +527,7 @@ bool Game::LoadScene(const std::filesystem::path& path, bool clearOld) {
 	return true;
 }
 
-bool Game::LoadScene(const std::string& name, bool clearOld) {
-	std::filesystem::path scenePath;
-	scenePath = (m_rm->GetSceneFolderFullPath() + name + ".scene");
-	m_currentSceneName = name;
-
-	return LoadScene(scenePath, clearOld);
-}
-
-void Game::NewScene() {
-	ClearScene();
-
-	//==============
-	Int2 dim = m_windows[0]->GetDimensions();
-	float aspRatio = dim.x / dim.y;
-
-	Camera* cam = m_renderAPI->MakeCamera();
-	cam->SetPosition(Float3(0, 10, -10));
-	cam->SetTarget(Float3(0, 0, 0));
-	cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
-	m_cameras.push_back(cam);
-
-	//==============
-	LightSource ls;
-	ls.m_position_center = (Float3(10, 60, 10));
-	m_lights.push_back(ls);
-}
 void Game::ClearScene(bool clearName) {
-	m_mirrorScene = false;
 	if (clearName) {
 		m_currentSceneName = "";
 	}
@@ -740,11 +536,6 @@ void Game::ClearScene(bool clearName) {
 		delete e;
 	}
 	m_objects.clear();
-
-	for (auto e : m_objects_mirrored) {
-		delete e;
-	}
-	m_objects_mirrored.clear();
 
 	if (!m_loadSettingkeepKamera) {
 		for (auto e : m_cameras) {

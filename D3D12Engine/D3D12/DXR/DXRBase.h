@@ -74,6 +74,7 @@ private:
 
 	struct PerInstance {
 		Transform transform;
+		int renderflags;
 	};
 
 	struct BottomLayerData {

@@ -2,9 +2,9 @@
 materialType=nonpbr
 
 #Textures. Which textures is needed is defined by materialType. (default: )
-textureColor     = pbr/bricks/Bricks_C.png
-textureNormal    = pbr/bricks/Bricks_N.png
-textureRoughness = pbr/bricks/Bricks_R.png
+textureColor     = pbr/bricks/Bricks029_2K_Color.png
+textureNormal    = pbr/bricks/Bricks029_2K_Normal.png
+textureRoughness = pbr/bricks/Bricks029_2K_RAOM.png
 textureMetalness = black.png
 
 #shaderGroup

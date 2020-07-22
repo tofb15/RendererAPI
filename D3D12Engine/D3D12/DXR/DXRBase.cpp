@@ -108,7 +108,7 @@ void DXRBase::UpdateAccelerationStructures(std::vector<SubmissionItem>& items, I
 				CreateBLAS(e, 0, cmdList);
 			} else {
 				//Insert instance	
-				search->second.items.emplace_back(PerInstance{ e.transform });
+				search->second.items.emplace_back(PerInstance{ e.transform, e.renderflag });
 			}
 		}
 	}
@@ -159,6 +159,9 @@ void DXRBase::UpdateSceneData(D3D12Camera* camera, const std::vector<LightSource
 	if (!lights.empty()) {
 		int i = 0;
 		for (auto& e : lights) {
+			if (!e.m_enabled) {
+				continue;
+			}
 			sceneData->pLight[i].position = e.m_position_center;
 			sceneData->pLight[i].reachRadius = e.m_reachRadius;
 			sceneData->pLight[i++].color = e.m_color;
@@ -263,7 +266,10 @@ void DXRBase::CreateTLAS(unsigned int numInstanceDescriptors, ID3D12GraphicsComm
 		int instanceID = 0;
 		for (auto& instance : instances) {
 			pInstanceDesc->InstanceID = instanceID;
-			pInstanceDesc->InstanceMask = 0x1; //Todo: make this changable
+			pInstanceDesc->InstanceMask = 0xFF; //Todo: make this changable
+			if ((instance.renderflags & (int)RenderFlag::Dont_Cast_Shadows)) {
+				pInstanceDesc->InstanceMask &= ~DXRShaderCommon::CASTING_SHADOW_FLAG;
+			}
 			pInstanceDesc->InstanceContributionToHitGroupIndex = blasStartIndex;
 			pInstanceDesc->Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 			pInstanceDesc->AccelerationStructure = blas.second.as.result->GetGPUVirtualAddress();
@@ -388,7 +394,7 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 	//=======Initialize BLAS Data========
 	BottomLayerData blasData = {};
 	blasData.nGeometries = nObjects;
-	blasData.items.emplace_back(PerInstance{ item.transform });
+	blasData.items.emplace_back(PerInstance{ item.transform, item.renderflag });
 	for (size_t i = 0; i < nObjects; i++) {
 		blasData.geometryBuffers[i] = geomDesc[i].Triangles.VertexBuffer.StartAddress;
 	}
@@ -530,13 +536,14 @@ void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList) {
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
 
+			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.roughness));
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_unused_handle_start_this_frame += m_descriptorSize;
+
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.metalness));
 			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			m_unused_handle_start_this_frame += m_descriptorSize;
 
-			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.roughness));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			m_unused_handle_start_this_frame += m_descriptorSize;
 		}
 	}
 }

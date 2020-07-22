@@ -502,7 +502,6 @@ void ResourceManager::PrepareRendering() {
 	}
 }
 
-
 ResourceManager::ResourceManager(RenderAPI* api) : m_api(api) {
 }
 

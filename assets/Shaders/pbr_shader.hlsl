@@ -42,17 +42,20 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 }
 
 
-inline float3 PBRLightContribution(in PointLight pl, in float dist, in float dw, in float3 N, in float3 L, in float NdotL, in float3 V, in float3 albedo, in float metallic, in float roughness){
+inline float3 PBRLightContribution(in PointLight pl, in float dist, in float3 N, in float3 L, in float NdotL, in float3 V, in float3 albedo, in float metallic, in float roughness){
     float3 H = normalize(V + L);
 	float lightRadius = pl.reachRadius;
 		
-    float attenuation = pow(saturate(1.f - pow(dist/pl.reachRadius, 2.f)), 2.f);
-    //float attenuation = pl.reachRadius / (dist*dist);
+    //float attenuation = pow(saturate(1.f - pow(dist/pl.reachRadius, 2.f)), 2.f);
+    //float attenuation = pow(saturate(1.f - pow(dist/pl.reachRadius, 2.f)), 4.f);
+    float attenuation = lightRadius / (dist*dist + 1);
 	//attenuation *= 8.f;
+    //float attenuation = pow(saturate(1.f - pow(dist/lightRadius, 4.f)), 4.f) / (dist * dist + 1.f);
+    //attenuation *= 8.f;
 
     float3 radiance = pl.color * attenuation;
 	
-	float3 F  = fresnelSchlick(max(dot(V,H), 0.0), lerp(0.04, albedo, metallic));
+	float3 F  = fresnelSchlick(max(dot(H,V), 0.0), lerp(float3(0.04, 0.04, 0.04), albedo, metallic));
 	float NDF = DistributionGGX(N, H, roughness);       
 	float G   = GeometrySmith(N, V, L, roughness);  
 	float3 numerator  = NDF * G * F;
@@ -61,7 +64,9 @@ inline float3 PBRLightContribution(in PointLight pl, in float dist, in float dw,
 	float3 kS = F;
 	float3 kD = float3(1.0,1.0,1.0) - kS;
 	kD *= 1.0 - metallic;
-    return (kD * albedo / PI + specular) * radiance * NdotL;
+    return (kD * albedo / PI + specular) * NdotL * radiance;
+	//return float3(1,1,1) * attenuation;	
+	//return float3(1,1,1) * dist/1000.0;
 }
 
 [shader("closesthit")]
@@ -94,71 +99,82 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 	float3 albedo    = sys_textures[0].SampleLevel(samp, uv, 0).xyz;
 	float4 bumpMapColor = sys_textures[NORMAL_TEX_POS].SampleLevel(samp, uv, 0);
-	float metal     = 0.1;//sys_textures[METAL_TEX_POS].SampleLevel(samp, uv, 0).x;
-	float roughness = sys_textures[ROUGHNESS_TEX_POS].SampleLevel(samp, uv, 0).x * 1.8;
-
-	roughness = saturate(roughness);
+	float4 RAOM = sys_textures[ROUGHNESS_TEX_POS].SampleLevel(samp, uv, 0).x;
+	float roughness = RAOM.r * 1;
+	float ao 		= RAOM.g * 1;
+	float metal     = RAOM.b * 1;
 
 	//===Calculate Normal===
 	float3 normalInLocalSpace = barrypolation(barycentrics, vertices_normal[i1], vertices_normal[i2], vertices_normal[i3]);
-	float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
+	//float3 normalInWorldSpace = normalize(mul(ObjectToWorld3x4(), float4(normalInLocalSpace, 0.f)));
+	//float3 binormal = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal));
+	//float3 tangent = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent));
+
+	float3 normalInWorldSpace = normalize(mul(float4(normalInLocalSpace, 0.f),ObjectToWorld4x3()));
+	float3 normalInWorldSpace_noNormalmap = normalInWorldSpace;
+	float3 binormal = mul(barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal),ObjectToWorld4x3());
+	float3 tangent = mul(barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent),ObjectToWorld4x3());
+
 
 //#define NO_NORMAL_MAP
 #ifndef NO_NORMAL_MAP
 	//===Add Normal Map===
-	float3 tangent = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent));
-	float3 binormal = mul(ObjectToWorld3x4(), barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal));
 
 	tangent = normalize(tangent);
 	binormal = normalize(binormal);
 
-	//bumpMapColor *= bumpMapColor.a;
-	float3x3 tbn = float3x3(
-		tangent,
-		binormal,
-		normalInWorldSpace
-		);
+    bumpMapColor = (bumpMapColor * 2.0f) - 1.0f;
+    normalInWorldSpace = (bumpMapColor.x * tangent) + (bumpMapColor.y * binormal) + (bumpMapColor.z * normalInWorldSpace);
+    normalInWorldSpace = normalize(normalInWorldSpace);
 
-	normalInWorldSpace = mul(normalize(bumpMapColor.xyz * 2.f - 1.f), tbn);
+	//normalInWorldSpace = mul(normalize(bumpMapColor.xyz * 2.f - 1.f), tbn);
 #endif //NO_NORMAL_MAP
 
 	
 	float3 Lo = float3(0,0,0);
 
+	float3 toCameraDir = normalize(CB_SceneData.cameraPosition - worldHitPoint);
+	float CDotN = dot(normalInWorldSpace, toCameraDir);
+	
 	if(CB_SceneData.nLights > 0){
 		float lightNormalAngle = 0;
 		float3 toLightDir = float3(1.0f,1.0f,0.0f);
-		float3 toCameraDir = normalize(CB_SceneData.cameraPosition - worldHitPoint);
 		float LightDistToHit = 0;
+		float dw = 1.0f/CB_SceneData.nLights;
+		if(CDotN <= 0){
+			normalInWorldSpace *= -1;
+			normalInWorldSpace_noNormalmap *= -1;
+		}
 
 		for(int i = 0; i < CB_SceneData.nLights; i++){
-			toLightDir = normalize(CB_SceneData.pLight[i].position - worldHitPoint);
-			lightNormalAngle = max(dot(toLightDir, normalInWorldSpace), 0);
+			if(all(CB_SceneData.pLight[i].color == 0.0)){
+				continue;
+			}
+			toLightDir = normalize(CB_SceneData.pLight[i].position - worldHitPoint);	
+			lightNormalAngle = max(dot(normalInWorldSpace,toLightDir), 0);	
 			if (lightNormalAngle > 0) {	
-				float LightDistToHit = length(worldHitPoint - CB_SceneData.pLight[i].position);
+				LightDistToHit = length(worldHitPoint - CB_SceneData.pLight[i].position);
 				if(LightDistToHit > CB_SceneData.pLight[i].reachRadius){
-					continue;
+					//continue;
 				}
-				//Check if the light is ocluded.
-				RayDesc shadowRay;
-				shadowRay.Origin = worldHitPoint + normalInWorldSpace * 0.001f;
-				shadowRay.Direction = toLightDir;
-				shadowRay.TMin = 0.00001;
-				shadowRay.TMax = LightDistToHit;
-				RayPayload_shadow shadowPayload;
-				shadowPayload.inShadow = 1;
-				TraceRay(gAS, g_SHADOW_RAY_FLAGS, 0xFF, 1, N_RAY_TYPES, 1, shadowRay, shadowPayload);
-				//If the light is not ocluded, Do light things.
-				if (!shadowPayload.inShadow) {
-					//Do light things
-					float dw = 1.0f/max(CB_SceneData.nLights, 1);
-					Lo += PBRLightContribution(CB_SceneData.pLight[i], LightDistToHit, dw,  normalInWorldSpace, toLightDir, lightNormalAngle, toCameraDir, albedo, metal, roughness);
 
+				//If the light is not ocluded, Do light things.
+				if (!PointInShadow(worldHitPoint + normalInWorldSpace * 0.01f, toLightDir, LightDistToHit)) {
+					//Do light things
+					Lo += 1 * PBRLightContribution(CB_SceneData.pLight[i], LightDistToHit,  normalInWorldSpace, toLightDir, lightNormalAngle, toCameraDir, albedo, metal, roughness);
 				}
 			}
 		}
 	}
 
-	Lo = saturate(Lo);
+	float3 ambient = 0.03 * albedo * ao;
+	Lo = saturate(Lo + ambient);
+	//payload.color = float4(normalInWorldSpace, 1);
+	payload.color = float4(CDotN,CDotN,CDotN, 1);
+	payload.color = abs(float4(CDotN,CDotN,CDotN, 1));
 	payload.color = float4(Lo, 1);
+	
+	//payload.color = float4(tangent, 1);
+	//payload.color = float4(abs(normalInLocalSpace), 1);
+	//payload.color = float4(worldHitPoint/100, 1);
 }

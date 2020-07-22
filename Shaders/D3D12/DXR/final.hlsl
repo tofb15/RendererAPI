@@ -35,7 +35,7 @@ void rayGen() {
 	payload.recursionDepth = 0;
 	payload.hitT = 0;
 
-	TraceRay(gAS, 0, 0xFF, 0, N_RAY_TYPES, 0, ray, payload);
+	TraceRay(gAS, 0, HIT_BY_PRIMARY_RAYS_FLAG, 0, N_RAY_TYPES, 0, ray, payload);
 
 	outputTexture[launchIndex] = payload.color;
 
@@ -48,7 +48,7 @@ void rayGen() {
 
 [shader("miss")]
 void miss(inout RayPayload payload) {
-	payload.color = float4(0.05f, 0.05f, 0.15f, 1.0f);
+	payload.color = float4(0.00f, 0.00f, 0.0f, 1.0f);
 	payload.hitT = RAY_T_MAX;
 }
 
