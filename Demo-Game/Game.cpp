@@ -1,17 +1,9 @@
 #include "Game.h"
 #include "../D3D12Engine/Utills/Utills.h"
-#include "GameObject.h"
 
 Game::Game() {}
 
 Game::~Game() {
-	for (auto e : m_cameras) {
-		delete e;
-	}
-	for (auto e : m_objects) {
-		delete e;
-	}
-
 	for (auto e : m_windows) {
 		delete e;
 	}
@@ -34,23 +26,20 @@ int Game::Initialize() {
 
 	m_globalWindowInput = &m_windows[0]->GetGlobalWindowInputHandler();
 
-	InitializeCameras();
-
 	m_rm = ResourceManager::GetInstance(m_renderAPI);
 	m_rm->SetAssetPath("../assets/");
 
 	//Preload one texture into memory. The first texture loaded will be used as default or "missing"-texture.
 	m_dummyTexture = m_rm->GetTexture("emptyNormal.png");
-	m_lights.emplace_back();
-
 	m_rm->RefreshFileSystemResourceLists();
+
 	for (auto scene : m_rm->m_foundScenes.files) {
 		if (scene.path.stem() == "example_scene") {
 			size_t start = m_rm->m_foundScenes.path.string().length();
 			size_t count = scene.path.string().length() - start;
 			std::string s = scene.path.string().substr(start, count);
 
-			LoadScene(s);
+			m_scene.LoadScene(s, m_rm, m_renderAPI, m_windows[0]->GetDimensions());
 			break;
 		}
 	}
@@ -86,17 +75,6 @@ bool Game::InitializeRendererAndWindow() {
 	m_windows.push_back(window);
 
 	return true;
-}
-
-void Game::InitializeCameras() {
-	Int2 dim = m_windows[0]->GetDimensions();
-	float aspRatio = dim.x / dim.y;
-
-	Camera* cam = m_renderAPI->MakeCamera();
-	cam->SetPosition(Float3(-50, 100, -50));
-	cam->SetTarget(Float3(100, 20, 100));
-	cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
-	m_cameras.push_back(cam);
 }
 
 void Game::Run() {
@@ -162,15 +140,15 @@ void Game::Run() {
 	}
 }
 void Game::UpdateObjects(double dt) {
-	if (m_animateLight) {
-		m_time_lightAnim += dt * 0.05;
-	}
-
-	float lightRad = 50;
-	float lightSpeedMulti = 15;
-	for (auto& e : m_lights) {
-		e.m_position_animated = (e.m_position_center + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
-	}
+	//if (m_animateLight) {
+	//	m_time_lightAnim += dt * 0.05;
+	//}
+	//
+	//float lightRad = 50;
+	//float lightSpeedMulti = 15;
+	//for (auto& e : m_lights) {
+	//	e.m_position_animated = (e.m_position_center + Float3(cos(m_time_lightAnim * lightSpeedMulti) * lightRad, 0, sin(m_time_lightAnim * lightSpeedMulti) * lightRad));
+	//}
 }
 void Game::UpdateInput() {
 	// This input handler is shared between windows
@@ -207,23 +185,23 @@ void Game::ProcessLocalInput(double dt) {
 			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
 			float ms = m_ms * (shift ? 1 : 0.02);
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W)) {
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S)) {
-				m_cameras[i]->Move(m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A)) {
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * -(ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D)) {
-				m_cameras[i]->Move(m_cameras[0]->GetRight().normalized() * (ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * (ms * dt));
 			}
 		}
 
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
-		m_cameras[0]->Rotate(m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
+		m_scene.m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
+		m_scene.m_cameras[0]->Rotate(m_scene.m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
 }
 
@@ -233,14 +211,14 @@ void Game::RenderWindows() {
 	size_t nWindows = m_windows.size();
 	for (int i = 0; i < nWindows; i++) {
 		m_renderer->ClearSubmissions();
-		m_renderer->SetLightSources(m_lights);
+		m_renderer->SetLightSources(m_scene.m_lights);
 		window = m_windows[i];
 
 		SubmitObjectsForRendering();
 
 		//TODO: Do we want to support multiple Frame calls in a row? What if we want to render split-screen? Could differend threads prepare different frames?
 		m_rm->PrepareRendering();
-		m_renderer->Frame(window, m_cameras[0]);
+		m_renderer->Frame(window, m_scene.m_cameras[0]);
 		m_renderer->Present(window, this);
 	}
 }
@@ -386,165 +364,9 @@ void Game::RenderSettingWindow() {
 }
 
 void Game::SubmitObjectsForRendering() {
-	for (auto& e : m_objects) {
-		m_renderer->Submit({ e->blueprint, e->transform }, m_cameras[0]);
+	for (auto& e : m_scene.m_objects) {
+		m_renderer->Submit({ e->blueprint, e->transform }, m_scene.m_cameras[0]);
 	}
-}
-
-bool Game::PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag) {
-	std::ifstream inFile(path);
-
-	if (!std::filesystem::exists(path) || !inFile.is_open()) {
-		m_currentSceneName = "";
-		return false;
-	}
-
-	//Load Camera
-	std::stringstream ss;
-	std::string line;
-	Float3 tempFloat;
-	size_t tempSizeT;
-
-	bool allGood = true;
-
-	while (std::getline(inFile, line)) {
-		if (line[0] == '#') {
-			continue;
-		} else if (line == "Objects") {
-			//Load Objects
-			inFile >> tempSizeT;
-			inFile.ignore();
-			for (size_t i = 0; i < tempSizeT; i++) {
-				std::getline(inFile, line);
-				if (m_rm->PreLoadBlueprint(line, assets_to_load_flag)) {
-					allGood = false;
-				}
-				for (size_t i = 0; i < 3; i++) {
-					std::getline(inFile, line);
-				}
-			}
-		}
-	}
-
-	return allGood;
-}
-
-bool Game::LoadScene(const std::string& name, bool clearOld) {
-	if (clearOld) {
-		ClearScene();
-	}
-
-	m_currentSceneName = name;
-	std::filesystem::path path = m_rm->GetSceneFolderFullPath() + name;
-	std::ifstream inFile(path);
-	if (!std::filesystem::exists(path) || !inFile.is_open()) {
-		m_currentSceneName = "";
-		return false;
-	}
-
-	//Load Camera
-	std::stringstream ss;
-	std::string line;
-	Float3 tempFloat;
-	size_t tempSizeT;
-	int tempInt;
-	while (std::getline(inFile, line)) {
-		if (line[0] == '#') {
-			continue;
-		} else if (line == "Cameras" && !m_loadSettingkeepKamera) {
-
-			inFile >> tempSizeT;
-
-			Int2 dim = m_windows[0]->GetDimensions();
-			float aspRatio = dim.x / dim.y;
-			for (size_t i = 0; i < tempSizeT; i++) {
-				Camera* cam = m_renderAPI->MakeCamera();
-
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				cam->SetPosition(tempFloat);
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				cam->SetTarget(tempFloat);
-
-				cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
-				m_cameras.push_back(cam);
-			}
-		} else if (line == "Lights") {
-			inFile >> m_time_lightAnim;
-			inFile >> tempSizeT;
-			for (size_t i = 0; i < tempSizeT; i++) {
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				LightSource ls;
-				ls.m_position_center = (tempFloat);
-				m_lights.push_back(ls);
-			}
-		} else if (line == "Objects") {
-			//Load Objects
-			inFile >> tempSizeT;
-			Blueprint* bp;
-			for (size_t i = 0; i < tempSizeT; i++) {
-				inFile.ignore();
-				std::getline(inFile, line);
-				if ((bp = m_rm->GetBlueprint(line)) == nullptr) {
-					ClearScene();
-					m_currentSceneName = "";
-					return false;
-				}
-
-				Object* obj = new Object;
-				obj->blueprint = bp;
-
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				obj->transform.pos = tempFloat;
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				obj->transform.scale = tempFloat;
-				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
-				obj->transform.rotation = tempFloat;
-
-				m_objects.push_back(obj);
-			}
-		}
-	}
-
-	if (m_cameras.empty()) {
-		//==============
-		Int2 dim = m_windows[0]->GetDimensions();
-		float aspRatio = dim.x / dim.y;
-
-		Camera* cam = m_renderAPI->MakeCamera();
-		cam->SetPosition(Float3(0, 10, -10));
-		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
-		m_cameras.push_back(cam);
-	}
-
-	if (m_lights.empty()) {
-		//==============
-		LightSource ls;
-		ls.m_position_center = (Float3(10, 60, 10));
-		m_lights.push_back(ls);
-	}
-
-	return true;
-}
-
-void Game::ClearScene(bool clearName) {
-	if (clearName) {
-		m_currentSceneName = "";
-	}
-
-	for (auto e : m_objects) {
-		delete e;
-	}
-	m_objects.clear();
-
-	if (!m_loadSettingkeepKamera) {
-		for (auto e : m_cameras) {
-			delete e;
-		}
-		m_cameras.clear();
-	}
-
-	m_lights.clear();
 }
 
 void Game::ReloadShaders() {

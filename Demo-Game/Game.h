@@ -15,6 +15,7 @@
 #include "../D3D12Engine/External/IMGUI/imgui.h"
 #include "../D3D12Engine/External/IMGUI/imgui_internal.h"
 #include "../D3D12Engine/Utills/FileSystem.h"
+#include "../D3D12Engine/Scene.h"
 
 #include <iostream>
 #include <chrono>
@@ -38,7 +39,6 @@ public:
 	virtual int Initialize();
 	bool InitializeRendererAndWindow();
 
-	void InitializeCameras();
 	void Run();
 	void UpdateObjects(double dt);
 	void UpdateInput();
@@ -48,24 +48,7 @@ public:
 		Submits the scene to the renderer and triggers it to render.
 	*/
 	void RenderWindows();
-	/*
-		Loads a scene from file.
-		If the scene uses any assets not yet loaded into memory these will be loaded aswell.
 
-		@param name, the name of the scene to  be loaded.
-		@return true if the scene file could be loaded correctly, else false.
-
-		==Remarks==
-		Other assets loaded indirectly and asynchronously with this function, like textures,
-		may fail to load even though it returns true.
-	*/
-	bool PreLoadScene(const std::filesystem::path& path, Asset_Types assets_to_load_flag = Asset_Type_Any);
-	bool LoadScene(const std::string& name, bool clearOld = true);
-
-	/*
-		Clears the scene
-	*/
-	void ClearScene(bool clearName = true);
 	/*
 		Triggers the renderer to recompile shaders with the current shader defines and settings
 	*/
@@ -108,21 +91,14 @@ protected:
 	RenderAPI* m_renderAPI;
 	Renderer* m_renderer;
 
-	ShaderManager* m_sm;
 	std::vector<Window*>		m_windows;
 	WindowInput* m_globalWindowInput;
 
-	std::vector<Camera*>		m_cameras; // List of all cameras
-	std::vector<Object*>		m_objects; // List of All game objects
-
-	std::string m_currentSceneName = "";
-
-	std::vector<int> m_selectedObjects;
+	Scene m_scene;
 
 	double m_time = 0.0;
 	double m_ms = 300.0;
 
-	std::vector<LightSource> m_lights;
 	ResourceManager* m_rm;
 	Texture* m_dummyTexture;
 
@@ -130,9 +106,7 @@ protected:
 	bool m_animateLight = false;
 	bool m_allowAnyhitShaders = true;
 	float m_time_lightAnim = 0.0;
-
 	float maxRandomPos = 100;
-
 	//Shader Defines
 	bool m_def_NO_NORMAL_MAP = false;
 	bool m_def_NO_SHADOWS = false;
@@ -147,7 +121,6 @@ protected:
 	bool m_def_DEBUG_DEPTH = false;
 	int m_def_DEBUG_DEPTH_EXP = 100;
 	bool m_reloadShaders = false;
-
 	//Scene Load Settings	
 	bool m_loadSettingkeepKamera = false;
 

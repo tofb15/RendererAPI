@@ -453,6 +453,7 @@
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">Create</PrecompiledHeader>
@@ -552,8 +553,10 @@
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
+    <ClInclude Include="GameObject.h" />
     <ClInclude Include="Loaders\ConfigFileLoader.hpp" />
     <ClInclude Include="Loaders\SimpleTexture.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="Utills\CodeParser.h" />
     <ClInclude Include="Utills\RegularExpressions.h" />
     <ClInclude Include="Utills\Utills.h" />

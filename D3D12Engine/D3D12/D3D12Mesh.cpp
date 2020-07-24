@@ -331,10 +331,10 @@ bool D3D12Mesh::CalculateTangentAndBinormal(Float3* positions, Float2* uvs, int 
 		Float3 tempTangent;
 		Float3 tempBinormal;
 
-		vL[0] = Float3(positions[1]) - positions[0];	// Vectors between vertices in Local space
-		vL[1] = Float3(positions[2]) - positions[0];
-		vT[0] = Float2(uvs[1]) - uvs[0];		// Vectors between vertices in UV space
-		vT[1] = Float2(uvs[2]) - uvs[0];
+		vL[0] = positions[1] - positions[0];	// Vectors between vertices in Local space
+		vL[1] = positions[2] - positions[0];
+		vT[0] = uvs[1] - uvs[0];		// Vectors between vertices in UV space
+		vT[1] = uvs[2] - uvs[0];
 
 		tempTangent = Float3(
 			vT[1].y * vL[0].x - vT[0].y * vL[1].x,

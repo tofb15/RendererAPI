@@ -7,12 +7,13 @@
 #include "../D3D12Engine/Material.hpp"
 #include "../D3D12Engine/Window.hpp"
 #include "../D3D12Engine/Mesh.hpp"
+#include "../D3D12Engine/GameObject.h"
+#include "../D3D12Engine/Scene.h"
 
 #include "../D3D12Engine/External/IMGUI/imgui.h"
 #include "../D3D12Engine/External/IMGUI/imgui_internal.h"
 
 #include <algorithm>
-#include "GameObject.h"
 #include <unordered_set>
 #include <iterator> 
 
@@ -88,8 +89,8 @@ void Editor::SubmitObjectsForRendering() {
 		if (light_bp) {
 			for (auto& e : m_selectedResources) {
 				Transform t;
-				t.pos = m_lights[(int)e].m_position_center;
-				m_renderer->Submit({ light_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_cameras[0]);
+				t.pos = m_scene.m_lights[(int)e].m_position_center;
+				m_renderer->Submit({ light_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_scene.m_cameras[0]);
 			}
 		}
 	}
@@ -198,25 +199,25 @@ void Editor::RenderMenuBar() {
 		}
 		if (ImGui::BeginMenu("Scene")) {
 			if (ImGui::MenuItem("New Scene", "")) {
-				NewScene();
+				m_scene.NewScene();
 			}
 
-			if (ImGui::MenuItem("Save Scene", "", nullptr, m_currentSceneName != "")) {
-				SaveScene(false);
+			if (ImGui::MenuItem("Save Scene", "", nullptr, m_scene.m_currentSceneName != "")) {
+				m_scene.SaveScene(false, m_rm);
 			}
 
 			if (ImGui::MenuItem("Save Scene as New", "")) {
-				SaveScene(true);
+				m_scene.SaveScene(true, m_rm);
 			}
 
 			if (ImGui::BeginMenu("Load Scene")) {
-				std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundScenes, m_currentSceneName, true);
+				std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundScenes, m_scene.m_currentSceneName, true);
 				if (clickedItem != "") {
 					size_t len1 = m_rm->m_foundScenes.path.string().length();
 					size_t len2 = clickedItem.string().length() - len1;
 					std::string s = clickedItem.string().substr(len1, len2);
 
-					bool b = LoadScene(s);
+					bool b = m_scene.LoadScene(s, m_rm, m_renderAPI, m_windows[0]->GetDimensions());
 				}
 				ImGui::EndMenu();
 			}
@@ -247,7 +248,7 @@ void Editor::RenderSceneWindow() {
 		ImGui::BeginChild("Scene Object List", ImVec2(0, ImGui::GetWindowHeight() - 120), true);
 
 		int i = 0;
-		for (auto& e : m_lights) {
+		for (auto& e : m_scene.m_lights) {
 			if (ImGui::Selectable(("light#" + std::to_string(i)).c_str(), IsResourceSelected((void*)i, ResourceTypes::Light))) {
 				//m_selectedObjects.push_back(i);
 			}
@@ -278,7 +279,7 @@ void Editor::RenderSceneWindow() {
 		}
 		ImGui::Separator();
 		i = 0;
-		for (auto& e : m_objects) {
+		for (auto& e : m_scene.m_objects) {
 			if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), IsResourceSelected(e, ResourceTypes::Object))) {
 				//m_selectedObjects.push_back(i);
 			}
@@ -286,7 +287,7 @@ void Editor::RenderSceneWindow() {
 			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
 				if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
 					if (m_selectedResourceType == ResourceTypes::Object) {
-						int min = std::distance(m_objects.begin(), std::find(m_objects.begin(), m_objects.end(), static_cast<Object*>(m_selectedResources.front())));
+						int min = std::distance(m_scene.m_objects.begin(), std::find(m_scene.m_objects.begin(), m_scene.m_objects.end(), static_cast<Object*>(m_selectedResources.front())));
 						int max = i;
 						if (min > max) {
 							std::swap(min, max);
@@ -294,7 +295,7 @@ void Editor::RenderSceneWindow() {
 
 						ClearSelectedResources();
 						for (int a = min; a <= max; a++) {
-							AddSelectedResource(m_objects.at(a), ResourceTypes::Object);
+							AddSelectedResource(m_scene.m_objects.at(a), ResourceTypes::Object);
 						}
 					} else {
 						SetSelectedResource(e, ResourceTypes::Object);
@@ -316,24 +317,24 @@ void Editor::RenderSceneWindow() {
 
 		if (nSelected > 0) {
 			if (m_selectedResourceType == ResourceTypes::Object) {
-				size_t numberOfObjects = (int)m_objects.size();
+				size_t numberOfObjects = (int)m_scene.m_objects.size();
 				if (ImGui::Button("Copy")) {
 					for (auto i : m_selectedResources) {
 						Object* obj = new Object();
 						memcpy(obj, i, sizeof(Object));
-						m_objects.push_back(obj);
+						m_scene.m_objects.push_back(obj);
 					}
 					m_selectedResources.clear();
 					for (size_t i = numberOfObjects; i < numberOfObjects + nSelected; i++) {
-						AddSelectedResource(m_objects.at(i), ResourceTypes::Object);
+						AddSelectedResource(m_scene.m_objects.at(i), ResourceTypes::Object);
 					}
 				}
 				ImGui::SameLine();
 
 				if (ImGui::Button("Delete")) {
 					for (auto i : m_selectedResources) {
-						auto e = std::find(m_objects.begin(), m_objects.end(), i);
-						m_objects.erase(e);
+						auto e = std::find(m_scene.m_objects.begin(), m_scene.m_objects.end(), i);
+						m_scene.m_objects.erase(e);
 						delete i;
 					}
 
@@ -343,19 +344,19 @@ void Editor::RenderSceneWindow() {
 				if (ImGui::Button("Select All Identical")) {
 					auto bplist = m_selectedSceneObjectBlueprints;
 					ClearSelectedResources();
-					for (auto i : m_objects) {
+					for (auto i : m_scene.m_objects) {
 						if (bplist.count(i->blueprint) > 0) {
 							AddSelectedResource(i, ResourceTypes::Object);
 						}
 					}
 				}
 			} else if (m_selectedResourceType == ResourceTypes::Light) {
-				size_t numberOfLights = (int)m_lights.size();
+				size_t numberOfLights = (int)m_scene.m_lights.size();
 
 				if (ImGui::Button("Copy")) {
 					for (auto i : m_selectedResources) {
-						LightSource ls = m_lights[(int)i];
-						m_lights.push_back(ls);
+						LightSource ls = m_scene.m_lights[(int)i];
+						m_scene.m_lights.push_back(ls);
 					}
 					m_selectedResources.clear();
 					for (size_t i = numberOfLights; i < numberOfLights + nSelected; i++) {
@@ -368,7 +369,7 @@ void Editor::RenderSceneWindow() {
 					std::sort(m_selectedResources.begin(), m_selectedResources.end());
 					std::reverse(m_selectedResources.begin(), m_selectedResources.end());
 					for (auto i : m_selectedResources) {
-						m_lights.erase(m_lights.begin() + (int)i);
+						m_scene.m_lights.erase(m_scene.m_lights.begin() + (int)i);
 					}
 
 					ClearSelectedResources();
@@ -390,8 +391,8 @@ void Editor::RenderSceneWindow_AddMenu() {
 					LightSource ls;
 					ls.m_color = Float3(1, 1, 1);
 					ls.m_reachRadius = 500;
-					m_lights.push_back(ls);
-					SetSelectedResource((void*)(m_lights.size() - 1), ResourceTypes::Light);
+					m_scene.m_lights.push_back(ls);
+					SetSelectedResource((void*)(m_scene.m_lights.size() - 1), ResourceTypes::Light);
 				}
 				ImGui::EndMenu();
 
@@ -540,7 +541,7 @@ void Editor::RenderDebugWindow() {
 	if (ImGui::Begin("Debug", NULL, ImGuiWindowFlags_None)) {
 		static float lightReach = 100;
 		if (ImGui::DragFloat("Light Reach", &lightReach, 1, 1, 10000)) {
-			for (auto& e : m_lights) {
+			for (auto& e : m_scene.m_lights) {
 				e.m_reachRadius = lightReach;
 			}
 		}
@@ -670,7 +671,7 @@ void Editor::RenderPropertyWindowSceneObject() {
 
 void Editor::RenderPropertyWindowLights() {
 	size_t nSelected = m_selectedResources.size();
-	LightSource& fistSelected = m_lights[(int)m_selectedResources.front()];
+	LightSource& fistSelected = m_scene.m_lights[(int)m_selectedResources.front()];
 	if (nSelected == 1) {
 
 		std::string name = "#Light Name#";// +std::to_string((int)m_selectedResources.front());
@@ -685,17 +686,17 @@ void Editor::RenderPropertyWindowLights() {
 
 	if (ImGui::DragFloat3("Color", (float*)& fistSelected.m_color, 0.1, 0, 1)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_lights[(int)m_selectedResources[i]].m_color = m_lights[(int)m_selectedResources.front()].m_color;
+			m_scene.m_lights[(int)m_selectedResources[i]].m_color = m_scene.m_lights[(int)m_selectedResources.front()].m_color;
 		}
 	}
 	if (ImGui::DragFloat("Light Reach", (float*)& fistSelected.m_reachRadius, 100, 0, 10000)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_lights[(int)m_selectedResources[i]].m_reachRadius = m_lights[(int)m_selectedResources.front()].m_reachRadius;
+			m_scene.m_lights[(int)m_selectedResources[i]].m_reachRadius = m_scene.m_lights[(int)m_selectedResources.front()].m_reachRadius;
 		}
 	}
 	if (ImGui::Checkbox("Enable", &fistSelected.m_enabled)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_lights[(int)m_selectedResources[i]].m_enabled = m_lights[(int)m_selectedResources.front()].m_enabled;
+			m_scene.m_lights[(int)m_selectedResources[i]].m_enabled = m_scene.m_lights[(int)m_selectedResources.front()].m_enabled;
 		}
 	}
 
@@ -1006,100 +1007,4 @@ std::filesystem::path Editor::DrawRecursiveDirectoryList(const FileSystem::Direc
 	}
 
 	return clicked;
-}
-
-bool Editor::SaveScene(bool saveAsNew) {
-	std::string sceneFolderPath = m_rm->GetSceneFolderFullPath();
-	if (!std::filesystem::exists(sceneFolderPath)) {
-		std::filesystem::create_directories(sceneFolderPath);
-	}
-
-	int i = 0;
-	bool nameOK = false;
-	std::filesystem::path scenePath;
-	std::string sceneName;
-
-	if (saveAsNew || m_currentSceneName == "") {
-		while (!nameOK) {
-			sceneName = "Scene" + std::to_string(i);
-			scenePath = sceneFolderPath + sceneName;
-			if (!std::filesystem::exists(scenePath)) {
-				nameOK = true;
-			}
-			i++;
-		}
-
-		m_currentSceneName = sceneName;
-	} else {
-		scenePath = sceneFolderPath + m_currentSceneName;
-	}
-
-	std::ofstream outFile(scenePath);
-
-	//Save Camera
-	outFile << "Cameras\n";
-	outFile << m_cameras.size() << "\n";
-
-	for (auto& e : m_cameras) {
-		outFile << e->GetPosition().x << " "
-			<< e->GetPosition().y << " "
-			<< e->GetPosition().z << "\n";
-
-		outFile << e->GetTarget().x << " "
-			<< e->GetTarget().y << " "
-			<< e->GetTarget().z << "\n";
-	}
-
-	//Save Lights
-	outFile << "Lights\n";
-	outFile << m_time_lightAnim << "\n";
-	outFile << m_lights.size() << "\n";
-	for (auto& e : m_lights) {
-		outFile << e.m_position_center.x << " "
-			<< e.m_position_center.y << " "
-			<< e.m_position_center.z << "\n";
-	}
-
-	//Save Objects
-	outFile << "Objects\n";
-	outFile << m_objects.size() << "\n";
-	for (auto& e : m_objects) {
-		outFile << m_rm->GetBlueprintName(e->blueprint) << "\n";
-
-		outFile << e->transform.pos.x << " "
-			<< e->transform.pos.y << " "
-			<< e->transform.pos.z << "\n";
-
-		outFile << e->transform.scale.x << " "
-			<< e->transform.scale.y << " "
-			<< e->transform.scale.z << "\n";
-
-		outFile << e->transform.rotation.x << " "
-			<< e->transform.rotation.y << " "
-			<< e->transform.rotation.z << "\n";
-	}
-
-	m_rm->RefreshFileSystemResourceLists();
-
-	return true;
-}
-
-void Editor::NewScene() {
-	ClearScene();
-	ClearSelectedResources();
-
-	//==============
-	Int2 dim = m_windows[0]->GetDimensions();
-	float aspRatio = dim.x / dim.y;
-
-	Camera* cam = m_renderAPI->MakeCamera();
-	cam->SetPosition(Float3(0, 10, -10));
-	cam->SetTarget(Float3(0, 0, 0));
-	cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
-	m_cameras.push_back(cam);
-
-	//==============
-	LightSource ls;
-	ls.m_position_center = (Float3(10, 60, 10));
-	m_lights.push_back(ls);
 }

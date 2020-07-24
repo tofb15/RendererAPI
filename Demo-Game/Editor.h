@@ -112,20 +112,4 @@ private:
 		If no file was clicked this will return an empty path: ""
 */
 	std::filesystem::path DrawRecursiveDirectoryList(const FileSystem::Directory& path, const std::string& selectedItem, const bool isMenuBar = false, unsigned int currDepth = 0);
-
-	/*
-	Save the current scene to file. The filename of the scene will be decided by m_currentSceneName.
-
-	@param saveAsNew, if true m_currentSceneName will be set a non existing generated filename
-		before saving in order to avoid overwriting a previusly saved scene.
-		If Set to false m_currentSceneName will be used as the filename and potentially overwrite
-		any previusly saved scene.
-
-	@return true of succeeded
-*/
-	bool SaveScene(bool saveAsNew);
-	/*
-	Calls ClearScene() and sets up basic scene elements.
-*/
-	void NewScene();
 };

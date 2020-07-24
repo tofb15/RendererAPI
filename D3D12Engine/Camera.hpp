@@ -17,6 +17,8 @@ public:
 	Float3 GetTargetDirection() const;
 	Float3 GetRight() const;
 
+	float GetFOV() const;
+
 	/*
 		@return True if any of the cameras properties have changed since it was last used for rendering.
 	*/
@@ -26,6 +28,7 @@ protected:
 
 	Float3 m_position;
 	Float3 m_target;
+	float m_fov = 0;
 
 	//int id;
 	//int viewMatrixIndex;
