@@ -53,7 +53,6 @@ inline float3 PBRLightContribution(in PointLight pl, in float dist, in float3 N,
     //float attenuation = pow(saturate(1.f - pow(dist/lightRadius, 4.f)), 4.f) / (dist * dist + 1.f);
     //attenuation *= 8.f;
 
-    float3 radiance = pl.color * attenuation;
     float3 radiance = normalize(pl.color) * attenuation;
 	
 	float3 F  = fresnelSchlick(max(dot(H,V), 0.0), lerp(float3(0.04, 0.04, 0.04), albedo, metallic));
