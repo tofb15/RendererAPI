@@ -210,10 +210,10 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui) {
 	m_d3d12->GetDirectCommandQueue()->ExecuteCommandLists(ARRAYSIZE(listsToExecute), listsToExecute);
 
 	DXGI_PRESENT_PARAMETERS pp = {};
-	static_cast<D3D12Window*>(window)->GetSwapChain()->Present1(0, 0, &pp);
 
-	HRESULT hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
+	HRESULT hr = static_cast<D3D12Window*>(window)->GetSwapChain()->Present1(0, 0, &pp);
 	if (FAILED(hr)) {
+		hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
 		_com_error err2(hr);
 		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
 	}

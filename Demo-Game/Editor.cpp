@@ -84,7 +84,7 @@ int Editor::Initialize() {
 void Editor::SubmitObjectsForRendering() {
 	Game::SubmitObjectsForRendering();
 
-	if (m_selectedResourceType == ResourceTypes::Light) {
+	if (m_selectedResourceType == ResourceType::Light) {
 		Blueprint* light_bp = m_rm->GetBlueprint(m_lightsourceBlueprintName);
 		if (light_bp) {
 			for (auto& e : m_selectedResources) {
@@ -96,26 +96,61 @@ void Editor::SubmitObjectsForRendering() {
 	}
 }
 
+void Editor::RegisterEditedResource(void* res, ResourceType type) {
+	m_unSavedResources.insert({ res, type });
+}
+
+void Editor::SaveUnsavedFiles() {
+	std::string name;
+	for (auto& e : m_unSavedResources) {
+		switch (e.second) {
+		case ResourceType::Blueprint:
+		{
+			Blueprint* resource = static_cast<Blueprint*>(e.first);
+			name = m_rm->GetBlueprintName(resource);
+			if (!m_rm->SaveBlueprintToFile(resource, name)) {
+				//TODO: Log Error
+			}
+		}
+		break;
+		case ResourceType::Material:
+		{
+			Material* resource = static_cast<Material*>(e.first);
+			name = m_rm->GetMaterialName(resource);
+			resource->SaveToFile((m_rm->GetAssetPath() + MATERIAL_FOLDER_NAME + name).c_str(), *m_rm);
+			break;
+		}
+		default:
+		{
+			//TODO: Log Error
+		}
+		break;
+		}
+	}
+
+	m_unSavedResources.clear();
+}
+
 bool Editor::ClearSelectedResources() {
 	m_selectedResources.clear();
 	m_selectedSceneObjectBlueprints.clear();
-	m_selectedResourceType = ResourceTypes::None;
+	m_selectedResourceType = ResourceType::None;
 	m_selectedFileNames.clear();
 	return true;
 }
 
-bool Editor::IsResourceSelected(void* res, ResourceTypes type) {
+bool Editor::IsResourceSelected(void* res, ResourceType type) {
 	if (m_selectedResourceType == type) {
 		return Contains<std::vector, void*>(m_selectedResources, res);
 	}
 	return false;
 }
 
-bool Editor::SetSelectedResource(void* res, ResourceTypes type) {
+bool Editor::SetSelectedResource(void* res, ResourceType type) {
 	ClearSelectedResources();
 	m_selectedResourceType = type;
 	m_selectedResources.push_back(res);
-	if (type == ResourceTypes::Object) {
+	if (type == ResourceType::Object) {
 		m_selectedSceneObjectBlueprints.insert(static_cast<Object*>(res)->blueprint);
 	}
 	if (m_lastClickedFileName != "") {
@@ -125,11 +160,11 @@ bool Editor::SetSelectedResource(void* res, ResourceTypes type) {
 	return true;
 }
 
-bool Editor::AddSelectedResource(void* res, ResourceTypes type) {
+bool Editor::AddSelectedResource(void* res, ResourceType type) {
 	if (m_selectedResourceType == type) {
 		if (!Contains<std::vector, void*>(m_selectedResources, res)) {
 			m_selectedResources.push_back(res);
-			if (type == ResourceTypes::Object) {
+			if (type == ResourceType::Object) {
 				m_selectedSceneObjectBlueprints.insert(static_cast<Object*>(res)->blueprint);
 			}
 			if (m_lastClickedFileName != "") {
@@ -144,7 +179,7 @@ bool Editor::AddSelectedResource(void* res, ResourceTypes type) {
 	}
 }
 
-bool Editor::AddRemoveSelectedResource(void* res, ResourceTypes type) {
+bool Editor::AddRemoveSelectedResource(void* res, ResourceType type) {
 	if (m_selectedResourceType == type) {
 
 		int i = 0;
@@ -169,7 +204,7 @@ bool Editor::AddRemoveSelectedResource(void* res, ResourceTypes type) {
 			}
 		} else {
 			m_selectedResources.push_back(res);
-			if (type == ResourceTypes::Object) {
+			if (type == ResourceType::Object) {
 				m_selectedSceneObjectBlueprints.insert(static_cast<Object*>(res)->blueprint);
 			}
 			if (m_lastClickedFileName != "") {
@@ -208,6 +243,7 @@ void Editor::RenderMenuBar() {
 
 			if (ImGui::MenuItem("Save Scene as New", "")) {
 				m_scene.SaveScene(true, m_rm);
+				m_rm->RefreshFileSystemResourceLists();
 			}
 
 			if (ImGui::BeginMenu("Load Scene")) {
@@ -217,6 +253,7 @@ void Editor::RenderMenuBar() {
 					size_t len2 = clickedItem.string().length() - len1;
 					std::string s = clickedItem.string().substr(len1, len2);
 
+					ClearSelectedResources();
 					bool b = m_scene.LoadScene(s, m_rm, m_renderAPI, m_windows[0]->GetDimensions());
 				}
 				ImGui::EndMenu();
@@ -249,13 +286,13 @@ void Editor::RenderSceneWindow() {
 
 		int i = 0;
 		for (auto& e : m_scene.m_lights) {
-			if (ImGui::Selectable(("light#" + std::to_string(i)).c_str(), IsResourceSelected((void*)i, ResourceTypes::Light))) {
+			if (ImGui::Selectable(("light#" + std::to_string(i)).c_str(), IsResourceSelected((void*)i, ResourceType::Light))) {
 				//m_selectedObjects.push_back(i);
 			}
 
 			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
 				if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
-					if (m_selectedResourceType == ResourceTypes::Light) {
+					if (m_selectedResourceType == ResourceType::Light) {
 						int min = (int)(m_selectedResources.front());
 						int max = i;
 						if (min > max) {
@@ -264,15 +301,15 @@ void Editor::RenderSceneWindow() {
 
 						ClearSelectedResources();
 						for (int a = min; a <= max; a++) {
-							AddSelectedResource((void*)a, ResourceTypes::Light);
+							AddSelectedResource((void*)a, ResourceType::Light);
 						}
 					} else {
-						SetSelectedResource((void*)i, ResourceTypes::Light);
+						SetSelectedResource((void*)i, ResourceType::Light);
 					}
 				} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
-					AddRemoveSelectedResource((void*)i, ResourceTypes::Light);
+					AddRemoveSelectedResource((void*)i, ResourceType::Light);
 				} else {
-					SetSelectedResource((void*)i, ResourceTypes::Light);
+					SetSelectedResource((void*)i, ResourceType::Light);
 				}
 			}
 			i++;
@@ -280,13 +317,13 @@ void Editor::RenderSceneWindow() {
 		ImGui::Separator();
 		i = 0;
 		for (auto& e : m_scene.m_objects) {
-			if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), IsResourceSelected(e, ResourceTypes::Object))) {
+			if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), IsResourceSelected(e, ResourceType::Object))) {
 				//m_selectedObjects.push_back(i);
 			}
 
 			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
 				if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
-					if (m_selectedResourceType == ResourceTypes::Object) {
+					if (m_selectedResourceType == ResourceType::Object) {
 						int min = std::distance(m_scene.m_objects.begin(), std::find(m_scene.m_objects.begin(), m_scene.m_objects.end(), static_cast<Object*>(m_selectedResources.front())));
 						int max = i;
 						if (min > max) {
@@ -295,15 +332,15 @@ void Editor::RenderSceneWindow() {
 
 						ClearSelectedResources();
 						for (int a = min; a <= max; a++) {
-							AddSelectedResource(m_scene.m_objects.at(a), ResourceTypes::Object);
+							AddSelectedResource(m_scene.m_objects.at(a), ResourceType::Object);
 						}
 					} else {
-						SetSelectedResource(e, ResourceTypes::Object);
+						SetSelectedResource(e, ResourceType::Object);
 					}
 				} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
-					AddRemoveSelectedResource(e, ResourceTypes::Object);
+					AddRemoveSelectedResource(e, ResourceType::Object);
 				} else {
-					SetSelectedResource(e, ResourceTypes::Object);
+					SetSelectedResource(e, ResourceType::Object);
 				}
 			}
 			i++;
@@ -316,7 +353,7 @@ void Editor::RenderSceneWindow() {
 		size_t nSelected = (int)m_selectedResources.size();
 
 		if (nSelected > 0) {
-			if (m_selectedResourceType == ResourceTypes::Object) {
+			if (m_selectedResourceType == ResourceType::Object) {
 				size_t numberOfObjects = (int)m_scene.m_objects.size();
 				if (ImGui::Button("Copy")) {
 					for (auto i : m_selectedResources) {
@@ -326,7 +363,7 @@ void Editor::RenderSceneWindow() {
 					}
 					m_selectedResources.clear();
 					for (size_t i = numberOfObjects; i < numberOfObjects + nSelected; i++) {
-						AddSelectedResource(m_scene.m_objects.at(i), ResourceTypes::Object);
+						AddSelectedResource(m_scene.m_objects.at(i), ResourceType::Object);
 					}
 				}
 				ImGui::SameLine();
@@ -346,11 +383,11 @@ void Editor::RenderSceneWindow() {
 					ClearSelectedResources();
 					for (auto i : m_scene.m_objects) {
 						if (bplist.count(i->blueprint) > 0) {
-							AddSelectedResource(i, ResourceTypes::Object);
+							AddSelectedResource(i, ResourceType::Object);
 						}
 					}
 				}
-			} else if (m_selectedResourceType == ResourceTypes::Light) {
+			} else if (m_selectedResourceType == ResourceType::Light) {
 				size_t numberOfLights = (int)m_scene.m_lights.size();
 
 				if (ImGui::Button("Copy")) {
@@ -360,7 +397,7 @@ void Editor::RenderSceneWindow() {
 					}
 					m_selectedResources.clear();
 					for (size_t i = numberOfLights; i < numberOfLights + nSelected; i++) {
-						AddSelectedResource((void*)i, ResourceTypes::Light);
+						AddSelectedResource((void*)i, ResourceType::Light);
 					}
 				}
 				ImGui::SameLine();
@@ -392,7 +429,7 @@ void Editor::RenderSceneWindow_AddMenu() {
 					ls.m_color = Float3(1, 1, 1);
 					ls.m_reachRadius = 500;
 					m_scene.m_lights.push_back(ls);
-					SetSelectedResource((void*)(m_scene.m_lights.size() - 1), ResourceTypes::Light);
+					SetSelectedResource((void*)(m_scene.m_lights.size() - 1), ResourceType::Light);
 				}
 				ImGui::EndMenu();
 
@@ -535,21 +572,67 @@ void Editor::RenderResourceWindow() {
 }
 
 void Editor::RenderDebugWindow() {
-	ImGui::SetNextWindowSize(ImVec2(400, 500), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(400, 250), ImGuiCond_Once);
 	//ImGui::SetNextWindowPos(ImVec2(1920 - 420, 20), ImGuiCond_Once);
-
 	if (ImGui::Begin("Debug", NULL, ImGuiWindowFlags_None)) {
-		static float lightReach = 100;
-		if (ImGui::DragFloat("Light Reach", &lightReach, 1, 1, 10000)) {
-			for (auto& e : m_scene.m_lights) {
-				e.m_reachRadius = lightReach;
+
+		if (ImGui::BeginTabBar("debugTabar")) {
+			if (ImGui::BeginTabItem("Setting")) {
+				static float lightReach = 100;
+				if (ImGui::DragFloat("Light Reach", &lightReach, 1, 1, 10000)) {
+					for (auto& e : m_scene.m_lights) {
+						e.m_reachRadius = lightReach;
+					}
+				}
+
+				if (ImGui::Button("Recompile Shader")) {
+					m_rm->RecompileShaders();
+				}
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Unsaved Files")) {
+				if (m_unSavedResources.empty()) {
+					ImGui::Text("No changed Files.");
+				} else {
+					ImGui::BeginChild("File List", ImVec2(0, ImGui::GetWindowHeight() - 120), true);
+					for (auto& e : m_unSavedResources) {
+						std::string name = "";
+						std::string type = "";
+						switch (e.second) {
+						case ResourceType::Blueprint:
+							name = m_rm->GetBlueprintName(static_cast<Blueprint*>(e.first));
+							type = "Blueprint";
+							break;
+						case ResourceType::Material:
+							name = m_rm->GetMaterialName(static_cast<Material*>(e.first));
+							type = "Material";
+							break;
+						default:
+							name = "unkown";
+							type = "unkown";
+							break;
+						}
+
+						if (ImGui::Selectable((type + ": " + name).c_str(), false)) {
+
+						}
+					}
+					ImGui::EndChild();
+					ImGui::BeginChild("Save Buttons", ImVec2(0, 0), true);
+					if (ImGui::Button("Save All")) {
+						SaveUnsavedFiles();
+					}
+					ImGui::EndChild();
+				}
+
+				ImGui::EndTabItem();
 			}
 		}
 
-		if (ImGui::Button("Recompile Shader")) {
-			m_rm->RecompileShaders();
-		}
+		ImGui::EndTabBar();
 	}
+
 	ImGui::End();
 }
 
@@ -559,21 +642,21 @@ void Editor::RenderPropertiesWindow() {
 
 	if (ImGui::Begin("Properties", NULL, ImGuiWindowFlags_None)) {
 		switch (m_selectedResourceType) {
-		case ResourceTypes::None:
+		case ResourceType::None:
 			break;
-		case ResourceTypes::Object:
+		case ResourceType::Object:
 			RenderPropertyWindowSceneObject();
 			break;
-		case ResourceTypes::Light:
+		case ResourceType::Light:
 			RenderPropertyWindowLights();
 			break;
-		case ResourceTypes::Blueprint:
+		case ResourceType::Blueprint:
 			RenderPropertyWindowBlueprint();
 			break;
-		case ResourceTypes::Material:
+		case ResourceType::Material:
 			RenderPropertyWindowMaterial();
 			break;
-		case ResourceTypes::Other:
+		case ResourceType::Other:
 			RenderPropertyUnimplementedResourceType();
 			break;
 		default:
@@ -587,6 +670,8 @@ void Editor::RenderPropertiesWindow() {
 
 void Editor::RenderPropertyWindowSceneObject() {
 	size_t nSelected = m_selectedResources.size();
+	Object* firstSelectedObject = static_cast<Object*>(m_selectedResources.front());
+
 	if (nSelected == 1) {
 
 		std::string name = "#Object Name#";// +std::to_string((int)m_selectedResources.front());
@@ -596,10 +681,43 @@ void Editor::RenderPropertyWindowSceneObject() {
 	}
 	ImGui::Separator();
 
+	std::string name = "";
+	if (m_selectedSceneObjectBlueprints.size() == 1) {
+		name = m_rm->GetBlueprintName(firstSelectedObject->blueprint);
+		if (ImGui::Button("->")) {
+			Blueprint* bp = m_rm->GetBlueprint(name);
+			if (bp) {
+				SetSelectedResource(bp, ResourceType::Blueprint);
+			}
+		}
+		name = name.substr(0, name.find_last_of("."));
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Go to Item");
+		}
+		ImGui::SameLine();
+		// slider will be 65% of the window width (this is the default)
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
+		if (ImGui::BeginCombo("Blueprint Select", name.c_str())) {
+			std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundBluePrints, name);
+			if (clickedItem != "") {
+				size_t len1 = m_rm->m_foundBluePrints.path.string().length();
+				size_t len2 = clickedItem.string().length() - len1;
+
+				std::string s = clickedItem.string().substr(len1, len2);
+				Blueprint* bp = m_rm->GetBlueprint(s);
+				m_selectedSceneObjectBlueprints.clear();
+				m_selectedSceneObjectBlueprints.insert(bp);
+				for (auto object : m_selectedResources) {
+					static_cast<Object*>(object)->blueprint = bp;
+				}
+			}
+			ImGui::EndCombo();
+		}
+	}
+
 	ImGui::Separator();
 	if (ImGui::CollapsingHeader("Transform")) {
 		if (m_selectedResources.size() == 1) {
-			Object* firstSelectedObject = static_cast<Object*>(m_selectedResources.front());
 			ImGui::DragFloat3("Pos", (float*)& firstSelectedObject->transform.pos, 0.1, -500, 500);
 			ImGui::DragFloat3("Rot", (float*)& firstSelectedObject->transform.rotation, 0.1, -100, 100);
 			ImGui::DragFloat3("Scale", (float*)& firstSelectedObject->transform.scale, 0.1, -100, 100);
@@ -720,6 +838,7 @@ void Editor::RenderPropertyWindowBlueprint() {
 	std::string name = "";
 	name = m_rm->GetMeshName(bp->mesh);
 	name = name.substr(0, name.find_last_of("."));
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
 	if (ImGui::BeginCombo("Mesh Select", name.c_str())) {
 		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundMeshes, name);
 		if (clickedItem != "") {
@@ -728,16 +847,23 @@ void Editor::RenderPropertyWindowBlueprint() {
 
 			std::string s = clickedItem.string().substr(len1, len2);
 
-			bp->hasChanged = true;
-			bp->mesh = m_rm->GetMesh(s);
-			int nNeededMaterials = bp->mesh->GetNumberOfSubMeshes();
-			for (size_t i = bp->materials.size(); i < nNeededMaterials; i++) {
-				bp->materials.push_back(bp->materials.back());
+			Mesh* mesh = m_rm->GetMesh(s);
+			if (mesh) {
+				RegisterEditedResource(bp, ResourceType::Blueprint);
+				bp->hasChanged = true;
+				bp->mesh = mesh;
+				int nNeededMaterials = bp->mesh->GetNumberOfSubMeshes();
+				for (size_t i = bp->materials.size(); i < nNeededMaterials; i++) {
+					bp->materials.push_back(bp->materials.back());
+				}
+
+				if (bp->materials.size() > nNeededMaterials) {
+					bp->materials.erase(bp->materials.begin() + nNeededMaterials, bp->materials.end());
+				}
+			} else {
+				//TODO: Log Error
 			}
 
-			if (bp->materials.size() > nNeededMaterials) {
-				bp->materials.erase(bp->materials.begin() + nNeededMaterials, bp->materials.end());
-			}
 		}
 		ImGui::EndCombo();
 	}
@@ -748,17 +874,33 @@ void Editor::RenderPropertyWindowBlueprint() {
 		ImGui::PushID(i);
 
 		name = m_rm->GetMaterialName(bp->materials[i]);
+		if (ImGui::Button("->")) {
+			Material* resource = m_rm->GetMaterial(name);
+			if (resource) {
+				SetSelectedResource(resource, ResourceType::Material);
+			}
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Go to Item");
+		}
+		ImGui::SameLine();
+
 		name = name.substr(0, name.find_last_of("."));
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
 		if (ImGui::BeginCombo(("Select Material #" + std::to_string(i)).c_str(), name.c_str())) {
 			std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundMaterials, name);
 			if (clickedItem != "") {
 				size_t len1 = m_rm->m_foundMaterials.path.string().length();
 				size_t len2 = clickedItem.string().length() - len1;
-
 				std::string s = clickedItem.string().substr(len1, len2);
-
-				bp->hasChanged = true;
-				bp->materials[i] = m_rm->GetMaterial(s);
+				Material* material = m_rm->GetMaterial(s);
+				if (material) {
+					bp->hasChanged = true;
+					RegisterEditedResource(bp, ResourceType::Blueprint);
+					bp->materials[i] = material;
+				} else {
+					//TODO: Log Error Message
+				}
 			}
 			ImGui::EndCombo();
 		}
@@ -784,13 +926,21 @@ void Editor::RenderPropertyWindowMaterial() {
 	ImGui::Separator();
 	std::string shaderProgramName = m_rm->GetShaderProgramName(material->GetShaderProgram());
 	//Edit Shader Program
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
 	if (ImGui::BeginCombo("Shader Program##sp", shaderProgramName.c_str())) {
 		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundShaderPrograms, shaderProgramName);
 		if (clickedItem != "") {
 			size_t len1 = m_rm->m_foundShaderPrograms.path.string().length();
 			size_t len2 = clickedItem.string().length() - len1;
 			std::string s = clickedItem.string().substr(len1, len2);
-			material->SetShaderProgram(m_rm->GetShaderProgramHandle(s));
+
+			ShaderProgramHandle sph = m_rm->GetShaderProgramHandle(s);
+			if (sph >= 0) {
+				RegisterEditedResource(material, ResourceType::Material);
+				material->SetShaderProgram(sph);
+			} else {
+				//TODO: Log Error
+			}
 		}
 		ImGui::EndCombo();
 	}
@@ -801,46 +951,76 @@ void Editor::RenderPropertyWindowMaterial() {
 	std::string roughnessTextureName = m_rm->GetTextureName(material->m_materialData.pbrData.roughness);
 
 	//Edit Color Texture
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
 	if (ImGui::BeginCombo("Color Texture##color", colorTextureName.c_str())) {
 		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundTextures, colorTextureName);
 		if (clickedItem != "") {
 			size_t len1 = m_rm->m_foundTextures.path.string().length();
 			size_t len2 = clickedItem.string().length() - len1;
 			std::string s = clickedItem.string().substr(len1, len2);
-			material->m_materialData.pbrData.color = m_rm->GetTexture(s);
+
+			Texture* texture = m_rm->GetTexture(s);
+			if (texture) {
+				RegisterEditedResource(material, ResourceType::Material);
+				material->m_materialData.pbrData.color = texture;
+			} else {
+				//TODO: Log Error
+			}
 		}
 		ImGui::EndCombo();
 	}
 	//Edit Normal Texture
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
 	if (ImGui::BeginCombo("Normal Texture##norm", normalTextureName.c_str())) {
 		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundTextures, normalTextureName);
-		if (clickedItem != "") {
-			size_t len1 = m_rm->m_foundMaterials.path.string().length();
-			size_t len2 = clickedItem.string().length() - len1;
-			std::string s = clickedItem.string().substr(len1, len2);
-			material->m_materialData.pbrData.normal = m_rm->GetTexture(s);
-		}
-		ImGui::EndCombo();
-	}
-	//Edit Metal Texture
-	if (ImGui::BeginCombo("Metal Texture##metal", metalTextureName.c_str())) {
-		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundTextures, metalTextureName);
 		if (clickedItem != "") {
 			size_t len1 = m_rm->m_foundTextures.path.string().length();
 			size_t len2 = clickedItem.string().length() - len1;
 			std::string s = clickedItem.string().substr(len1, len2);
-			material->m_materialData.pbrData.metalness = m_rm->GetTexture(s);
+
+			Texture* texture = m_rm->GetTexture(s);
+			if (texture) {
+				RegisterEditedResource(material, ResourceType::Material);
+				material->m_materialData.pbrData.normal = texture;
+			} else {
+				//TODO: Log Error
+			}
 		}
 		ImGui::EndCombo();
 	}
+	//Edit Metal Texture
+	//ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
+	//if (ImGui::BeginCombo("Metal Texture##metal", metalTextureName.c_str())) {
+	//	std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundTextures, metalTextureName);
+	//	if (clickedItem != "") {
+	//		size_t len1 = m_rm->m_foundTextures.path.string().length();
+	//		size_t len2 = clickedItem.string().length() - len1;
+	//		std::string s = clickedItem.string().substr(len1, len2);
+	//		Texture* texture = m_rm->GetTexture(s);
+	//		if (texture) {
+	//			RegisterEditedResource(material, ResourceType::Material);
+	//			material->m_materialData.pbrData.metalness = texture;
+	//		} else {
+	//			//TODO: Log Error
+	//		}
+	//	}
+	//	ImGui::EndCombo();
+	//}
 	//Edit Roughness Texture
-	if (ImGui::BeginCombo("Roughness Texture##rough", roughnessTextureName.c_str())) {
+	ImGui::PushItemWidth(ImGui::GetWindowWidth() - 200);
+	if (ImGui::BeginCombo("RAOM Texture##rough", roughnessTextureName.c_str())) {
 		std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundTextures, roughnessTextureName);
 		if (clickedItem != "") {
 			size_t len1 = m_rm->m_foundTextures.path.string().length();
 			size_t len2 = clickedItem.string().length() - len1;
 			std::string s = clickedItem.string().substr(len1, len2);
-			material->m_materialData.pbrData.roughness = m_rm->GetTexture(s);
+			Texture* texture = m_rm->GetTexture(s);
+			if (texture) {
+				RegisterEditedResource(material, ResourceType::Material);
+				material->m_materialData.pbrData.roughness = texture;
+			} else {
+				//TODO: Log Error
+			}
 		}
 		ImGui::EndCombo();
 	}
@@ -862,7 +1042,7 @@ void Editor::HandleResourceClick(std::filesystem::path clickedResource) {
 		c = std::tolower(c);
 	}
 
-	ResourceTypes resourceType = ResourceTypes::None;
+	ResourceType resourceType = ResourceType::None;
 	void* resource = nullptr;
 
 	if (ext == ".bp") {
@@ -871,7 +1051,7 @@ void Editor::HandleResourceClick(std::filesystem::path clickedResource) {
 		resource = m_rm->GetBlueprint(name);
 
 		if (resource) {
-			resourceType = ResourceTypes::Blueprint;
+			resourceType = ResourceType::Blueprint;
 		} else {
 			ClearSelectedResources();
 		}
@@ -881,7 +1061,7 @@ void Editor::HandleResourceClick(std::filesystem::path clickedResource) {
 		resource = m_rm->GetMaterial(name);
 
 		if (resource) {
-			resourceType = ResourceTypes::Material;
+			resourceType = ResourceType::Material;
 		} else {
 			ClearSelectedResources();
 		}
@@ -892,7 +1072,7 @@ void Editor::HandleResourceClick(std::filesystem::path clickedResource) {
 		ClearSelectedResources();
 	}
 
-	if (resourceType != ResourceTypes::None) {
+	if (resourceType != ResourceType::None) {
 		if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL) || m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
 			AddRemoveSelectedResource(resource, resourceType);
 		} else {

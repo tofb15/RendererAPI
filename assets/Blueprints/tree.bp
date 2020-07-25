@@ -6,4 +6,4 @@
 #====================
 
 mesh = Tree.obj
-materials = {bark_material.mat, foliage_material.mat}
+materials = {bark_pbr_material.mat, foliage_material.mat}

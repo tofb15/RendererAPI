@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "FileSystem.h"
+#include <string>
 
 namespace FileSystem {
 	/*
@@ -13,7 +14,11 @@ namespace FileSystem {
 					ListDir(dirPath.directories.back(), extList, curDepth + 1, maxDepth);
 				}
 			} else {
-				if (extList.empty() || extList.count(file.path().extension().string())) {
+				std::string ext = file.path().extension().string();
+				for (auto& c : ext) {
+					c = std::tolower(c);
+				}
+				if (extList.empty() || extList.count(ext)) {
 					dirPath.files.push_back({ file });
 				}
 			}

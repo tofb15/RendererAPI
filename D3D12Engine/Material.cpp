@@ -53,6 +53,29 @@ bool Material::LoadFromFile(const char* name, ResourceManager& resourceManager) 
 	return result;
 }
 
+bool Material::SaveToFile(const char* fName, ResourceManager& rm) {
+
+	std::ofstream out(fName);
+	if (!out.is_open()) {
+		//TODO: Log error
+		return false;
+	}
+
+	out << "#Material Types [pbr, nonpbr](default: non_pbr)\n";
+	out << "materialType = pbr\n";
+	out << "\n";
+	out << "#Textures. Which textures is needed is defined by the materialType. (default: )\n";
+	out << "textureColor = " << rm.GetTextureName(m_materialData.pbrData.color) << "\n";
+	out << "textureNormal = " << rm.GetTextureName(m_materialData.pbrData.normal) << "\n";
+	out << "textureRoughness = " << rm.GetTextureName(m_materialData.pbrData.roughness) << "\n";
+	out << "textureMetalness = " << rm.GetTextureName(m_materialData.pbrData.metalness) << "\n";
+	out << "\n";
+	out << "#shaderGroup\n";
+	out << "shaderGroup = " << rm.GetShaderProgramName(m_shaderProgram);
+	return true;
+}
+
+
 Material::Material() {
 }
 

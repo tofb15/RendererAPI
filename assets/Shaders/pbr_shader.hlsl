@@ -54,6 +54,7 @@ inline float3 PBRLightContribution(in PointLight pl, in float dist, in float3 N,
     //attenuation *= 8.f;
 
     float3 radiance = pl.color * attenuation;
+    float3 radiance = normalize(pl.color) * attenuation;
 	
 	float3 F  = fresnelSchlick(max(dot(H,V), 0.0), lerp(float3(0.04, 0.04, 0.04), albedo, metallic));
 	float NDF = DistributionGGX(N, H, roughness);       
@@ -99,7 +100,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 	float3 albedo    = sys_textures[0].SampleLevel(samp, uv, 0).xyz;
 	float4 bumpMapColor = sys_textures[NORMAL_TEX_POS].SampleLevel(samp, uv, 0);
-	float4 RAOM = sys_textures[ROUGHNESS_TEX_POS].SampleLevel(samp, uv, 0).x;
+	float4 RAOM = sys_textures[ROUGHNESS_TEX_POS].SampleLevel(samp, uv, 0);
 	float roughness = RAOM.r * 1;
 	float ao 		= RAOM.g * 1;
 	float metal     = RAOM.b * 1;
@@ -112,14 +113,13 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 
 	float3 normalInWorldSpace = normalize(mul(float4(normalInLocalSpace, 0.f),ObjectToWorld4x3()));
 	float3 normalInWorldSpace_noNormalmap = normalInWorldSpace;
-	float3 binormal = mul(barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal),ObjectToWorld4x3());
-	float3 tangent = mul(barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent),ObjectToWorld4x3());
 
 
 //#define NO_NORMAL_MAP
 #ifndef NO_NORMAL_MAP
 	//===Add Normal Map===
-
+	float3 binormal = mul(barrypolation(barycentrics, vertices_tan_bi[i1].binormal, vertices_tan_bi[i2].binormal, vertices_tan_bi[i3].binormal),ObjectToWorld4x3());
+	float3 tangent = mul(barrypolation(barycentrics, vertices_tan_bi[i1].tangent, vertices_tan_bi[i2].tangent, vertices_tan_bi[i3].tangent),ObjectToWorld4x3());
 	tangent = normalize(tangent);
 	binormal = normalize(binormal);
 
@@ -134,17 +134,17 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 	float3 Lo = float3(0,0,0);
 
 	float3 toCameraDir = normalize(CB_SceneData.cameraPosition - worldHitPoint);
-	float CDotN = dot(normalInWorldSpace, toCameraDir);
+	float CDotN = dot(normalInWorldSpace_noNormalmap, toCameraDir);
+	if(CDotN <= 0){
+		normalInWorldSpace *= -1;
+		normalInWorldSpace_noNormalmap *= -1;
+	}
 	
 	if(CB_SceneData.nLights > 0){
 		float lightNormalAngle = 0;
 		float3 toLightDir = float3(1.0f,1.0f,0.0f);
 		float LightDistToHit = 0;
 		float dw = 1.0f/CB_SceneData.nLights;
-		if(CDotN <= 0){
-			normalInWorldSpace *= -1;
-			normalInWorldSpace_noNormalmap *= -1;
-		}
 
 		for(int i = 0; i < CB_SceneData.nLights; i++){
 			if(all(CB_SceneData.pLight[i].color == 0.0)){
@@ -159,7 +159,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 				}
 
 				//If the light is not ocluded, Do light things.
-				if (!PointInShadow(worldHitPoint + normalInWorldSpace * 0.01f, toLightDir, LightDistToHit)) {
+				if (!PointInShadow(worldHitPoint + normalInWorldSpace_noNormalmap * 0.0001f, toLightDir, LightDistToHit)) {
 					//Do light things
 					Lo += 1 * PBRLightContribution(CB_SceneData.pLight[i], LightDistToHit,  normalInWorldSpace, toLightDir, lightNormalAngle, toCameraDir, albedo, metal, roughness);
 				}
@@ -167,7 +167,7 @@ void closestHitTriangle(inout RayPayload payload, in BuiltInTriangleIntersection
 		}
 	}
 
-	float3 ambient = 0.03 * albedo * ao;
+	float3 ambient = 0.08 * albedo * ao;
 	Lo = saturate(Lo + ambient);
 	//payload.color = float4(normalInWorldSpace, 1);
 	payload.color = float4(CDotN,CDotN,CDotN, 1);

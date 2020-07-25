@@ -103,7 +103,7 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	float2 uv = barrypolation(barycentrics, vertices_uv[i1], vertices_uv[i2], vertices_uv[i3]);
 	uv.y = -uv.y;
 	
-	float alpha = sys_textures[NORMAL_TEX_POS].SampleLevel(samp, uv, 0).a;
+	float alpha = sys_textures[ALBEDO_TEX_POS].SampleLevel(samp, uv, 0).a;
 
 	if (alpha < 0.5f) {
 		IgnoreHit();

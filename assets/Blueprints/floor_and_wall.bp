@@ -5,5 +5,5 @@
 #	The materials pointed to will be used to render the parts within the selected mesh.
 #====================
 
-mesh = floor_and_wall.obj
-materials = {brick_material.mat}
+mesh = floor_and_wall2.obj
+materials = {brick_material.mat, ground_material.mat}

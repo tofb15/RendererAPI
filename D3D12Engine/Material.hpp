@@ -32,6 +32,12 @@ public:
 		@return true if Material was loaded successfully.
 	*/
 	virtual bool LoadFromFile(const char* name, ResourceManager& resourceManager);
+	/*
+		@param name, the file name of the material
+		@return true if Material was saved successfully.
+	*/
+	virtual bool SaveToFile(const char* fName, ResourceManager& resourceManager);
+
 	//const MaterialData& GetMtlData() const;
 	union {
 		PBR_Material_Data pbrData;

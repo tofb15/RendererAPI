@@ -25,7 +25,7 @@ bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpD
 }
 
 bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, const std::string& bpName) {
-	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName + ".bp";
+	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName;
 	std::ofstream out(fName);
 
 	out << "#===Blueprint file===\n";

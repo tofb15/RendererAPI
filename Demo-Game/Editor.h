@@ -6,7 +6,7 @@
 
 class Object;
 class WindowInput;
-enum class ResourceTypes {
+enum class ResourceType {
 	None = 0,
 	Scene,
 	Object,
@@ -57,9 +57,9 @@ private:
 	bool m_showResourceWindow = true;
 
 	//TODO: Keep track of modifyed resources so that they can be saved.
-	std::vector<std::string>    m_unSavedBlueprints;
+	std::unordered_map<void*, ResourceType>    m_unSavedResources;
 
-	ResourceTypes m_selectedResourceType = ResourceTypes::None;
+	ResourceType m_selectedResourceType = ResourceType::None;
 	std::vector<void*> m_selectedResources;
 	std::unordered_set<Blueprint*> m_selectedSceneObjectBlueprints;
 	std::vector<std::string> m_selectedFileNames;
@@ -71,11 +71,14 @@ private:
 
 	virtual void SubmitObjectsForRendering() override;
 
+	void RegisterEditedResource(void* res, ResourceType type);
+	void SaveUnsavedFiles();
+
 	bool ClearSelectedResources();
-	bool IsResourceSelected(void* res, ResourceTypes type);
-	bool SetSelectedResource(void* res, ResourceTypes type);
-	bool AddSelectedResource(void* res, ResourceTypes type);
-	bool AddRemoveSelectedResource(void* res, ResourceTypes type);
+	bool IsResourceSelected(void* res, ResourceType type);
+	bool SetSelectedResource(void* res, ResourceType type);
+	bool AddSelectedResource(void* res, ResourceType type);
+	bool AddRemoveSelectedResource(void* res, ResourceType type);
 
 	////////////////////
 	void RenderMenuBar();

@@ -171,9 +171,7 @@ bool D3D12Window::Create(int dimensionX, int dimensionY) {
 	if (!InitializeRawInput())
 		return false;
 
-	///////////////
-	//IMGUI
-
+	//=========IMGUI==============
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();

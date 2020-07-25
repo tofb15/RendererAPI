@@ -152,7 +152,7 @@ bool Scene::SaveScene(bool saveAsNew, ResourceManager* rm) {
 
 		m_currentSceneName = sceneName;
 	} else {
-		scenePath = sceneFolderPath + m_currentSceneName;
+		scenePath = sceneFolderPath + m_currentSceneName + ".scene";
 	}
 
 	std::ofstream outFile(scenePath);
