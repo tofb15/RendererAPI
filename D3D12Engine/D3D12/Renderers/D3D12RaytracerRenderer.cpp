@@ -216,6 +216,8 @@ void D3D12RaytracerRenderer::Present(Window* window, GUI* gui) {
 		hr = m_d3d12->GetDevice()->GetDeviceRemovedReason();
 		_com_error err2(hr);
 		std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+		//TODO: Log Error
+		//Return false
 	}
 
 	//Lastly

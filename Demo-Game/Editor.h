@@ -29,6 +29,8 @@ public:
 	// Inherited via GUI
 	virtual void RenderGUI() override;
 	virtual int Initialize() override;
+	virtual void ProcessLocalInput(double dt) override;
+
 private:
 	std::string m_lightsourceBlueprintName = "_lightsource";
 	std::string m_lightsourceMaterialName = "_lightsource";

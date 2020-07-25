@@ -1,5 +1,4 @@
 #include "stdafx.h"
-
 #include "D3D12Camera.hpp"
 
 D3D12Camera::D3D12Camera() {
@@ -10,7 +9,8 @@ D3D12Camera::~D3D12Camera() {
 
 void D3D12Camera::SetPosition(const Float3& position) {
 	m_position = position;
-	mHasChanged = true;
+	m_vp_needsUpdate = true;
+	m_vp_inv_needsUpdate = true;
 }
 
 void D3D12Camera::Move(const Float3& position) {
@@ -38,40 +38,72 @@ void D3D12Camera::Rotate(const Float3& axis, float angle) {
 
 void D3D12Camera::SetTarget(const Float3& target) {
 	m_target = target;
-	mHasChanged = true;
+	m_vp_needsUpdate = true;
+	m_vp_inv_needsUpdate = true;
 }
 
 void D3D12Camera::SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) {
 	m_fov = fov;
 	DirectX::XMStoreFloat4x4(&mPerspectiveMatrix, DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane));
-	mHasChanged = true;
+	m_vp_needsUpdate = true;
+	m_vp_inv_needsUpdate = true;
 }
 
 void D3D12Camera::SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) {
 	DirectX::XMStoreFloat4x4(&mPerspectiveMatrix, DirectX::XMMatrixOrthographicLH(width, height, nearPlane, farPlane));
-	mHasChanged = true;
+	m_vp_needsUpdate = true;
+	m_vp_inv_needsUpdate = true;
+}
+
+MyRay D3D12Camera::ScreenCoordToRay(const Int2& screenCoord) {
+	MyRay ray;
+	if (m_vp_inv_needsUpdate) {
+		GetViewPerspective_ref();
+		DirectX::XMMATRIX inv_mat = DirectX::XMLoadFloat4x4(&mViewMatrix);
+		inv_mat = DirectX::XMMatrixInverse(nullptr, inv_mat);
+		DirectX::XMStoreFloat4x4(&m_ViewPerspectiveMatrix_inverse, inv_mat);
+		m_vp_inv_needsUpdate = false;
+	}
+
+	ray.SetOrigin(m_position);
+
+	Float2 point;
+	point.x = ((2.0 * screenCoord.x / 1920.0) - 1.0) / mPerspectiveMatrix._11;
+	point.y = -1 * ((2.0 * screenCoord.y / 1080.0) - 1.0) / mPerspectiveMatrix._22;
+
+	Float3 direction;
+	direction.x = (point.x * m_ViewPerspectiveMatrix_inverse._11) + (point.y * m_ViewPerspectiveMatrix_inverse._21) + m_ViewPerspectiveMatrix_inverse._31;
+	direction.y = (point.x * m_ViewPerspectiveMatrix_inverse._12) + (point.y * m_ViewPerspectiveMatrix_inverse._22) + m_ViewPerspectiveMatrix_inverse._32;
+	direction.z = (point.x * m_ViewPerspectiveMatrix_inverse._13) + (point.y * m_ViewPerspectiveMatrix_inverse._23) + m_ViewPerspectiveMatrix_inverse._33;
+	ray.SetDirection(direction);
+
+	return ray;
 }
 
 DirectX::XMFLOAT4X4 D3D12Camera::GetViewPerspective() const {
-	if (mHasChanged) {
+	return GetViewPerspective_ref();
+}
+
+const DirectX::XMFLOAT4X4& D3D12Camera::GetViewPerspective_ref() const {
+	if (m_vp_needsUpdate) {
 		DirectX::XMStoreFloat4x4(&mViewMatrix, DirectX::XMMatrixLookAtLH({ m_position.x, m_position.y, m_position.z }, { m_target.x, m_target.y, m_target.z }, { 0,1,0 }));
 		DirectX::XMStoreFloat4x4(&mViewPerspectiveMatrix, DirectX::XMLoadFloat4x4(&mViewMatrix) * DirectX::XMLoadFloat4x4(&mPerspectiveMatrix));
 
 		m_frustum.CreateFrustum(mViewPerspectiveMatrix, m_position, 90, 1000);
 
-		mHasChanged = false;
+		m_vp_needsUpdate = false;
 	}
 	return mViewPerspectiveMatrix;
 }
 
 const Frustum& D3D12Camera::GetFrustum() const {
-	if (mHasChanged) {
+	if (m_vp_needsUpdate) {
 		DirectX::XMStoreFloat4x4(&mViewMatrix, DirectX::XMMatrixLookAtLH({ m_position.x, m_position.y, m_position.z }, { m_target.x, m_target.y, m_target.z }, { 0,1,0 }));
 		DirectX::XMStoreFloat4x4(&mViewPerspectiveMatrix, DirectX::XMLoadFloat4x4(&mViewMatrix) * DirectX::XMLoadFloat4x4(&mPerspectiveMatrix));
 
 		m_frustum.CreateFrustum(mViewPerspectiveMatrix, m_position, 90, 1000);
 
-		mHasChanged = false;
+		m_vp_needsUpdate = false;
 	}
 
 	return m_frustum;

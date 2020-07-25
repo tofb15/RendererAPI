@@ -143,7 +143,7 @@ bool Scene::SaveScene(bool saveAsNew, ResourceManager* rm) {
 	if (saveAsNew || m_currentSceneName == "") {
 		while (!nameOK) {
 			sceneName = "Scene" + std::to_string(i);
-			scenePath = sceneFolderPath + sceneName;
+			scenePath = sceneFolderPath + sceneName + ".scene";
 			if (!std::filesystem::exists(scenePath)) {
 				nameOK = true;
 			}
@@ -152,7 +152,7 @@ bool Scene::SaveScene(bool saveAsNew, ResourceManager* rm) {
 
 		m_currentSceneName = sceneName;
 	} else {
-		scenePath = sceneFolderPath + m_currentSceneName + ".scene";
+		scenePath = sceneFolderPath + m_currentSceneName;
 	}
 
 	std::ofstream outFile(scenePath);

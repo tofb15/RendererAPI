@@ -1,7 +1,6 @@
 #pragma once
 #include "../Camera.hpp"
 #include <DirectXMath.h>
-#include "../Math.hpp"
 
 struct Sphere {
 	float radius;
@@ -43,10 +42,12 @@ public:
 	virtual void SetTarget(const Float3& target) override;
 
 	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) override;
-
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) override;
 
+	virtual MyRay ScreenCoordToRay(const Int2& screenCoord) override;
+
 	DirectX::XMFLOAT4X4 GetViewPerspective() const;
+	const DirectX::XMFLOAT4X4& GetViewPerspective_ref() const;
 
 	const Frustum& GetFrustum() const;
 private:
@@ -55,7 +56,11 @@ private:
 	DirectX::XMFLOAT4X4 m_rotationMatrix;
 
 	mutable DirectX::XMFLOAT4X4 mViewPerspectiveMatrix;
-	mutable bool mHasChanged = true;
+	mutable bool m_vp_needsUpdate = true;
+
+	mutable DirectX::XMFLOAT4X4 m_ViewPerspectiveMatrix_inverse;
+	mutable bool m_vp_inv_needsUpdate = true;
+
 
 	mutable Frustum m_frustum;
 };

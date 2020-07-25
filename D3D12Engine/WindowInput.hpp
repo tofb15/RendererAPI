@@ -1,14 +1,12 @@
 #pragma once
 #include "Math.hpp"
 
-class WindowInput
-{
+class WindowInput {
 public:
 	static const unsigned NUM_KEYS = 256;
 	static const unsigned NUM_MOUSE_KEYS = 3;
 
-	enum KEY_CODES
-	{
+	enum KEY_CODES {
 		MOUSE_KEY_CODE_LEFT = 0,
 		MOUSE_KEY_CODE_MIDDLE,
 		MOUSE_KEY_CODE_RIGHT,
@@ -97,11 +95,13 @@ public:
 	void SetKeyPressed(char key, bool isPressed);
 	void SetMouseMovement(const Int2& mouseMovement);
 	void SetMouseWheelMovement(int mouseWheelMovement);
+	void SetMousePosition(const Int2& mousePosition);
 
 	bool IsKeyDown(char key)	const;
 	bool IsKeyUp(char key)		const;
 	bool IsKeyPressed(char key) const;
 	Int2 GetMouseMovement()		const;
+	Int2 GetMousePosition()		const;
 	int GetMouseWheelMovement()		const;
 
 private:
@@ -112,5 +112,6 @@ private:
 	//bool m_isMouseKeysPressed[NUM_MOUSE_KEYS];
 
 	Int2 m_mouseMovement;
+	Int2 m_mousePosition;
 	int m_mouseWheelMovement;
 };

@@ -12,6 +12,8 @@ public:
 	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) = 0;
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) = 0;
 
+	virtual MyRay ScreenCoordToRay(const Int2& screenCoord) = 0;
+
 	Float3 GetPosition() const;
 	Float3 GetTarget() const;
 	Float3 GetTargetDirection() const;
@@ -29,10 +31,4 @@ protected:
 	Float3 m_position;
 	Float3 m_target;
 	float m_fov = 0;
-
-	//int id;
-	//int viewMatrixIndex;
-	//int perspectiveMatrixIndex;
-	//bool hasViewChanged;
-
 };

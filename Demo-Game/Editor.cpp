@@ -9,9 +9,11 @@
 #include "../D3D12Engine/Mesh.hpp"
 #include "../D3D12Engine/GameObject.h"
 #include "../D3D12Engine/Scene.h"
+#include "../D3D12Engine/Camera.hpp"
 
 #include "../D3D12Engine/External/IMGUI/imgui.h"
 #include "../D3D12Engine/External/IMGUI/imgui_internal.h"
+#include "../D3D12Engine/BoundingVolume.hpp"
 
 #include <algorithm>
 #include <unordered_set>
@@ -81,17 +83,41 @@ int Editor::Initialize() {
 	return 0;
 }
 
+void Editor::ProcessLocalInput(double dt) {
+	Game::ProcessLocalInput(dt);
+	WindowInput input = m_windows[0]->GetLocalWindowInputHandler();
+	Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
+
+	if (input.IsKeyPressed(WindowInput::MOUSE_KEY_CODE_LEFT)) {
+		MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(mcoord);
+
+		for (auto& e : m_scene.m_objects) {
+			BoundingSphere bs(e->transform.pos, abs(e->transform.scale.x));
+			if (bs.RayIntersection_Fast(ray)) {
+				SetSelectedResource(e, ResourceType::Object);
+				break;
+			}
+		}
+
+	}
+}
+
 void Editor::SubmitObjectsForRendering() {
 	Game::SubmitObjectsForRendering();
 
-	if (m_selectedResourceType == ResourceType::Light) {
-		Blueprint* light_bp = m_rm->GetBlueprint(m_lightsourceBlueprintName);
-		if (light_bp) {
+	Blueprint* light_bp = m_rm->GetBlueprint(m_lightsourceBlueprintName);
+	if (light_bp) {
+		if (m_selectedResourceType == ResourceType::Light) {
 			for (auto& e : m_selectedResources) {
 				Transform t;
 				t.pos = m_scene.m_lights[(int)e].m_position_center;
 				m_renderer->Submit({ light_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_scene.m_cameras[0]);
 			}
+
+		}
+
+		for (auto& e : m_scene.m_objects) {
+			m_renderer->Submit({ light_bp, e->transform, (int)RenderFlag::Dont_Cast_Shadows }, m_scene.m_cameras[0]);
 		}
 	}
 }
@@ -587,6 +613,29 @@ void Editor::RenderDebugWindow() {
 
 				if (ImGui::Button("Recompile Shader")) {
 					m_rm->RecompileShaders();
+				}
+
+				Float3 pos = m_scene.m_cameras[0]->GetPosition();
+				Float3 dir = m_scene.m_cameras[0]->GetTargetDirection();
+				if (ImGui::DragFloat3("Camera Pos", &pos.x, 1, -10000, 10000)) {
+					Float3 delta = pos - m_scene.m_cameras[0]->GetPosition();
+					m_scene.m_cameras[0]->Move(delta);
+				}
+				if (ImGui::DragFloat3("Camera Dir", &dir.x, 0.1, -10, 10)) {
+					m_scene.m_cameras[0]->SetTarget(pos + dir.normalized());
+				}
+				//static Int2 scoord;
+				Float3 wcoord;
+				//if (ImGui::DragFloat3("S Coord", &scoord.x, 0.1, -1, 1)) {
+				//	wcoord = m_scene.m_cameras[0]->ScreenCoordToWorldCoord(scoord);
+				//}
+				Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
+				ImGui::Text(("Mouse Coord: {" + std::to_string(mcoord.x) + ", " + std::to_string(mcoord.y) + "}").c_str());
+				MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(mcoord);
+				wcoord = ray.GetOrigin() + ray.GetDirection() * 10;
+				ImGui::Text(("WCoord: {" + std::to_string(wcoord.x) + ", " + std::to_string(wcoord.y) + ", " + std::to_string(wcoord.z) + "}").c_str());
+
+				if (ImGui::Button("Screen To World Test")) {
 				}
 				ImGui::EndTabItem();
 			}

@@ -2,41 +2,34 @@
 
 #include "WindowInput.hpp"
 
-WindowInput::WindowInput()
-{
-	for (size_t i = 0; i < NUM_KEYS; i++)
-	{
+WindowInput::WindowInput() {
+	for (size_t i = 0; i < NUM_KEYS; i++) {
 		m_isKeysDown[i] = false;
 		m_isKeysPressed[i] = false;
 	}
 }
 
-WindowInput::~WindowInput()
-{
+WindowInput::~WindowInput() {
 }
 
-void WindowInput::Reset()
-{
-	for (size_t i = 0; i < NUM_KEYS; i++)
-	{
+void WindowInput::Reset() {
+	for (size_t i = 0; i < NUM_KEYS; i++) {
 		m_isKeysPressed[i] = false;
 	}
 }
 
-void WindowInput::SetKeyDown(char key, bool isDown)
-{
+void WindowInput::SetKeyDown(char key, bool isDown) {
 #ifdef _DEBUG
 	if (key <= MOUSE_KEY_CODE_RIGHT) {
 		m_isKeysDown[-1] = false; //keycode 0,1,2 is reserved for mouse. Call SetMouseKeyDown insteed
 	}
 #endif // DEBUG
 
-	if(key < NUM_KEYS)
+	if (key < NUM_KEYS)
 		m_isKeysDown[key] = isDown;
 }
 
-void WindowInput::SetMouseKeyDown(char key, bool isDown)
-{
+void WindowInput::SetMouseKeyDown(char key, bool isDown) {
 #ifdef _DEBUG
 	if (key > MOUSE_KEY_CODE_RIGHT) {
 		m_isKeysDown[-1] = false; //keycode 0,1,2 is reserved for mouse. Call SetKeyDown insteed
@@ -51,8 +44,7 @@ void WindowInput::SetMouseKeyDown(char key, bool isDown)
 	m_isKeysDown[key] = isDown;
 }
 
-void WindowInput::SetKeyPressed(char key, bool isPressed)
-{
+void WindowInput::SetKeyPressed(char key, bool isPressed) {
 #ifdef _DEBUG
 	if (key <= MOUSE_KEY_CODE_RIGHT) {
 		m_isKeysDown[-1] = false; //keycode 0,1,2 is reserved for mouse. Call SetMouseKeyDown insteed
@@ -63,46 +55,47 @@ void WindowInput::SetKeyPressed(char key, bool isPressed)
 		m_isKeysPressed[key] = isPressed;
 }
 
-void WindowInput::SetMouseMovement(const Int2& mouseMovement)
-{
+void WindowInput::SetMouseMovement(const Int2& mouseMovement) {
 	m_mouseMovement = mouseMovement;
 }
 
-void WindowInput::SetMouseWheelMovement(int mouseWheelMovement)
-{
+void WindowInput::SetMouseWheelMovement(int mouseWheelMovement) {
 	m_mouseWheelMovement = mouseWheelMovement;
 }
 
-bool WindowInput::IsKeyDown(char key) const
-{
+void WindowInput::SetMousePosition(const Int2& mousePosition) {
+	m_mousePosition = mousePosition;
+}
+
+bool WindowInput::IsKeyDown(char key) const {
 	if (key < NUM_KEYS)
 		return m_isKeysDown[key];
 	else
 		return false;
 }
 
-bool WindowInput::IsKeyUp(char key) const
-{
+bool WindowInput::IsKeyUp(char key) const {
 	if (key < NUM_KEYS)
 		return !m_isKeysDown[key];
 	else
 		return false;
 }
 
-bool WindowInput::IsKeyPressed(char key) const
-{
+bool WindowInput::IsKeyPressed(char key) const {
 	if (key < NUM_KEYS)
 		return m_isKeysPressed[key];
 	else
 		return false;
 }
 
-Int2 WindowInput::GetMouseMovement() const
-{
+Int2 WindowInput::GetMouseMovement() const {
 	return m_mouseMovement;
 }
 
-int WindowInput::GetMouseWheelMovement() const
-{
+Int2 WindowInput::GetMousePosition()		const {
+	return m_mousePosition;
+}
+
+int WindowInput::GetMouseWheelMovement() const {
 	return m_mouseWheelMovement;
 }

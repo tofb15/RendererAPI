@@ -373,6 +373,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BoundingVolume.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D12\DXR\D3D12Utils.cpp" />
     <ClCompile Include="D3D12\D3D12Terrain.cpp" />
@@ -450,6 +451,7 @@
     <ClCompile Include="Loaders\ConfigFileLoader.cpp" />
     <ClCompile Include="Loaders\OBJ_Loader.cpp" />
     <ClCompile Include="Loaders\SimpleTexture.cpp" />
+    <ClCompile Include="Math.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -483,6 +485,7 @@
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BoundingVolume.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="D3D12\DXR\D3D12Utils.h" />
     <ClInclude Include="D3D12\D3D12Terrain.hpp" />

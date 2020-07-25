@@ -225,7 +225,18 @@ void D3D12Window::HandleWindowEvents() {
 	MSG msg = { 0 };
 	bool CheckMessage = true;
 	Int2 mouseMovement(0, 0);
+	Int2 mousePosition(0, 0);
 	int mouseWheelMovement = 0;
+
+	POINT mp;
+	GetCursorPos(&mp);
+	RECT rect;
+	GetWindowRect(m_Wnd, &rect);
+
+	mousePosition.x = mp.x - rect.left;
+	mousePosition.y = mp.y - rect.top;
+
+	m_input.SetMousePosition(mousePosition);
 
 	while (CheckMessage) {
 
@@ -233,9 +244,16 @@ void D3D12Window::HandleWindowEvents() {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
+
+
 #pragma region localEventCatching
-			if (ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam))
+
+			ImGuiIO& io = ImGui::GetIO();
+
+			HRESULT hr = ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam);
+			if (ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam)) {
 				return;
+			}
 
 			/*
 				Update the local input handler for each window
@@ -251,13 +269,18 @@ void D3D12Window::HandleWindowEvents() {
 			break;
 			case WM_KEYDOWN:
 			{
+				if (io.WantCaptureKeyboard) {
+					break;
+				}
 				short key = static_cast<short>(msg.wParam);
 				m_input.SetKeyDown(static_cast<char>(key), true);
 			}
 			break;
 			case WM_KEYUP:
 			{
-
+				if (io.WantCaptureKeyboard) {
+					break;
+				}
 				short key = static_cast<short>(msg.wParam);
 				m_input.SetKeyDown(static_cast<char>(key), false);
 
@@ -268,6 +291,10 @@ void D3D12Window::HandleWindowEvents() {
 			break;
 			case WM_INPUT:
 			{
+				if (io.WantCaptureMouse) {
+					break;
+				}
+
 				UINT dwSize = 0;
 				GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 

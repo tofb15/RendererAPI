@@ -21,7 +21,7 @@
 #include <chrono>
 #include <sstream>
 
-#define AT_OFFICE
+//#define AT_OFFICE
 //#define PERFORMACE_TEST
 //#define PRELOAD_RESOURCES
 
@@ -29,7 +29,6 @@
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
 class Editor;
-class Object;
 
 class Game : public GUI {
 public:
@@ -43,7 +42,7 @@ public:
 	void UpdateObjects(double dt);
 	void UpdateInput();
 	void ProcessGlobalInput();
-	void ProcessLocalInput(double dt);
+	virtual void ProcessLocalInput(double dt);
 	/*
 		Submits the scene to the renderer and triggers it to render.
 	*/
