@@ -10,7 +10,7 @@ D3D12Camera::~D3D12Camera() {
 void D3D12Camera::SetPosition(const Float3& position) {
 	m_position = position;
 	m_vp_needsUpdate = true;
-	m_vp_inv_needsUpdate = true;
+	m_view_inv_needsUpdate = true;
 }
 
 void D3D12Camera::Move(const Float3& position) {
@@ -39,43 +39,49 @@ void D3D12Camera::Rotate(const Float3& axis, float angle) {
 void D3D12Camera::SetTarget(const Float3& target) {
 	m_target = target;
 	m_vp_needsUpdate = true;
-	m_vp_inv_needsUpdate = true;
+	m_view_inv_needsUpdate = true;
 }
 
 void D3D12Camera::SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) {
 	m_fov = fov;
 	DirectX::XMStoreFloat4x4(&mPerspectiveMatrix, DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane));
 	m_vp_needsUpdate = true;
-	m_vp_inv_needsUpdate = true;
+	m_view_inv_needsUpdate = true;
 }
 
 void D3D12Camera::SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) {
 	DirectX::XMStoreFloat4x4(&mPerspectiveMatrix, DirectX::XMMatrixOrthographicLH(width, height, nearPlane, farPlane));
 	m_vp_needsUpdate = true;
-	m_vp_inv_needsUpdate = true;
+	m_view_inv_needsUpdate = true;
 }
 
-MyRay D3D12Camera::ScreenCoordToRay(const Int2& screenCoord) {
+MyRay D3D12Camera::ScreenCoordToRay(const Float2& normalizedScreenCoords) {
 	MyRay ray;
-	if (m_vp_inv_needsUpdate) {
+	if (m_view_inv_needsUpdate) {
+		//Force the viewmatrix to update if needed
 		GetViewPerspective_ref();
+		//Calculate the inversed view matrix
 		DirectX::XMMATRIX inv_mat = DirectX::XMLoadFloat4x4(&mViewMatrix);
 		inv_mat = DirectX::XMMatrixInverse(nullptr, inv_mat);
-		DirectX::XMStoreFloat4x4(&m_ViewPerspectiveMatrix_inverse, inv_mat);
-		m_vp_inv_needsUpdate = false;
+		DirectX::XMStoreFloat4x4(&m_ViewMatrix_inversed, inv_mat);
+		m_view_inv_needsUpdate = false;
 	}
 
-	ray.SetOrigin(m_position);
-
+	//Take aspect ratio into account
 	Float2 point;
-	point.x = ((2.0 * screenCoord.x / 1920.0) - 1.0) / mPerspectiveMatrix._11;
-	point.y = -1 * ((2.0 * screenCoord.y / 1080.0) - 1.0) / mPerspectiveMatrix._22;
+	point.x = normalizedScreenCoords.x / mPerspectiveMatrix._11;
+	point.y = -1 * normalizedScreenCoords.y / mPerspectiveMatrix._22; //DirectX use flipped normalized device y coords
 
+
+	//Extract the ray direction from the point using the inversed view matrix
 	Float3 direction;
-	direction.x = (point.x * m_ViewPerspectiveMatrix_inverse._11) + (point.y * m_ViewPerspectiveMatrix_inverse._21) + m_ViewPerspectiveMatrix_inverse._31;
-	direction.y = (point.x * m_ViewPerspectiveMatrix_inverse._12) + (point.y * m_ViewPerspectiveMatrix_inverse._22) + m_ViewPerspectiveMatrix_inverse._32;
-	direction.z = (point.x * m_ViewPerspectiveMatrix_inverse._13) + (point.y * m_ViewPerspectiveMatrix_inverse._23) + m_ViewPerspectiveMatrix_inverse._33;
+	direction.x = (point.x * m_ViewMatrix_inversed._11) + (point.y * m_ViewMatrix_inversed._21) + m_ViewMatrix_inversed._31;
+	direction.y = (point.x * m_ViewMatrix_inversed._12) + (point.y * m_ViewMatrix_inversed._22) + m_ViewMatrix_inversed._32;
+	direction.z = (point.x * m_ViewMatrix_inversed._13) + (point.y * m_ViewMatrix_inversed._23) + m_ViewMatrix_inversed._33;
+
 	ray.SetDirection(direction);
+	//Set ray origin to camera position
+	ray.SetOrigin(m_position);
 
 	return ray;
 }

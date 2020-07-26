@@ -22,10 +22,15 @@ static bool quit = false;
 BYTE g_rawInputBuffer[64];
 
 constexpr int WM_SIZE_CUSTOM = WM_USER + 1;
+POINT g_curretAbsoluteMousePosition;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	//std::cout << ":	" << std::dec << message << " " << std::hex << message << std::endl;
-
+	Int2 mousePosition;
+	//Get mouse absolute position and pass it to global input handler
+	GetCursorPos(&g_curretAbsoluteMousePosition);
+	mousePosition.x = g_curretAbsoluteMousePosition.x;;
+	mousePosition.y = g_curretAbsoluteMousePosition.y;
+	Window::GetGlobalWindowInputHandler().SetMousePosition(mousePosition);
 
 	/*
 		Catch Global Winodw Events.
@@ -228,29 +233,27 @@ void D3D12Window::HandleWindowEvents() {
 	Int2 mousePosition(0, 0);
 	int mouseWheelMovement = 0;
 
-	POINT mp;
-	GetCursorPos(&mp);
-	RECT rect;
-	GetWindowRect(m_Wnd, &rect);
+	//Copy the mouse positon. This value is already fetched using GetCursorPos() earlier in "LRESULT CALLBACK WndProc()"
+	POINT mp = g_curretAbsoluteMousePosition;
 
-	mousePosition.x = mp.x - rect.left;
-	mousePosition.y = mp.y - rect.top;
-
+	//Transform mouse position from absolute coordinates into relative coordinates to the client window
+	ScreenToClient(m_Wnd, &mp);
+	mousePosition.x = mp.x;
+	mousePosition.y = mp.y;
+	//Pass the mouse position to the window local input
 	m_input.SetMousePosition(mousePosition);
 
+	//Process Local window input
 	while (CheckMessage) {
 
 		if (PeekMessage(&msg, m_Wnd, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 
-
-
 #pragma region localEventCatching
 
 			ImGuiIO& io = ImGui::GetIO();
 
-			HRESULT hr = ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam);
 			if (ImGui_ImplWin32_WndProcHandler(m_Wnd, msg.message, msg.wParam, msg.lParam)) {
 				return;
 			}

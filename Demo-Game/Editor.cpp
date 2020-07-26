@@ -89,7 +89,7 @@ void Editor::ProcessLocalInput(double dt) {
 	Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
 
 	if (input.IsKeyPressed(WindowInput::MOUSE_KEY_CODE_LEFT)) {
-		MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(mcoord);
+		MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
 
 		for (auto& e : m_scene.m_objects) {
 			BoundingSphere bs(e->transform.pos, abs(e->transform.scale.x));
@@ -631,7 +631,7 @@ void Editor::RenderDebugWindow() {
 				//}
 				Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
 				ImGui::Text(("Mouse Coord: {" + std::to_string(mcoord.x) + ", " + std::to_string(mcoord.y) + "}").c_str());
-				MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(mcoord);
+				MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
 				wcoord = ray.GetOrigin() + ray.GetDirection() * 10;
 				ImGui::Text(("WCoord: {" + std::to_string(wcoord.x) + ", " + std::to_string(wcoord.y) + ", " + std::to_string(wcoord.z) + "}").c_str());
 

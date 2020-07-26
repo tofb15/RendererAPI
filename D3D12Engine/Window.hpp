@@ -106,6 +106,8 @@ public:
 		5) Present()
 	*/
 	virtual void EndUIRendering() = 0;
+	Float2 PixelCoordToNormalizedDeviceCoord(const Int2& pixelCoord);
+
 protected:
 	Window();
 
