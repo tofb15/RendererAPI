@@ -88,6 +88,13 @@ float3 barrypolation(float3 barry, float3 in1, float3 in2, float3 in3) {
 float3 HitWorldPosition() {
 	return WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 }
+float3 HitObjectPosition() {
+	return ObjectRayOrigin() + RayTCurrent() * ObjectRayDirection();
+}
+
+float3 ProjPointToLine(float3 p, float3 r_origin, float3 r_diriection){
+    return (r_diriection * dot(r_diriection, p - r_origin) / dot(r_diriection, r_diriection)) + r_origin;
+}
 
 //===Global Signature===
 RaytracingAccelerationStructure gAS : register(t0, space0);
@@ -129,4 +136,6 @@ bool PointInShadow(float3 rayOrigin, float3 directionToLight, float distToLight)
 
 	return shadowPayload.inShadow == 1;
 }
+
+
 #endif

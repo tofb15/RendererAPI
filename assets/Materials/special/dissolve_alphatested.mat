@@ -1,0 +1,11 @@
+#Material Types [pbr, nonpbr](default: non_pbr) 
+materialType=nonpbr
+
+#Textures. Which textures is needed is defined by the materialType. (default: )
+textureColor     = black.png
+textureNormal    = black.png
+textureRoughness = black.png
+textureMetalness = black.png
+
+#shaderGroup
+shaderGroup=effect_dissolve_alphatested.sp
