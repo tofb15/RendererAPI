@@ -1,0 +1,9 @@
+#===Blueprint file===
+#Avaiable settings:
+#mesh (requierd): path to the mesh relative the mesh folder.
+#materials (requierd): Array with comma seperated material paths relative the material folder.
+#	The materials pointed to will be used to render the parts within the selected mesh.
+#====================
+
+mesh = cube.obj
+materials = {foliage_material.mat}
