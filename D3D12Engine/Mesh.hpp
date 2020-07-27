@@ -3,6 +3,7 @@
 
 class Texture;
 class VertexBuffer;
+class BoundingVolume;
 
 /*
 	Used to contain a model.
@@ -12,10 +13,10 @@ class Mesh {
 public:
 
 	enum VertexBufferFlag {
-		VERTEX_BUFFER_FLAG_INDEX            = 1,
-		VERTEX_BUFFER_FLAG_POSITION         = 2,
-		VERTEX_BUFFER_FLAG_NORMAL           = 4,
-		VERTEX_BUFFER_FLAG_UV               = 8,
+		VERTEX_BUFFER_FLAG_INDEX = 1,
+		VERTEX_BUFFER_FLAG_POSITION = 2,
+		VERTEX_BUFFER_FLAG_NORMAL = 4,
+		VERTEX_BUFFER_FLAG_UV = 8,
 		VERTEX_BUFFER_FLAG_TANGENT_BINORMAL = 16
 	};
 
@@ -64,6 +65,9 @@ public:
 	virtual int GetNumberOfSubMeshes() = 0;
 	virtual std::string GetSubMesheName(int i) = 0;
 
+	BoundingVolume* GetBoundingVolume();
+	void SetBoundingVolume(BoundingVolume* bv);
+
 protected:
 	Mesh();
 	const char* m_DefaultMaterialName;
@@ -71,4 +75,5 @@ protected:
 private:
 	std::string m_name;
 	bool m_IsCreated;
+	BoundingVolume* m_boundingVolume = nullptr;
 };

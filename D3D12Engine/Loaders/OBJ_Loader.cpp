@@ -24,6 +24,11 @@ bool LOADER::LoadOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 
 	std::string currentMaterialName;
 
+	Float3 extream_pos_max = Float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	Float3 extream_pos_min = Float3(FLT_MAX, FLT_MAX, FLT_MAX);
+	Float3 mesh_origo;
+	Float3 boundingBox_size;
+	std::iostream::binary;
 	//std::unordered_map<std::string, std::vector<Float3>> material_facePositions;
 	//std::unordered_map<std::string, std::vector<Float3>> material_faceNormals;
 	//std::unordered_map<std::string, std::vector<Float2>> material_faceUVs;
@@ -52,6 +57,25 @@ bool LOADER::LoadOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 			Float3 v;
 			iss >> v.x >> v.y >> v.z;
 			all_positions.push_back(v);
+
+			if (v.x > extream_pos_max.x) {
+				extream_pos_max.x = v.x;
+			}
+			if (v.y > extream_pos_max.y) {
+				extream_pos_max.y = v.y;
+			}
+			if (v.z > extream_pos_max.z) {
+				extream_pos_max.z = v.z;
+			}
+			if (v.x < extream_pos_min.x) {
+				extream_pos_min.x = v.x;
+			}
+			if (v.y < extream_pos_min.y) {
+				extream_pos_min.y = v.y;
+			}
+			if (v.z < extream_pos_min.z) {
+				extream_pos_min.z = v.z;
+			}
 		}
 		else if (type == "vn")
 		{
@@ -147,6 +171,9 @@ bool LOADER::LoadOBJ(const char* fileName, FLOAT3_BUFFER& material_facePositions
 			}
 		}
 	}
+
+	mesh_origo = (extream_pos_max + extream_pos_min)/2;
+	boundingBox_size = (extream_pos_max - mesh_origo) * 2;
 
 	return true;
 }

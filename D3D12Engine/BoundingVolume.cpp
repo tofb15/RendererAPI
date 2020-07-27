@@ -1,26 +1,23 @@
 #include "stdafx.h"
 #include "BoundingVolume.hpp"
 
-BoundingSphere::BoundingSphere(Float3 origin, float radius) : m_origin(origin), m_radius(radius) {
+void BoundingVolume::SetOrigin(const Float3& origin) {
+	m_origin = origin;
+}
+Float3 BoundingVolume::GetOrigin() const {
+	return m_origin;
+}
+
+BoundingVolumeType BoundingVolume::GetType() {
+	return m_type;
+}
+
+BoundingSphere::BoundingSphere(Float3 origin, float radius) : BoundingVolume(origin) {
+	m_size.x = radius;
+	m_type = BoundingVolumeType::Sphere;
 }
 
 BoundingSphere::~BoundingSphere() {
-}
-
-void BoundingSphere::SetRadius(float radius) {
-	m_radius = radius;
-}
-
-void BoundingSphere::SetOrigin(const Float3& origin) {
-	m_origin = origin;
-}
-
-float BoundingSphere::GetRadius() const {
-	return m_radius;
-}
-
-Float3 BoundingSphere::GetOrigin() const {
-	return m_origin;
 }
 
 bool BoundingSphere::RayIntersection_Fast(const MyRay& ray) const {
@@ -28,11 +25,19 @@ bool BoundingSphere::RayIntersection_Fast(const MyRay& ray) const {
 	Float3 delta = p - m_origin;
 
 	float dist1 = delta.length();
-	if (dist1 > m_radius) {
+	if (dist1 > GetRadius()) {
 		return false;
 	} else {
 		//We dont need the t values
 		return true;
 	}
 	return false;
+}
+
+BoundingBox::BoundingBox(Float3 origin, Float3 size) : BoundingVolume(origin) {
+	m_size = size;
+	m_type = BoundingVolumeType::Box;
+}
+
+BoundingBox::~BoundingBox() {
 }

@@ -45,7 +45,8 @@ void Editor::RenderGUI() {
 	m_icon_unknown_id = nullptr;
 
 	//static bool b = true;
-	//ImGui::ShowDemoWindow(&b);
+	ImGui::ShowDemoWindow();
+
 	RenderDebugWindow();
 	RenderMenuBar();
 	RenderSceneWindow();
@@ -88,10 +89,14 @@ void Editor::ProcessLocalInput(double dt) {
 	WindowInput input = m_windows[0]->GetLocalWindowInputHandler();
 	Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
 
-	if (input.IsKeyPressed(WindowInput::MOUSE_KEY_CODE_LEFT)) {
-		MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
+	if (m_boundingVolumeEditorActive) {
+		return;
+	}
 
-		for (auto& e : m_scene.m_objects) {
+	if (input.IsKeyPressed(WindowInput::MOUSE_KEY_CODE_LEFT)) {
+		MyRay ray = m_activeScene->m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
+
+		for (auto& e : m_activeScene->m_objects) {
 			BoundingSphere bs(e->transform.pos, abs(e->transform.scale.x));
 			if (bs.RayIntersection_Fast(ray)) {
 				SetSelectedResource(e, ResourceType::Object);
@@ -104,22 +109,52 @@ void Editor::ProcessLocalInput(double dt) {
 
 void Editor::SubmitObjectsForRendering() {
 	Game::SubmitObjectsForRendering();
+	if (m_boundingVolumeEditorActive) {
+		//Render Boundingbox editor
+		Blueprint* box_wireframe_bp = m_rm->GetBlueprint(m_wireFrameCubeBlueprintName);
+		Blueprint* sphere_wireframe_bp = m_rm->GetBlueprint(m_wireFrameSphereBlueprintName);
 
-	Blueprint* light_bp = m_rm->GetBlueprint(m_lightsourceBlueprintName);
-	if (light_bp) {
-		if (m_selectedResourceType == ResourceType::Light) {
-			for (auto& e : m_selectedResources) {
+		BoundingVolume* bv = m_boundingBoxEditorSelectedBlueprint->mesh->GetBoundingVolume();
+		if (bv && box_wireframe_bp && m_boundingBoxEditorSelectedBlueprint) {
+			//if (m_selectedResourceType == ResourceType::Light) {
+			for (auto& e : bv->subvolumes) {
 				Transform t;
-				t.pos = m_scene.m_lights[(int)e].m_position_center;
-				m_renderer->Submit({ light_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_scene.m_cameras[0]);
+				t.pos = e->GetOrigin();
+				t.scale = e->GetSize();
+
+				if (bv->GetType() == BoundingVolumeType::Box) {
+					m_renderer->Submit({ box_wireframe_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_activeScene->m_cameras[0]);
+				} else {
+					m_renderer->Submit({ sphere_wireframe_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_activeScene->m_cameras[0]);
+				}
 			}
 
-		}
+			//}
 
-		for (auto& e : m_scene.m_objects) {
-			m_renderer->Submit({ light_bp, e->transform, (int)RenderFlag::Dont_Cast_Shadows }, m_scene.m_cameras[0]);
+			//for (auto& e : m_activeScene->m_objects) {
+			//	m_renderer->Submit({ light_bp, e->transform, (int)RenderFlag::Dont_Cast_Shadows }, m_activeScene->m_cameras[0]);
+			//}
+		}
+	} else {
+		//Render Ordinary Scene
+
+		Blueprint* light_bp = m_rm->GetBlueprint(m_lightsourceBlueprintName);
+		if (light_bp) {
+			if (m_selectedResourceType == ResourceType::Light) {
+				for (auto& e : m_selectedResources) {
+					Transform t;
+					t.pos = m_activeScene->m_lights[(int)e].m_position_center;
+					m_renderer->Submit({ light_bp, t, (int)RenderFlag::Dont_Cast_Shadows }, m_activeScene->m_cameras[0]);
+				}
+
+			}
+
+			//for (auto& e : m_activeScene->m_objects) {
+			//	m_renderer->Submit({ light_bp, e->transform, (int)RenderFlag::Dont_Cast_Shadows }, m_activeScene->m_cameras[0]);
+			//}
 		}
 	}
+
 }
 
 void Editor::RegisterEditedResource(void* res, ResourceType type) {
@@ -155,6 +190,35 @@ void Editor::SaveUnsavedFiles() {
 	}
 
 	m_unSavedResources.clear();
+}
+
+void Editor::EnterBoundingVolumeEditor(Blueprint* bp) {
+	ClearSelectedResources();
+	m_boundingBoxEditorScene.ClearScene();
+	m_boundingBoxEditorSelectedBlueprint = bp;
+
+	Object* obj = new Object;
+	obj->blueprint = bp;
+	m_boundingBoxEditorScene.m_objects.push_back(obj);
+	Camera* c = m_renderAPI->MakeCamera();
+	c->SetPerspectiveProjection(m_windows[0]->GetDimensions().x / m_windows[0]->GetDimensions().y);
+	c->SetPosition(Float3(0, 2, -20));
+	c->SetTarget(Float3(0, 0, 0));
+
+	m_boundingBoxEditorScene.m_cameras.push_back(c);
+	LightSource ls;
+	ls.m_reachRadius = 10000;
+	ls.m_color = Float3(1, 1, 1);
+	ls.m_position_center = Float3(2, 50, -30);
+	m_boundingBoxEditorScene.m_lights.push_back(ls);
+
+	m_activeScene = &m_boundingBoxEditorScene;
+	m_boundingVolumeEditorActive = true;
+}
+
+void Editor::LeaveBoundingVolumeEditor() {
+	m_boundingVolumeEditorActive = false;
+	m_activeScene = &m_scene;
 }
 
 bool Editor::ClearSelectedResources() {
@@ -260,27 +324,27 @@ void Editor::RenderMenuBar() {
 		}
 		if (ImGui::BeginMenu("Scene")) {
 			if (ImGui::MenuItem("New Scene", "")) {
-				m_scene.NewScene();
+				m_activeScene->NewScene();
 			}
 
-			if (ImGui::MenuItem("Save Scene", "", nullptr, m_scene.m_currentSceneName != "")) {
-				m_scene.SaveScene(false, m_rm);
+			if (ImGui::MenuItem("Save Scene", "", nullptr, m_activeScene->m_currentSceneName != "")) {
+				m_activeScene->SaveScene(false, m_rm);
 			}
 
 			if (ImGui::MenuItem("Save Scene as New", "")) {
-				m_scene.SaveScene(true, m_rm);
+				m_activeScene->SaveScene(true, m_rm);
 				m_rm->RefreshFileSystemResourceLists();
 			}
 
 			if (ImGui::BeginMenu("Load Scene")) {
-				std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundScenes, m_scene.m_currentSceneName, true);
+				std::filesystem::path clickedItem = DrawRecursiveDirectoryList(m_rm->m_foundScenes, m_activeScene->m_currentSceneName, true);
 				if (clickedItem != "") {
 					size_t len1 = m_rm->m_foundScenes.path.string().length();
 					size_t len2 = clickedItem.string().length() - len1;
 					std::string s = clickedItem.string().substr(len1, len2);
 
 					ClearSelectedResources();
-					bool b = m_scene.LoadScene(s, m_rm, m_renderAPI, m_windows[0]->GetDimensions());
+					bool b = m_activeScene->LoadScene(s, m_rm, m_renderAPI, m_windows[0]->GetDimensions());
 				}
 				ImGui::EndMenu();
 			}
@@ -306,143 +370,197 @@ void Editor::RenderSceneWindow() {
 	ImGui::SetNextWindowPos(ImVec2(10, 20), ImGuiCond_Once);
 
 	if (ImGui::Begin("Scene", NULL, ImGuiWindowFlags_MenuBar)) {
-		RenderSceneWindow_AddMenu();
-		//=====Top Part=====
-		ImGui::BeginChild("Scene Object List", ImVec2(0, ImGui::GetWindowHeight() - 120), true);
+		if (m_boundingVolumeEditorActive) {
+			RenderSceneWindowBoundingVolumeEditor();
+		} else {
+			RenderSceneWindow_AddMenu();
+			//=====Top Part=====
+			ImGui::BeginChild("Scene Object List", ImVec2(0, ImGui::GetWindowHeight() - 120), true);
 
-		int i = 0;
-		for (auto& e : m_scene.m_lights) {
-			if (ImGui::Selectable(("light#" + std::to_string(i)).c_str(), IsResourceSelected((void*)i, ResourceType::Light))) {
-				//m_selectedObjects.push_back(i);
-			}
+			int i = 0;
+			for (auto& e : m_activeScene->m_lights) {
+				if (ImGui::Selectable(("light#" + std::to_string(i)).c_str(), IsResourceSelected((void*)i, ResourceType::Light))) {
+					//m_selectedObjects.push_back(i);
+				}
 
-			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
-				if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
-					if (m_selectedResourceType == ResourceType::Light) {
-						int min = (int)(m_selectedResources.front());
-						int max = i;
-						if (min > max) {
-							std::swap(min, max);
+				if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
+					if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
+						if (m_selectedResourceType == ResourceType::Light) {
+							int min = (int)(m_selectedResources.front());
+							int max = i;
+							if (min > max) {
+								std::swap(min, max);
+							}
+
+							ClearSelectedResources();
+							for (int a = min; a <= max; a++) {
+								AddSelectedResource((void*)a, ResourceType::Light);
+							}
+						} else {
+							SetSelectedResource((void*)i, ResourceType::Light);
 						}
-
-						ClearSelectedResources();
-						for (int a = min; a <= max; a++) {
-							AddSelectedResource((void*)a, ResourceType::Light);
-						}
+					} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
+						AddRemoveSelectedResource((void*)i, ResourceType::Light);
 					} else {
 						SetSelectedResource((void*)i, ResourceType::Light);
 					}
-				} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
-					AddRemoveSelectedResource((void*)i, ResourceType::Light);
-				} else {
-					SetSelectedResource((void*)i, ResourceType::Light);
 				}
+				i++;
 			}
-			i++;
-		}
-		ImGui::Separator();
-		i = 0;
-		for (auto& e : m_scene.m_objects) {
-			if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), IsResourceSelected(e, ResourceType::Object))) {
-				//m_selectedObjects.push_back(i);
-			}
+			ImGui::Separator();
+			i = 0;
+			for (auto& e : m_activeScene->m_objects) {
+				if (ImGui::Selectable(("obj#" + std::to_string(i) + " : " + m_rm->GetBlueprintName(e->blueprint)).c_str(), IsResourceSelected(e, ResourceType::Object))) {
+					//m_selectedObjects.push_back(i);
+				}
 
-			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
-				if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
-					if (m_selectedResourceType == ResourceType::Object) {
-						int min = std::distance(m_scene.m_objects.begin(), std::find(m_scene.m_objects.begin(), m_scene.m_objects.end(), static_cast<Object*>(m_selectedResources.front())));
-						int max = i;
-						if (min > max) {
-							std::swap(min, max);
-						}
+				if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
+					if (!m_selectedResources.empty() && m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_SHIFT)) {
+						if (m_selectedResourceType == ResourceType::Object) {
+							int min = std::distance(m_activeScene->m_objects.begin(), std::find(m_activeScene->m_objects.begin(), m_activeScene->m_objects.end(), static_cast<Object*>(m_selectedResources.front())));
+							int max = i;
+							if (min > max) {
+								std::swap(min, max);
+							}
 
-						ClearSelectedResources();
-						for (int a = min; a <= max; a++) {
-							AddSelectedResource(m_scene.m_objects.at(a), ResourceType::Object);
+							ClearSelectedResources();
+							for (int a = min; a <= max; a++) {
+								AddSelectedResource(m_activeScene->m_objects.at(a), ResourceType::Object);
+							}
+						} else {
+							SetSelectedResource(e, ResourceType::Object);
 						}
+					} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
+						AddRemoveSelectedResource(e, ResourceType::Object);
 					} else {
 						SetSelectedResource(e, ResourceType::Object);
 					}
-				} else if (m_globalWindowInput->IsKeyDown(WindowInput::KEY_CODE_CTRL)) {
-					AddRemoveSelectedResource(e, ResourceType::Object);
-				} else {
-					SetSelectedResource(e, ResourceType::Object);
 				}
+				i++;
 			}
-			i++;
-		}
-		ImGui::EndChild();
-		//=====Bottom Part=====
-		//ImGui::SetNextWindowPos(ImVec2(0, 500));
-		ImGui::BeginChild("Actions", ImVec2(0, 0), true);
+			ImGui::EndChild();
+			//=====Bottom Part=====
+			//ImGui::SetNextWindowPos(ImVec2(0, 500));
+			ImGui::BeginChild("Actions", ImVec2(0, 0), true);
 
-		size_t nSelected = (int)m_selectedResources.size();
+			size_t nSelected = (int)m_selectedResources.size();
 
-		if (nSelected > 0) {
-			if (m_selectedResourceType == ResourceType::Object) {
-				size_t numberOfObjects = (int)m_scene.m_objects.size();
-				if (ImGui::Button("Copy")) {
-					for (auto i : m_selectedResources) {
-						Object* obj = new Object();
-						memcpy(obj, i, sizeof(Object));
-						m_scene.m_objects.push_back(obj);
-					}
-					m_selectedResources.clear();
-					for (size_t i = numberOfObjects; i < numberOfObjects + nSelected; i++) {
-						AddSelectedResource(m_scene.m_objects.at(i), ResourceType::Object);
-					}
-				}
-				ImGui::SameLine();
-
-				if (ImGui::Button("Delete")) {
-					for (auto i : m_selectedResources) {
-						auto e = std::find(m_scene.m_objects.begin(), m_scene.m_objects.end(), i);
-						m_scene.m_objects.erase(e);
-						delete i;
-					}
-
-					ClearSelectedResources();
-				}
-
-				if (ImGui::Button("Select All Identical")) {
-					auto bplist = m_selectedSceneObjectBlueprints;
-					ClearSelectedResources();
-					for (auto i : m_scene.m_objects) {
-						if (bplist.count(i->blueprint) > 0) {
-							AddSelectedResource(i, ResourceType::Object);
+			if (nSelected > 0) {
+				if (m_selectedResourceType == ResourceType::Object) {
+					size_t numberOfObjects = (int)m_activeScene->m_objects.size();
+					if (ImGui::Button("Copy")) {
+						for (auto i : m_selectedResources) {
+							Object* obj = new Object();
+							memcpy(obj, i, sizeof(Object));
+							m_activeScene->m_objects.push_back(obj);
+						}
+						m_selectedResources.clear();
+						for (size_t i = numberOfObjects; i < numberOfObjects + nSelected; i++) {
+							AddSelectedResource(m_activeScene->m_objects.at(i), ResourceType::Object);
 						}
 					}
-				}
-			} else if (m_selectedResourceType == ResourceType::Light) {
-				size_t numberOfLights = (int)m_scene.m_lights.size();
+					ImGui::SameLine();
 
-				if (ImGui::Button("Copy")) {
-					for (auto i : m_selectedResources) {
-						LightSource ls = m_scene.m_lights[(int)i];
-						m_scene.m_lights.push_back(ls);
-					}
-					m_selectedResources.clear();
-					for (size_t i = numberOfLights; i < numberOfLights + nSelected; i++) {
-						AddSelectedResource((void*)i, ResourceType::Light);
-					}
-				}
-				ImGui::SameLine();
+					if (ImGui::Button("Delete")) {
+						for (auto i : m_selectedResources) {
+							auto e = std::find(m_activeScene->m_objects.begin(), m_activeScene->m_objects.end(), i);
+							m_activeScene->m_objects.erase(e);
+							delete i;
+						}
 
-				if (ImGui::Button("Delete")) {
-					std::sort(m_selectedResources.begin(), m_selectedResources.end());
-					std::reverse(m_selectedResources.begin(), m_selectedResources.end());
-					for (auto i : m_selectedResources) {
-						m_scene.m_lights.erase(m_scene.m_lights.begin() + (int)i);
+						ClearSelectedResources();
 					}
 
-					ClearSelectedResources();
+					if (ImGui::Button("Select All Identical")) {
+						auto bplist = m_selectedSceneObjectBlueprints;
+						ClearSelectedResources();
+						for (auto i : m_activeScene->m_objects) {
+							if (bplist.count(i->blueprint) > 0) {
+								AddSelectedResource(i, ResourceType::Object);
+							}
+						}
+					}
+				} else if (m_selectedResourceType == ResourceType::Light) {
+					size_t numberOfLights = (int)m_activeScene->m_lights.size();
+
+					if (ImGui::Button("Copy")) {
+						for (auto i : m_selectedResources) {
+							LightSource ls = m_activeScene->m_lights[(int)i];
+							m_activeScene->m_lights.push_back(ls);
+						}
+						m_selectedResources.clear();
+						for (size_t i = numberOfLights; i < numberOfLights + nSelected; i++) {
+							AddSelectedResource((void*)i, ResourceType::Light);
+						}
+					}
+					ImGui::SameLine();
+
+					if (ImGui::Button("Delete")) {
+						std::sort(m_selectedResources.begin(), m_selectedResources.end());
+						std::reverse(m_selectedResources.begin(), m_selectedResources.end());
+						for (auto i : m_selectedResources) {
+							m_activeScene->m_lights.erase(m_activeScene->m_lights.begin() + (int)i);
+						}
+
+						ClearSelectedResources();
+					}
 				}
 			}
+			ImGui::EndChild();
 		}
-		ImGui::EndChild();
 
 	}
 	ImGui::End();
+}
+
+void Editor::RenderSceneWindowBoundingVolumeEditor() {
+	if (ImGui::Button("Save and Quit")) {
+		LeaveBoundingVolumeEditor();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Quit")) {
+		LeaveBoundingVolumeEditor();
+	}
+	ImGui::Separator();
+
+	int i = 0;
+	BoundingVolume* bv = m_boundingBoxEditorSelectedBlueprint->mesh->GetBoundingVolume();
+	if (bv) {
+		//ImGui::TreePush(&i);
+		if (ImGui::Selectable(("Bounding Box#" + std::to_string(i)).c_str(), IsResourceSelected(bv, ResourceType::BoundingVolume))) {
+			//m_selectedObjects.push_back(i);
+		}
+
+		if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
+			SetSelectedResource((void*)bv, ResourceType::BoundingVolume);
+		}
+
+		i++;
+		for (auto& e : bv->subvolumes) {
+			ImGui::TreePush(&i);
+			if (ImGui::Selectable(("Bounding Box#" + std::to_string(i)).c_str(), IsResourceSelected(e, ResourceType::BoundingVolume))) {
+				//m_selectedObjects.push_back(i);
+			}
+			if (ImGui::IsItemClicked(0) && ImGui::IsItemHovered()) {
+				SetSelectedResource((void*)e, ResourceType::BoundingVolume);
+			}
+			ImGui::TreePop();
+			i++;
+		}
+		//ImGui::TreePop();
+	} else {
+		if (ImGui::Button("Add Bounding Box")) {
+			bv = new BoundingBox(Float3(0, 0, 0), Float3(2, 2, 2));
+			m_boundingBoxEditorSelectedBlueprint->mesh->SetBoundingVolume(bv);
+
+			bv->subvolumes.push_back(new BoundingBox(Float3(0, 0, 0), Float3(2, 2, 2)));
+			bv->subvolumes.push_back(new BoundingSphere(Float3(0, 0, 0), 2));
+		}
+		if (ImGui::Button("Add Bounding Sphere")) {
+			bv = new BoundingSphere(Float3(0, 0, 0), 2);
+			m_boundingBoxEditorSelectedBlueprint->mesh->SetBoundingVolume(bv);
+		}
+	}
 }
 
 void Editor::RenderSceneWindow_AddMenu() {
@@ -454,8 +572,8 @@ void Editor::RenderSceneWindow_AddMenu() {
 					LightSource ls;
 					ls.m_color = Float3(1, 1, 1);
 					ls.m_reachRadius = 500;
-					m_scene.m_lights.push_back(ls);
-					SetSelectedResource((void*)(m_scene.m_lights.size() - 1), ResourceType::Light);
+					m_activeScene->m_lights.push_back(ls);
+					SetSelectedResource((void*)(m_activeScene->m_lights.size() - 1), ResourceType::Light);
 				}
 				ImGui::EndMenu();
 
@@ -606,7 +724,7 @@ void Editor::RenderDebugWindow() {
 			if (ImGui::BeginTabItem("Setting")) {
 				static float lightReach = 100;
 				if (ImGui::DragFloat("Light Reach", &lightReach, 1, 1, 10000)) {
-					for (auto& e : m_scene.m_lights) {
+					for (auto& e : m_activeScene->m_lights) {
 						e.m_reachRadius = lightReach;
 					}
 				}
@@ -615,23 +733,23 @@ void Editor::RenderDebugWindow() {
 					m_rm->RecompileShaders();
 				}
 
-				Float3 pos = m_scene.m_cameras[0]->GetPosition();
-				Float3 dir = m_scene.m_cameras[0]->GetTargetDirection();
+				Float3 pos = m_activeScene->m_cameras[0]->GetPosition();
+				Float3 dir = m_activeScene->m_cameras[0]->GetTargetDirection();
 				if (ImGui::DragFloat3("Camera Pos", &pos.x, 1, -10000, 10000)) {
-					Float3 delta = pos - m_scene.m_cameras[0]->GetPosition();
-					m_scene.m_cameras[0]->Move(delta);
+					Float3 delta = pos - m_activeScene->m_cameras[0]->GetPosition();
+					m_activeScene->m_cameras[0]->Move(delta);
 				}
 				if (ImGui::DragFloat3("Camera Dir", &dir.x, 0.1, -10, 10)) {
-					m_scene.m_cameras[0]->SetTarget(pos + dir.normalized());
+					m_activeScene->m_cameras[0]->SetTarget(pos + dir.normalized());
 				}
 				//static Int2 scoord;
 				Float3 wcoord;
 				//if (ImGui::DragFloat3("S Coord", &scoord.x, 0.1, -1, 1)) {
-				//	wcoord = m_scene.m_cameras[0]->ScreenCoordToWorldCoord(scoord);
+				//	wcoord = m_activeScene->m_cameras[0]->ScreenCoordToWorldCoord(scoord);
 				//}
 				Int2 mcoord = m_windows[0]->GetLocalWindowInputHandler().GetMousePosition();
 				ImGui::Text(("Mouse Coord: {" + std::to_string(mcoord.x) + ", " + std::to_string(mcoord.y) + "}").c_str());
-				MyRay ray = m_scene.m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
+				MyRay ray = m_activeScene->m_cameras[0]->ScreenCoordToRay(m_windows[0]->PixelCoordToNormalizedDeviceCoord(mcoord));
 				wcoord = ray.GetOrigin() + ray.GetDirection() * 10;
 				ImGui::Text(("WCoord: {" + std::to_string(wcoord.x) + ", " + std::to_string(wcoord.y) + ", " + std::to_string(wcoord.z) + "}").c_str());
 
@@ -708,6 +826,9 @@ void Editor::RenderPropertiesWindow() {
 		case ResourceType::Other:
 			RenderPropertyUnimplementedResourceType();
 			break;
+		case ResourceType::BoundingVolume:
+			RenderPropertyWindowBoundingBox();
+			break;
 		default:
 			RenderPropertyUnimplementedResourceType();
 			break;
@@ -722,7 +843,6 @@ void Editor::RenderPropertyWindowSceneObject() {
 	Object* firstSelectedObject = static_cast<Object*>(m_selectedResources.front());
 
 	if (nSelected == 1) {
-
 		std::string name = "#Object Name#";// +std::to_string((int)m_selectedResources.front());
 		ImGui::Text(("Selected: " + name).c_str());
 	} else {
@@ -838,7 +958,7 @@ void Editor::RenderPropertyWindowSceneObject() {
 
 void Editor::RenderPropertyWindowLights() {
 	size_t nSelected = m_selectedResources.size();
-	LightSource& fistSelected = m_scene.m_lights[(int)m_selectedResources.front()];
+	LightSource& fistSelected = m_activeScene->m_lights[(int)m_selectedResources.front()];
 	if (nSelected == 1) {
 
 		std::string name = "#Light Name#";// +std::to_string((int)m_selectedResources.front());
@@ -853,17 +973,17 @@ void Editor::RenderPropertyWindowLights() {
 
 	if (ImGui::DragFloat3("Color", (float*)& fistSelected.m_color, 0.1, 0, 1)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_scene.m_lights[(int)m_selectedResources[i]].m_color = m_scene.m_lights[(int)m_selectedResources.front()].m_color;
+			m_activeScene->m_lights[(int)m_selectedResources[i]].m_color = m_activeScene->m_lights[(int)m_selectedResources.front()].m_color;
 		}
 	}
 	if (ImGui::DragFloat("Light Reach", (float*)& fistSelected.m_reachRadius, 100, 0, 10000)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_scene.m_lights[(int)m_selectedResources[i]].m_reachRadius = m_scene.m_lights[(int)m_selectedResources.front()].m_reachRadius;
+			m_activeScene->m_lights[(int)m_selectedResources[i]].m_reachRadius = m_activeScene->m_lights[(int)m_selectedResources.front()].m_reachRadius;
 		}
 	}
 	if (ImGui::Checkbox("Enable", &fistSelected.m_enabled)) {
 		for (size_t i = 1; i < nSelected; i++) {
-			m_scene.m_lights[(int)m_selectedResources[i]].m_enabled = m_scene.m_lights[(int)m_selectedResources.front()].m_enabled;
+			m_activeScene->m_lights[(int)m_selectedResources[i]].m_enabled = m_activeScene->m_lights[(int)m_selectedResources.front()].m_enabled;
 		}
 	}
 
@@ -956,7 +1076,10 @@ void Editor::RenderPropertyWindowBlueprint() {
 
 		ImGui::PopID();
 	}
-
+	ImGui::Separator();
+	if (ImGui::Button("Edit Bounding Volume")) {
+		EnterBoundingVolumeEditor(bp);
+	}
 
 }
 
@@ -1074,6 +1197,43 @@ void Editor::RenderPropertyWindowMaterial() {
 		ImGui::EndCombo();
 	}
 
+}
+
+void Editor::RenderPropertyWindowBoundingBox() {
+	size_t nSelected = m_selectedResources.size();
+	BoundingVolume* bv = nullptr;
+	std::string materialName = "";
+	ImGui::Text(("Selected: " + std::to_string(nSelected) + " Materials").c_str());
+	if (nSelected > 1) {
+		return;
+	}
+	bv = static_cast<BoundingVolume*>(m_selectedResources.front());
+	BoundingVolumeType type = bv->GetType();
+	if (type == BoundingVolumeType::Box) {
+		//BoundingBox* box = static_cast<BoundingBox*>(bv);
+		Float3 pos = bv->GetOrigin();
+		Float3 size = bv->GetSize();
+
+		if (ImGui::DragFloat3("Position", (float*)& pos.x, 0.1, -500, 500)) {
+			bv->SetOrigin(pos);
+		}
+		if (ImGui::DragFloat3("Size", (float*)& size.x, 0.1, -50, 50)) {
+			bv->SetSize(size);
+		}
+	} else if (type == BoundingVolumeType::Sphere) {
+		//BoundingSphere* sphere = static_cast<BoundingSphere*>(bv);
+		Float3 pos = bv->GetOrigin();
+		float radius = bv->GetRadius();
+
+		if (ImGui::DragFloat3("Position", (float*)& pos.x, 0.1, -500, 500)) {
+			bv->SetOrigin(pos);
+		}
+		if (ImGui::DragFloat("Size", (float*)& radius, 0.1, -50, 50)) {
+			bv->SetRadius(radius);
+		}
+	} else {
+
+	}
 }
 
 void Editor::RenderPropertyUnimplementedResourceType() {

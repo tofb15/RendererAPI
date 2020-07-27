@@ -9,7 +9,7 @@ public:
 	virtual void Move(const Float3& position) = 0;
 	virtual void Rotate(const Float3& axis, float angle) = 0;
 	virtual void SetTarget(const Float3& target) = 0;
-	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) = 0;
+	virtual void SetPerspectiveProjection(float aspectRatio, float fov = 3.14159265f * 0.5f, float nearPlane = 0.1, float farPlane = 2000) = 0;
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) = 0;
 
 	virtual MyRay ScreenCoordToRay(const Float2& normalizedScreenCoords) = 0;

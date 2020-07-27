@@ -42,7 +42,7 @@ void D3D12Camera::SetTarget(const Float3& target) {
 	m_view_inv_needsUpdate = true;
 }
 
-void D3D12Camera::SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) {
+void D3D12Camera::SetPerspectiveProjection(float aspectRatio, float fov, float nearPlane, float farPlane) {
 	m_fov = fov;
 	DirectX::XMStoreFloat4x4(&mPerspectiveMatrix, DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane));
 	m_vp_needsUpdate = true;

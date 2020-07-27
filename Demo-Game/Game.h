@@ -94,6 +94,7 @@ protected:
 	WindowInput* m_globalWindowInput;
 
 	Scene m_scene;
+	Scene* m_activeScene = &m_scene;
 
 	double m_time = 0.0;
 	double m_ms = 300.0;

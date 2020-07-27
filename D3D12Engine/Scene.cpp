@@ -37,6 +37,10 @@ void Scene::ClearScene(bool clearName) {
 		delete e;
 	}
 	m_objects.clear();
+	for (auto e : m_cameras) {
+		delete e;
+	}
+	m_cameras.clear();
 	m_lights.clear();
 }
 
@@ -257,7 +261,7 @@ bool Scene::LoadSceneVersion1(std::ifstream& inFile, ResourceManager* rm, Render
 				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
 				cam->SetTarget(tempFloat);
 
-				cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
+				cam->SetPerspectiveProjection(aspRatio);
 				m_cameras.push_back(cam);
 			}
 		} else if (line == "Lights") {
@@ -304,7 +308,7 @@ bool Scene::LoadSceneVersion1(std::ifstream& inFile, ResourceManager* rm, Render
 		Camera* cam = api->MakeCamera();
 		cam->SetPosition(Float3(0, 10, -10));
 		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
+		cam->SetPerspectiveProjection(aspRatio);
 		m_cameras.push_back(cam);
 	}
 
@@ -344,7 +348,7 @@ bool Scene::LoadSceneVersion2(std::ifstream& inFile, ResourceManager* rm, Render
 				inFile >> tempFloat.x >> tempFloat.y >> tempFloat.z;
 				cam->SetTarget(tempFloat);
 				//3.14159265f * 0.5f
-				cam->SetPerspectiveProjection(fov, aspRatio, 0.1f, 2000.0f);
+				cam->SetPerspectiveProjection(aspRatio);
 				m_cameras.push_back(cam);
 			}
 		} else if (line == "Lights") {
@@ -394,7 +398,7 @@ bool Scene::LoadSceneVersion2(std::ifstream& inFile, ResourceManager* rm, Render
 		Camera* cam = api->MakeCamera();
 		cam->SetPosition(Float3(0, 10, -10));
 		cam->SetTarget(Float3(0, 0, 0));
-		cam->SetPerspectiveProjection(3.14159265f * 0.5f, aspRatio, 0.1f, 2000.0f);
+		cam->SetPerspectiveProjection(aspRatio);
 		m_cameras.push_back(cam);
 	}
 

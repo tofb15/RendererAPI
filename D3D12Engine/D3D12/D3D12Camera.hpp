@@ -41,7 +41,7 @@ public:
 	virtual void Rotate(const Float3& axis, float angle) override;
 	virtual void SetTarget(const Float3& target) override;
 
-	virtual void SetPerspectiveProjection(float fov, float aspectRatio, float nearPlane, float farPlane) override;
+	virtual void SetPerspectiveProjection(float aspectRatio, float fov, float nearPlane, float farPlane) override;
 	virtual void SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) override;
 
 	virtual MyRay ScreenCoordToRay(const Float2& normalizedScreenCoords) override;

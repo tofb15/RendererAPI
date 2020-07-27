@@ -10,6 +10,7 @@ enum class ResourceType {
 	None = 0,
 	Scene,
 	Object,
+	BoundingVolume,
 	Light,
 	Blueprint,
 	Material,
@@ -26,7 +27,7 @@ public:
 	Editor();
 	~Editor();
 
-	// Inherited via GUI
+	// Inherited via Game
 	virtual void RenderGUI() override;
 	virtual int Initialize() override;
 	virtual void ProcessLocalInput(double dt) override;
@@ -34,7 +35,8 @@ public:
 private:
 	std::string m_lightsourceBlueprintName = "_lightsource";
 	std::string m_lightsourceMaterialName = "_lightsource";
-
+	std::string m_wireFrameCubeBlueprintName = "wireframe_cube.bp";
+	std::string m_wireFrameSphereBlueprintName = "wireframe_sphere.bp";
 	//Icons
 	std::string m_icon_blueprint = "Icons/blueprint.png";
 	std::string m_icon_material = "Icons/material.png";
@@ -58,6 +60,10 @@ private:
 	bool m_showPropertiesWindow = true;
 	bool m_showResourceWindow = true;
 
+	bool m_boundingVolumeEditorActive = false;
+	Scene m_boundingBoxEditorScene;
+	Blueprint* m_boundingBoxEditorSelectedBlueprint;
+
 	//TODO: Keep track of modifyed resources so that they can be saved.
 	std::unordered_map<void*, ResourceType>    m_unSavedResources;
 
@@ -75,6 +81,8 @@ private:
 
 	void RegisterEditedResource(void* res, ResourceType type);
 	void SaveUnsavedFiles();
+	void EnterBoundingVolumeEditor(Blueprint* bp);
+	void LeaveBoundingVolumeEditor();
 
 	bool ClearSelectedResources();
 	bool IsResourceSelected(void* res, ResourceType type);
@@ -85,6 +93,7 @@ private:
 	////////////////////
 	void RenderMenuBar();
 	void RenderSceneWindow();
+	void RenderSceneWindowBoundingVolumeEditor();
 	void RenderSceneWindow_AddMenu();
 	void RenderResourceWindow();
 
@@ -97,6 +106,7 @@ private:
 	void RenderPropertyWindowLights();
 	void RenderPropertyWindowBlueprint();
 	void RenderPropertyWindowMaterial();
+	void RenderPropertyWindowBoundingBox();
 	void RenderPropertyUnimplementedResourceType();
 
 	//Resource Browser

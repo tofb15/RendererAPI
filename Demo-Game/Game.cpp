@@ -170,7 +170,6 @@ void Game::ProcessGlobalInput() {
 void Game::ProcessLocalInput(double dt) {
 	std::vector<WindowInput*> inputs;
 
-
 	for (size_t i = 0; i < m_windows.size(); i++) {
 		inputs.push_back(&m_windows[i]->GetLocalWindowInputHandler());
 	}
@@ -185,23 +184,23 @@ void Game::ProcessLocalInput(double dt) {
 			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
 			float ms = m_ms * (shift ? 1 : 0.02);
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
+				m_activeScene->m_cameras[0]->Move(m_activeScene->m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
+				m_activeScene->m_cameras[0]->Move(m_activeScene->m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * -(ms * dt));
+				m_activeScene->m_cameras[0]->Move(m_activeScene->m_cameras[0]->GetRight().normalized() * -(ms * dt));
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * (ms * dt));
+				m_activeScene->m_cameras[0]->Move(m_activeScene->m_cameras[0]->GetRight().normalized() * (ms * dt));
 			}
 		}
 
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_scene.m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
-		m_scene.m_cameras[0]->Rotate(m_scene.m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
+		m_activeScene->m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
+		m_activeScene->m_cameras[0]->Rotate(m_activeScene->m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
 	}
 }
 
@@ -218,7 +217,7 @@ void Game::RenderWindows() {
 
 		//TODO: Do we want to support multiple Frame calls in a row? What if we want to render split-screen? Could differend threads prepare different frames?
 		m_rm->PrepareRendering();
-		m_renderer->Frame(window, m_scene.m_cameras[0]);
+		m_renderer->Frame(window, m_activeScene->m_cameras[0]);
 		m_renderer->Present(window, this);
 	}
 }
@@ -364,8 +363,8 @@ void Game::RenderSettingWindow() {
 }
 
 void Game::SubmitObjectsForRendering() {
-	for (auto& e : m_scene.m_objects) {
-		m_renderer->Submit({ e->blueprint, e->transform }, m_scene.m_cameras[0]);
+	for (auto& e : m_activeScene->m_objects) {
+		m_renderer->Submit({ e->blueprint, e->transform }, m_activeScene->m_cameras[0]);
 	}
 }
 

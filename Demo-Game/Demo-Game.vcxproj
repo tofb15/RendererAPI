@@ -361,6 +361,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BoundingBoxEditor.h" />
     <ClInclude Include="Editor.h" />
     <ClInclude Include="Game.h" />
   </ItemGroup>
