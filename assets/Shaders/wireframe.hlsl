@@ -49,6 +49,7 @@ void wireframeAnyHit(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	}
 }
 
+[shader("anyhit")]
 void dissolve_anyhit(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs) {
 #ifdef DEBUG_RECURSION_DEPTH
 	payload.recursionDepth++;
@@ -76,7 +77,7 @@ void dissolve_anyhit(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
     float threshold;
     threshold = pow(RayTCurrent()*0.1 - dissolveStartDist, 2);
     threshold = clamp(threshold, RayTCurrent() * 0.0000, 1000);
-
+ 
 	if (minDist > threshold) {
 		IgnoreHit();
 	}

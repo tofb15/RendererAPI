@@ -1,2 +1,2 @@
 closesthit   = {closestHitTriangle, pbr_shader.hlsl}
-anyhit       = {wireframeAnyHit, wireframe.hlsl}
+anyhit       = {dissolve_anyhit, wireframe.hlsl}

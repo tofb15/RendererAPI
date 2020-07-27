@@ -105,7 +105,7 @@ void anyHitAlphaTest(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	
 	float alpha = sys_textures[ALBEDO_TEX_POS].SampleLevel(samp, uv, 0).a;
 
-	if (alpha < 0.5f) {
+	if (alpha <= 0.30f) {
 		IgnoreHit();
 	}
 }
