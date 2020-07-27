@@ -447,7 +447,9 @@
     <ClCompile Include="External\IMGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Light\LightSource.cpp" />
+    <ClCompile Include="Loaders\BinaryFile.cpp" />
     <ClCompile Include="Loaders\ConfigFileLoader.cpp" />
+    <ClCompile Include="Loaders\MyMeshLoader.cpp" />
     <ClCompile Include="Loaders\OBJ_Loader.cpp" />
     <ClCompile Include="Loaders\SimpleTexture.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
@@ -554,7 +556,9 @@
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="Loaders\BinaryFile.h" />
     <ClInclude Include="Loaders\ConfigFileLoader.hpp" />
+    <ClInclude Include="Loaders\MyMeshLoader.h" />
     <ClInclude Include="Loaders\SimpleTexture.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Utills\CodeParser.h" />

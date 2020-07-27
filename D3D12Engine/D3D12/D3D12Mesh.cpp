@@ -5,6 +5,7 @@
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12Texture.hpp"
 #include "Loaders/OBJ_Loader.h"
+#include "Loaders/MyMeshLoader.h"
 
 #include <sstream>
 #include <fstream>
@@ -68,25 +69,51 @@ bool D3D12Mesh::LoadFromFile(const char* fileName, MeshLoadFlag loadFlag) {
 		std::unordered_map<std::string, std::vector<Float3>> material_faceNormals;
 		std::unordered_map<std::string, std::vector<Float2>> material_faceUVs;
 
-		if (!LOADER::LoadOBJ(fileName, material_facePositions, material_faceNormals, material_faceUVs)) {
+		std::filesystem::path filePath = fileName;
+		if (filePath.extension() == ".obj") {
+			std::filesystem::path newFormat = filePath.string().substr(0, filePath.string().length() - 4) + ".myMesh";
+			//Before loading .obj file, try to load the .myMesh file with the same name and path.
+			if (!LOADER::MyMeshLoader::LoadMesh(newFormat.string().c_str(), material_facePositions, material_faceNormals, material_faceUVs)) {
+				//If the .myMesh file could not be loaded, load the .obj file
+				if (!LOADER::LoadOBJ(fileName, material_facePositions, material_faceNormals, material_faceUVs)) {
+					//TODO:: Log error
+					return false;
+				}
+				//Save the mesh as a .myMesh file that can be used in the future
+				LOADER::MyMeshLoader::SaveMesh(newFormat.string().c_str(), material_facePositions, material_faceNormals, material_faceUVs);
+			}
+		} else if (filePath.extension() == ".myMesh") {
+			if (!LOADER::MyMeshLoader::LoadMesh(fileName, material_facePositions, material_faceNormals, material_faceUVs)) {
+				//TODO:: Log error
+				return false;
+			}
+		} else {
+			//TODO:: Log error
 			return false;
 		}
 
 		for (auto& e : material_facePositions) {
-			if (!AddVertexBuffer(static_cast<int>(e.second.size()), sizeof(Float3), e.second.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION, e.first))
+			if (!AddVertexBuffer(static_cast<int>(e.second.size()), sizeof(Float3), e.second.data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_POSITION, e.first)) {
+				//TODO:: Log error
 				return false;
+			}
 
 			if (material_faceNormals.count(e.first)) {
-				if (!AddVertexBuffer(static_cast<int>(material_faceNormals[e.first].size()), sizeof(Float3), material_faceNormals[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL, e.first))
+				if (!AddVertexBuffer(static_cast<int>(material_faceNormals[e.first].size()), sizeof(Float3), material_faceNormals[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_NORMAL, e.first)) {
+					//TODO:: Log error
 					return false;
+				}
 			}
 
 			if (material_faceUVs.count(e.first)) {
-				if (!AddVertexBuffer(static_cast<int>(material_faceUVs[e.first].size()), sizeof(Float2), material_faceUVs[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV, e.first))
+				if (!AddVertexBuffer(static_cast<int>(material_faceUVs[e.first].size()), sizeof(Float2), material_faceUVs[e.first].data(), Mesh::VertexBufferFlag::VERTEX_BUFFER_FLAG_UV, e.first)) {
+					//TODO:: Log error
 					return false;
+				}
 			}
 
 			if (!CalculateTangentAndBinormal(material_facePositions[e.first].data(), material_faceUVs[e.first].data(), material_facePositions[e.first].size(), e.first)) {
+				//TODO:: Log error
 				return false;
 			}
 		}
