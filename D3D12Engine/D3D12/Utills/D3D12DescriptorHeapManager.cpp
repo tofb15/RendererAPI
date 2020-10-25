@@ -10,24 +10,31 @@ D3D12DescriptorHeapManager::D3D12DescriptorHeapManager(D3D12API* d3d12) : m_d3d1
 D3D12DescriptorHeapManager::~D3D12DescriptorHeapManager() {
 }
 
-bool D3D12DescriptorHeapManager::Initialize(size_t nRTV, size_t nDSV, size_t nCBV_SRV_UAV, size_t nSamp) {
-	if (!m_descriptorHeap_RTV.Initialize(m_d3d12, DESCRIPTOR_TYPE_RTV, nRTV)) {
+bool D3D12DescriptorHeapManager::Initialize(size_t nRTVStatic, size_t nRTVDynamic, size_t nDSVStatic, size_t nDSVDynamic, size_t nCBV_SRV_UAVStatic, size_t nCBV_SRV_UAVDynamic, size_t nSampStatic, size_t nSampDynamic) {
+	if (!m_descriptorHeap_RTV.Initialize(m_d3d12, DESCRIPTOR_TYPE_RTV, nRTVStatic, nRTVDynamic)) {
 		return false;
 	}
 
-	if (!m_descriptorHeap_DSV.Initialize(m_d3d12, DESCRIPTOR_TYPE_DSV, nDSV)) {
+	if (!m_descriptorHeap_DSV.Initialize(m_d3d12, DESCRIPTOR_TYPE_DSV, nDSVStatic, nDSVDynamic)) {
 		return false;
 	}
 
-	if (!m_descriptorHeap_SRV_CBV_UAV.Initialize(m_d3d12, DESCRIPTOR_TYPE_CBV_SRV_UAV, nCBV_SRV_UAV)) {
+	if (!m_descriptorHeap_SRV_CBV_UAV.Initialize(m_d3d12, DESCRIPTOR_TYPE_CBV_SRV_UAV, nCBV_SRV_UAVStatic, nCBV_SRV_UAVDynamic)) {
 		return false;
 	}
 
-	if (!m_descriptorHeap_Samp.Initialize(m_d3d12, DESCRIPTOR_TYPE_SAMPLER, nSamp)) {
+	if (!m_descriptorHeap_Samp.Initialize(m_d3d12, DESCRIPTOR_TYPE_SAMPLER, nSampStatic, nSampDynamic)) {
 		return false;
 	}
 
 	return true;
+}
+
+void D3D12DescriptorHeapManager::BeginFrame() {
+	m_descriptorHeap_RTV.BeginFrame();
+	m_descriptorHeap_DSV.BeginFrame();
+	m_descriptorHeap_SRV_CBV_UAV.BeginFrame();
+	m_descriptorHeap_Samp.BeginFrame();
 }
 
 D3D12DescriptorHeap* D3D12DescriptorHeapManager::GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE type) {

@@ -139,16 +139,7 @@ private:
 
 	//==Descriptor Heap==
 	D3D12DescriptorHeap* m_descriptorHeap_CBV_SRV_UAV;
-	D3D12ResourceView m_descriptorRange_dynamic[NUM_GPU_BUFFERS]; //Resets each frame: TODO: Make this Global
-
-	//UINT m_descriptorSize;
-	//ID3D12DescriptorHeap* m_descriptorHeap = nullptr;
-	//D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_descriptorHeap_start;
-	//D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED m_unreserved_handle_start;
-	//D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_unused_handle_start_this_frame;
-	//D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_srv_mesh_textures_handle_start;
-	//UINT m_numReservedDescriptors = 0;
-
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE m_descriptorRange_dynamic_start; //Resets each frame:
 
 	D3D12ResourceView m_uav_output_texture_handles;
 	D3D12ResourceView m_cbv_scene_handles;

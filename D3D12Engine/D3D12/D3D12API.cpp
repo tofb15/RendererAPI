@@ -122,7 +122,7 @@ bool D3D12API::Initialize() {
 	}
 
 	m_descriptorHeapManager = MY_NEW D3D12DescriptorHeapManager(this);
-	m_descriptorHeapManager->Initialize(10, 10, 10000, 100);
+	m_descriptorHeapManager->Initialize(10, 0, 10, 0, 100, 10000, 10, 0);
 
 	return true;
 }
@@ -242,6 +242,8 @@ void D3D12API::IncGPUBufferIndex() {
 	m_FenceValues_GPU_BUFFERS[m_GPU_buffer_index] = SignalFence();
 	m_GPU_buffer_index = (++m_GPU_buffer_index) % NUM_GPU_BUFFERS;
 	WaitForGPU_BUFFERS(m_GPU_buffer_index);
+
+	m_descriptorHeapManager->BeginFrame();
 }
 
 unsigned __int64 D3D12API::SignalFence() {

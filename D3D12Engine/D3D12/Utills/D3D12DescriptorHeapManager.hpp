@@ -7,7 +7,8 @@ class D3D12DescriptorHeapManager {
 public:
 	D3D12DescriptorHeapManager(D3D12API* d3d12);
 	~D3D12DescriptorHeapManager();
-	bool Initialize(size_t nRTV, size_t nDSV, size_t nCBV_SRV_UAV, size_t nSamp);
+	bool Initialize(size_t nRTVStatic, size_t nRTVDynamic, size_t nDSVStatic, size_t nDSVDynamic, size_t nCBV_SRV_UAVStatic, size_t nCBV_SRV_UAVDynamic, size_t nSampStatic, size_t nSampDynamic);
+	void BeginFrame();
 
 	D3D12DescriptorHeap* GetDescriptorHeap(DESCRIPTOR_HEAP_TYPE type);
 

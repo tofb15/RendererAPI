@@ -46,11 +46,8 @@ DXRBase::~DXRBase() {
 bool DXRBase::Initialize() {
 	m_descriptorHeap_CBV_SRV_UAV = m_d3d12->GetDescriptorHeapManager()->GetDescriptorHeap(DESCRIPTOR_TYPE_CBV_SRV_UAV);
 
-	m_uav_output_texture_handles = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(NUM_GPU_BUFFERS);
-	m_cbv_scene_handles = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(NUM_GPU_BUFFERS);
-	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++) {
-		m_descriptorRange_dynamic[i] = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(1000);
-	}
+	m_uav_output_texture_handles = m_descriptorHeap_CBV_SRV_UAV->GetStaticRange().AllocateSlots(NUM_GPU_BUFFERS);
+	m_cbv_scene_handles = m_descriptorHeap_CBV_SRV_UAV->GetStaticRange().AllocateSlots(NUM_GPU_BUFFERS);
 
 	if (!InitializeConstanBuffers()) {
 		return false;
@@ -458,8 +455,8 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame * DXRShaderCommon::N_RAY_TYPES, sm->m_rtxPipelineState, 128);
 
 	UINT blasIndex = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_descriptorRange_dynamic[bufferIndex].GetGPUHandle();
-	size_t descriptorSize = m_descriptorRange_dynamic[bufferIndex].GetDescriptorSize();
+	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_descriptorRange_dynamic_start.gdh;
+	size_t descriptorSize = m_descriptorHeap_CBV_SRV_UAV->GetDescriptorSize();
 
 	for (auto& blas : m_BLAS_buffers[bufferIndex]) {
 		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(blas.first->mesh);
@@ -532,25 +529,25 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 
 void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList) {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
-	//Reset Descriptor Range
-	D3D12ResourceView& descriptorRangeDynamic = m_descriptorRange_dynamic[bufferIndex];
-	descriptorRangeDynamic.Reset();
-	size_t descriptorSize = m_descriptorRange_dynamic[bufferIndex].GetDescriptorSize();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu;
+	D3D12ResourceView& dynamicDescriptorRange = m_descriptorHeap_CBV_SRV_UAV->GetDynamicRange();
+	size_t descriptorSize = dynamicDescriptorRange.GetDescriptorSize();
+	m_descriptorRange_dynamic_start = dynamicDescriptorRange.GetNextHandle();
+
 	for (auto& e : m_BLAS_buffers[bufferIndex]) {
 		for (size_t i = 0; i < e.second.nGeometries; i++) {
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.color));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, dynamicDescriptorRange.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.normal));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, dynamicDescriptorRange.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.roughness));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, dynamicDescriptorRange.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.metalness));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, dynamicDescriptorRange.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 	}
 }

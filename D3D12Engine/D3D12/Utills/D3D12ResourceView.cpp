@@ -39,6 +39,10 @@ D3D12Utils::D3D12_DESCRIPTOR_HANDLE D3D12ResourceView::GetHandle(uint32_t slotIn
 	return slot;
 }
 
+D3D12Utils::D3D12_DESCRIPTOR_HANDLE D3D12ResourceView::GetNextHandle() const {
+	return m_nextSlot;
+}
+
 D3D12Utils::D3D12_DESCRIPTOR_HANDLE D3D12ResourceView::AllocateSlot() {
 	if ((m_descriptorCount + 1) > m_descriptorCountMax) {
 		//TODO: Throw Error
@@ -80,11 +84,11 @@ D3D12DescriptorHeap::~D3D12DescriptorHeap() {
 	}
 }
 
-bool D3D12DescriptorHeap::Initialize(D3D12API* d3d12, DESCRIPTOR_HEAP_TYPE type, uint32_t num) {
+bool D3D12DescriptorHeap::Initialize(D3D12API* d3d12, DESCRIPTOR_HEAP_TYPE type, uint32_t numStatic, uint32_t numDynamic) {
 	m_d3d12 = d3d12;
 
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
-	heapDesc.NumDescriptors = num;
+	heapDesc.NumDescriptors = numStatic + numDynamic * NUM_GPU_BUFFERS;
 	heapDesc.NodeMask = 0;
 	switch (type) {
 	case DESCRIPTOR_TYPE_UNKOWN:
@@ -114,15 +118,48 @@ bool D3D12DescriptorHeap::Initialize(D3D12API* d3d12, DESCRIPTOR_HEAP_TYPE type,
 	if (FAILED(hr)) {
 		return false;
 	}
-	m_startSlot = m_nextSlot = { m_heapResource->GetCPUDescriptorHandleForHeapStart(), m_heapResource->GetGPUDescriptorHandleForHeapStart() };
-	m_descriptorCount = 0;
-	m_descriptorCountMax = num;
+
+	D3D12Utils::D3D12_DESCRIPTOR_HANDLE rangeDescriptorHandle = { m_heapResource->GetCPUDescriptorHandleForHeapStart(), m_heapResource->GetGPUDescriptorHandleForHeapStart() };
 	m_descriptorSize = d3d12->GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
-	m_type = type;
+
+	m_staticRange.m_startSlot = m_staticRange.m_nextSlot = rangeDescriptorHandle;
+	m_staticRange.m_descriptorCount = 0;
+	m_staticRange.m_descriptorCountMax = numStatic;
+	m_staticRange.m_descriptorSize = m_descriptorSize;
+	m_staticRange.m_type = type;
+
+	rangeDescriptorHandle += m_descriptorSize * numStatic;
+
+	//Create one dynamic ranges per GPU BUFFER
+	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++) {
+		m_dynamicRange[i].m_startSlot = m_dynamicRange[i].m_nextSlot = rangeDescriptorHandle;
+		m_dynamicRange[i].m_descriptorCount = 0;
+		m_dynamicRange[i].m_descriptorCountMax = numDynamic;
+		m_dynamicRange[i].m_descriptorSize = m_descriptorSize;
+		m_dynamicRange[i].m_type = type;
+
+		rangeDescriptorHandle += m_descriptorSize * numDynamic;
+	}
 
 	return true;
 }
 
+void D3D12DescriptorHeap::BeginFrame() {
+	m_dynamicRange[m_d3d12->GetGPUBufferIndex()].Reset();
+}
+
 ID3D12DescriptorHeap* D3D12DescriptorHeap::GetDescriptorHeap() {
 	return m_heapResource;
+}
+
+size_t D3D12DescriptorHeap::GetDescriptorSize() const {
+	return m_descriptorSize;
+}
+
+D3D12ResourceView& D3D12DescriptorHeap::GetStaticRange() {
+	return m_staticRange;
+}
+
+D3D12ResourceView& D3D12DescriptorHeap::GetDynamicRange() {
+	return m_dynamicRange[m_d3d12->GetGPUBufferIndex()];
 }
