@@ -183,7 +183,7 @@ void Game::ProcessLocalInput(double dt) {
 	if (rightMouse) {
 		for (size_t i = 0; i < m_windows.size(); i++) {
 			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
-			float ms = m_ms * (shift ? 1 : 0.02);
+			float ms = (float)(m_ms * (shift ? 1.0 : 0.02));
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W)) {
 				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
 			}
@@ -292,7 +292,7 @@ void Game::RenderSettingWindow() {
 			if (ImGui::BeginTabItem("Scene Options")) {
 				if (ImGui::Checkbox("Animated Light", &m_animateLight)) {}
 				ImGui::SameLine();
-				ImGui::DragFloat("Light Anim time", &m_time_lightAnim, 0.001, 0, 1);
+				ImGui::DragFloat("Light Anim time", &m_time_lightAnim, 0.001f, 0.0f, 1.0f);
 
 				if (ImGui::Checkbox("Allow Anyhit Shaders", &m_allowAnyhitShaders)) {
 					m_renderer->SetSetting("anyhit", m_allowAnyhitShaders);

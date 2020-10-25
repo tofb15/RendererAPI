@@ -64,7 +64,7 @@ namespace DXRUtils {
 		~ShaderTableBuilder();
 
 		void AddShader(const LPCWSTR& shaderName);
-		void AddDescriptor(UINT64& descriptor, UINT instance = 0);
+		void AddDescriptor(const UINT64& descriptor, UINT instance = 0);
 		void AddConstants(UINT numConstants, const float* constants, UINT instance = 0);
 
 		ShaderTableData Build(ID3D12Device5* device);

@@ -31,7 +31,8 @@ public:
 	enum class RendererType {
 		Forward = 0,
 		Deferred,
-		Raytracing
+		Raytracing,
+		Raytracing_HYBRID
 	};
 
 	virtual ~RenderAPI();

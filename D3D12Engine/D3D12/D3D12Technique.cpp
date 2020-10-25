@@ -24,7 +24,7 @@ bool D3D12Technique::Initialize(D3D12RenderState* rs, /*ShaderProgramHandle& sp,
 	//D3D12_INPUT_ELEMENT_DESC* ied;
 	//
 	//D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
-	//D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsd = {};
+	//D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsd;
 	//bool hasPos = false, hasNorm = false, hasUV = false, hasNMap = false;
 	//int n_inputs = 0;
 	//

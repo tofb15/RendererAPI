@@ -10,6 +10,7 @@
 #include "..\..\Material.hpp"
 #include "..\D3D12ShaderManager.hpp"
 #include "..\D3D12Material.hpp"
+#include "..\Utills\D3D12DescriptorHeapManager.hpp"
 
 DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12) {
 
@@ -37,15 +38,18 @@ DXRBase::~DXRBase() {
 	if (m_cb_scene) {
 		m_cb_scene->Release();
 	}
-	if (m_descriptorHeap) {
-		m_descriptorHeap->Release();
-	}
-
+	//if (m_descriptorHeap) {
+	//	m_descriptorHeap->Release();
+	//}
 }
 
 bool DXRBase::Initialize() {
-	if (!CreateDescriptorHeap()) {
-		return false;
+	m_descriptorHeap_CBV_SRV_UAV = m_d3d12->GetDescriptorHeapManager()->GetDescriptorHeap(DESCRIPTOR_TYPE_CBV_SRV_UAV);
+
+	m_uav_output_texture_handles = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(NUM_GPU_BUFFERS);
+	m_cbv_scene_handles = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(NUM_GPU_BUFFERS);
+	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++) {
+		m_descriptorRange_dynamic[i] = m_descriptorHeap_CBV_SRV_UAV->AllocateSlots(1000);
 	}
 
 	if (!InitializeConstanBuffers()) {
@@ -66,7 +70,7 @@ void DXRBase::SetOutputResources(ID3D12Resource** output, Int2 dim) {
 	m_outputDim = dim;
 
 	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
-		m_d3d12->GetDevice()->CreateUnorderedAccessView(output[i], nullptr, &uavDesc, m_uav_output_texture_handle[i].cdh);
+		m_d3d12->GetDevice()->CreateUnorderedAccessView(output[i], nullptr, &uavDesc, m_uav_output_texture_handles.GetCPUHandle(i));
 	}
 }
 
@@ -202,7 +206,8 @@ void DXRBase::Dispatch(ID3D12GraphicsCommandList4* cmdList, D3D12ShaderManager* 
 	cmdList->SetComputeRootShaderResourceView(0, m_TLAS_buffers[bufferIndex].result->GetGPUVirtualAddress());
 	cmdList->SetComputeRootConstantBufferView(1, m_cb_scene->GetGPUVirtualAddress());
 
-	cmdList->SetDescriptorHeaps(1, &m_descriptorHeap);
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_descriptorHeap_CBV_SRV_UAV->GetDescriptorHeap() };
+	cmdList->SetDescriptorHeaps(1, descriptorHeaps);
 	cmdList->SetPipelineState1(sm->m_rtxPipelineState);
 
 #ifdef PERFORMANCE_TESTING
@@ -235,13 +240,13 @@ bool DXRBase::InitializeConstanBuffers() {
 	m_cb_scene_buffer_size = sizeof(DXRShaderCommon::SceneCBuffer);
 	UINT padding = (alignTo - (m_cb_scene_buffer_size % alignTo)) % alignTo;
 	m_cb_scene_buffer_size += padding;
-	m_cb_scene = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), (UINT64)(m_cb_scene_buffer_size * NUM_GPU_BUFFERS), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12Utils::sUploadHeapProperties);
+	m_cb_scene = D3D12Utils::CreateBuffer(m_d3d12->GetDevice(), ((UINT64)m_cb_scene_buffer_size * NUM_GPU_BUFFERS), D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12Utils::sUploadHeapProperties);
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.SizeInBytes = m_cb_scene_buffer_size;
 	for (unsigned int i = 0; i < NUM_GPU_BUFFERS; i++) {
-		cbvDesc.BufferLocation = m_cb_scene->GetGPUVirtualAddress() + i * cbvDesc.SizeInBytes;
-		m_d3d12->GetDevice()->CreateConstantBufferView(&cbvDesc, m_cbv_scene_handle[i].cdh);
+		cbvDesc.BufferLocation = m_cb_scene->GetGPUVirtualAddress() + (size_t)i * cbvDesc.SizeInBytes;
+		m_d3d12->GetDevice()->CreateConstantBufferView(&cbvDesc, m_cbv_scene_handles.GetCPUHandle(i));
 	}
 	return true;
 }
@@ -428,6 +433,7 @@ void DXRBase::CreateBLAS(const SubmissionItem& item, _D3D12_RAYTRACING_ACCELERAT
 
 void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
+
 	//TODO: dont rebuild tables if not needed.
 	if (sm->NeedsPSORebuild()) {
 		sm->CreateRaytracingPSO({});
@@ -435,7 +441,8 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 	//===Update Generation Table===
 	DXRUtils::ShaderTableBuilder generationTable(1, sm->m_rtxPipelineState, 64);
 	generationTable.AddShader(sm->GetRaygenShaderIdentifier());
-	generationTable.AddDescriptor(m_uav_output_texture_handle[bufferIndex].gdh.ptr);
+
+	generationTable.AddDescriptor(m_uav_output_texture_handles.GetGPUHandle(bufferIndex).ptr);
 	m_shaderTable_gen[bufferIndex].Release();
 	m_shaderTable_gen[bufferIndex] = generationTable.Build(m_d3d12->GetDevice());
 
@@ -451,7 +458,9 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 	DXRUtils::ShaderTableBuilder hitGroupTable(m_hitGroupShaderRecordsNeededThisFrame * DXRShaderCommon::N_RAY_TYPES, sm->m_rtxPipelineState, 128);
 
 	UINT blasIndex = 0;
-	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_srv_mesh_textures_handle_start.gdh;
+	D3D12_GPU_DESCRIPTOR_HANDLE texture_gdh = m_descriptorRange_dynamic[bufferIndex].GetGPUHandle();
+	size_t descriptorSize = m_descriptorRange_dynamic[bufferIndex].GetDescriptorSize();
+
 	for (auto& blas : m_BLAS_buffers[bufferIndex]) {
 		D3D12Mesh* mesh = static_cast<D3D12Mesh*>(blas.first->mesh);
 		std::unordered_map<std::string, std::unordered_map<Mesh::VertexBufferFlag, D3D12VertexBuffer*>>& objects = mesh->GetSubObjects();
@@ -474,13 +483,13 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 
 			//===Add texture descriptors===
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-			texture_gdh.ptr += m_descriptorSize;
+			texture_gdh.ptr += descriptorSize;
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-			texture_gdh.ptr += m_descriptorSize;
+			texture_gdh.ptr += descriptorSize;
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-			texture_gdh.ptr += m_descriptorSize;
+			texture_gdh.ptr += descriptorSize;
 			hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex);
-			texture_gdh.ptr += m_descriptorSize;
+			texture_gdh.ptr += descriptorSize;
 
 			//===ShadowRayHit Shader===
 			//TODO:: Fix shadow for alpha tested geometry
@@ -495,15 +504,15 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 				hitGroupTable.AddDescriptor(vb_tan_Bi, blasIndex + 1);
 
 				//===Add texture descriptors===
-				texture_gdh.ptr -= (UINT64)(m_descriptorSize * 4U);
+				texture_gdh.ptr -= (UINT64)(descriptorSize * 4U);
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
-				texture_gdh.ptr += m_descriptorSize;
+				texture_gdh.ptr += descriptorSize;
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
-				texture_gdh.ptr += m_descriptorSize;
+				texture_gdh.ptr += descriptorSize;
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
-				texture_gdh.ptr += m_descriptorSize;
+				texture_gdh.ptr += descriptorSize;
 				hitGroupTable.AddDescriptor(texture_gdh.ptr, blasIndex + 1);
-				texture_gdh.ptr += m_descriptorSize;
+				texture_gdh.ptr += descriptorSize;
 			} else {
 				//Opaque geometry dont need a shadow hit shader
 				hitGroupTable.AddShader(L"NULL");
@@ -523,79 +532,30 @@ void DXRBase::UpdateShaderTable(D3D12ShaderManager* sm) {
 
 void DXRBase::UpdateDescriptorHeap(ID3D12GraphicsCommandList4* cmdList) {
 	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
-	m_unused_handle_start_this_frame = m_unreserved_handle_start[bufferIndex];
-	m_srv_mesh_textures_handle_start = m_unused_handle_start_this_frame;
+	//Reset Descriptor Range
+	D3D12ResourceView& descriptorRangeDynamic = m_descriptorRange_dynamic[bufferIndex];
+	descriptorRangeDynamic.Reset();
+	size_t descriptorSize = m_descriptorRange_dynamic[bufferIndex].GetDescriptorSize();
+
 	D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu;
 	for (auto& e : m_BLAS_buffers[bufferIndex]) {
 		for (size_t i = 0; i < e.second.nGeometries; i++) {
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.color));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			m_unused_handle_start_this_frame += m_descriptorSize;
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.normal));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			m_unused_handle_start_this_frame += m_descriptorSize;
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.roughness));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			m_unused_handle_start_this_frame += m_descriptorSize;
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			texture_cpu = m_d3d12->GetTextureLoader()->GetSpecificTextureCPUAdress(static_cast<D3D12Texture*>(e.first->materials[i]->m_materialData.pbrData.metalness));
-			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, m_unused_handle_start_this_frame.cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			m_unused_handle_start_this_frame += m_descriptorSize;
-
+			m_d3d12->GetDevice()->CopyDescriptorsSimple(1, descriptorRangeDynamic.AllocateSlot().cdh, texture_cpu, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 	}
 }
 
 void DXRBase::createInitialShaderResources(bool remake) {
-}
-
-bool DXRBase::CreateDescriptorHeap() {
-	if (m_descriptorHeap) {
-		m_descriptorHeap->Release();
-	}
-
-	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
-	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	descHeapDesc.NumDescriptors = NUM_DESCRIPTORS_TOTAL;
-	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-	m_descriptorSize = m_d3d12->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	HRESULT hr;
-	hr = m_d3d12->GetDevice()->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&m_descriptorHeap));
-	if (FAILED(hr)) {
-		return false;
-	}
-
-	for (size_t i = 0; i < NUM_GPU_BUFFERS; i++) {
-		m_descriptorHeap_start[i].cdh = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-		m_descriptorHeap_start[i].gdh = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-		m_descriptorHeap_start[i] += m_descriptorSize * NUM_DESCRIPTORS_PER_GPU_BUFFER * i;
-	}
-
-	m_unreserved_handle_start = m_descriptorHeap_start;
-
-	auto reserveDescriptor = [&](D3D12Utils::D3D12_DESCRIPTOR_HANDLE_BUFFERED& handle) {
-		handle = m_unreserved_handle_start;
-		m_unreserved_handle_start += m_descriptorSize;
-		m_numReservedDescriptors++;
-	};
-
-	//Reserved Descriptors
-	reserveDescriptor(m_uav_output_texture_handle);
-	reserveDescriptor(m_cbv_scene_handle);
-
-	return true;
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE DXRBase::GetCurrentDescriptorHandle() {
-	UINT bufferIndex = m_d3d12->GetGPUBufferIndex();
-	D3D12_GPU_DESCRIPTOR_HANDLE handle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	handle.ptr += (UINT64)(m_descriptorSize * bufferIndex);
-
-	return handle;
 }
 
 #ifdef PERFORMANCE_TESTING

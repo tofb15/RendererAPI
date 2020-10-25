@@ -1,7 +1,7 @@
 #pragma once
 #include "D3D12Renderer.h"
 
-constexpr UINT NUM_ACCELERATION_STRUCTURES = 2;
+//constexpr UINT NUM_ACCELERATION_STRUCTURES = 2;
 
 class DXRBase;
 class D3D12Window;

@@ -226,7 +226,7 @@ void DXRUtils::ShaderTableBuilder::AddShader(const LPCWSTR& shaderName) {
 	m_shaderNames.push_back(shaderName);
 }
 
-void DXRUtils::ShaderTableBuilder::AddDescriptor(UINT64& descriptor, UINT instance) {
+void DXRUtils::ShaderTableBuilder::AddDescriptor(const UINT64& descriptor, UINT instance) {
 	assert(instance < m_nInstances && "DXRUtils::ShaderTableBuilder::AddDescriptor");
 	assert(m_dataOffset[instance] + sizeof(descriptor) <= m_maxInstanceSize && "DXRUtils::ShaderTableBuilder::AddDescriptor bytesPerInstance is too small!");
 

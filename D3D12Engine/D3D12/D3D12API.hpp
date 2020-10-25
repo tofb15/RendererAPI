@@ -9,9 +9,10 @@ constexpr unsigned int NUM_SWAP_BUFFERS = 3;
 constexpr int NUM_GPU_BUFFERS = 2;
 
 class D3D12VertexBuffer;
+class D3D12ShaderManager;
 class D3D12TextureLoader;
 class D3D12VertexBufferLoader;
-class D3D12ShaderManager;
+class D3D12DescriptorHeapManager;
 
 /*
 	Documentation goes here ^^
@@ -39,6 +40,7 @@ public:
 
 	virtual ShaderManager* GetShaderManager() override;
 	virtual D3D12ShaderManager* GetShaderManager_D3D12();
+	virtual D3D12DescriptorHeapManager* GetDescriptorHeapManager();
 
 	/*
 		@Return a pointer to the ID3D12Device5 Interface
@@ -86,6 +88,7 @@ private:
 
 	D3D12TextureLoader* m_textureLoader = nullptr;
 	D3D12ShaderManager* m_shadermanager = nullptr;
+	D3D12DescriptorHeapManager* m_descriptorHeapManager = nullptr;
 
 	// Default resources
 	ID3D12Device5* m_device = nullptr;
@@ -100,4 +103,6 @@ private:
 
 	bool m_gpuSupportRaytracing = false;
 	UINT m_GPU_buffer_index = 0;
+
+
 };

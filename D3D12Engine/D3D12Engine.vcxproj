@@ -374,6 +374,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3D12\Utills\D3D12DescriptorHeapManager.cpp" />
     <ClCompile Include="D3D12\DXR\D3D12Utils.cpp" />
     <ClCompile Include="D3D12\D3D12Terrain.cpp" />
     <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
@@ -439,6 +440,7 @@
     <ClCompile Include="D3D12\Renderers\D3D12GBufferRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
     <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
+    <ClCompile Include="D3D12\Utills\D3D12ResourceView.cpp" />
     <ClCompile Include="D3D12\Utills\D3D12Timer.cpp" />
     <ClCompile Include="External\IMGUI\imgui.cpp" />
     <ClCompile Include="External\IMGUI\imgui_demo.cpp" />
@@ -486,6 +488,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="D3D12\Utills\D3D12DescriptorHeapManager.hpp" />
     <ClInclude Include="D3D12\DXR\D3D12Utils.h" />
     <ClInclude Include="D3D12\D3D12Terrain.hpp" />
     <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
@@ -555,6 +558,7 @@
     <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
     <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
     <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
+    <ClInclude Include="D3D12\Utills\D3D12ResourceView.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Loaders\BinaryFile.h" />
     <ClInclude Include="Loaders\ConfigFileLoader.hpp" />

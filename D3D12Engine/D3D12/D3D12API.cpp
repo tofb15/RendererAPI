@@ -19,6 +19,8 @@
 
 #include "Renderers/D3D12ForwardRenderer.h"
 #include "Renderers/D3D12RaytracerRenderer.h"
+#include "Renderers/D3D12GBufferRenderer.h"
+#include "Utills/D3D12DescriptorHeapManager.hpp"
 
 #include <comdef.h>
 #include <iostream>
@@ -77,6 +79,10 @@ D3D12API::~D3D12API() {
 		}
 		m_device->Release();
 	}
+
+	if (m_descriptorHeapManager) {
+		delete m_descriptorHeapManager;
+	}
 }
 
 bool D3D12API::Initialize() {
@@ -114,6 +120,9 @@ bool D3D12API::Initialize() {
 	if (!m_shadermanager->Initialize()) {
 		return false;
 	}
+
+	m_descriptorHeapManager = MY_NEW D3D12DescriptorHeapManager(this);
+	m_descriptorHeapManager->Initialize(10, 10, 10000, 100);
 
 	return true;
 }
@@ -181,6 +190,9 @@ ShaderManager* D3D12API::GetShaderManager() {
 }
 D3D12ShaderManager* D3D12API::GetShaderManager_D3D12() {
 	return m_shadermanager;
+}
+D3D12DescriptorHeapManager* D3D12API::GetDescriptorHeapManager() {
+	return m_descriptorHeapManager;
 }
 D3D12VertexBuffer* D3D12API::MakeVertexBuffer() {
 	return MY_NEW D3D12VertexBuffer(this);
@@ -361,6 +373,11 @@ Renderer* D3D12API::MakeRenderer(const RendererType rendererType) {
 	case RendererType::Raytracing:
 		if (m_gpuSupportRaytracing) {
 			renderer = MY_NEW D3D12RaytracerRenderer(this);
+		}
+		break;
+	case RendererType::Raytracing_HYBRID:
+		if (m_gpuSupportRaytracing) {
+			renderer = MY_NEW D3D12GBufferRenderer(this);
 		}
 		break;
 	default:
