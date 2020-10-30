@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Math.hpp"
+#include "Utills/Math.hpp"
 #include "Renderer.hpp"
 #include <vector>
 
@@ -35,16 +35,7 @@ public:
 		Raytracing_HYBRID
 	};
 
-	virtual ~RenderAPI();
-
-	/*
-		Call to create a instance of a specific renderer class used through out the game.
-
-		@param backend directly specifies which type of renderer to return.
-
-		@return a Renderer* to selected by the RendererBackend param
-	*/
-	static	RenderAPI* MakeAPI(RenderBackendAPI backend);
+	virtual ~RenderAPI() {};
 
 	/*
 		Initialize the specific renderer instance.
@@ -119,5 +110,5 @@ public:
 	//virtual void Refresh() {};
 
 protected:
-	RenderAPI();
+	RenderAPI() {};
 };

@@ -4,8 +4,8 @@
 #include "D3D12API.hpp"
 #include "D3D12VertexBuffer.hpp"
 #include "D3D12Texture.hpp"
-#include "Loaders/OBJ_Loader.h"
-#include "Loaders/MyMeshLoader.h"
+#include "D3D12Engine/Loaders/OBJ_Loader.h"
+#include "D3D12Engine/Loaders/MyMeshLoader.h"
 
 #include <sstream>
 #include <fstream>

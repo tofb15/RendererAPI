@@ -1,14 +1,14 @@
 #pragma once
 
 #include "DXRUtils.h"
-#include "..\..\Math.hpp"
+#include "D3D12Engine/Utills/Math.hpp"
+#include "D3D12Engine/Light\LightSource.h"
 #include "..\D3D12API.hpp"
 #include "..\D3D12Camera.hpp"
 #include "..\D3D12Window.hpp"
 #include "..\Renderers\D3D12Renderer.h"
+#include "../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
 #include <DirectXMath.h>
-#include "../../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
-#include "..\..\Light\LightSource.h"
 
 #include "..\Utills\D3D12Timer.h"
 #include "..\Utills\D3D12ResourceView.h"

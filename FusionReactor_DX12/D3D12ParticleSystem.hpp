@@ -1,14 +1,13 @@
 #pragma once
 #include <d3d12.h>
 #include "GlobalSettings.hpp"
-#include "../ParticleSystem.hpp"
+#include "D3D12Engine/ParticleSystem.hpp"
 
 class D3D12API;
 class D3D12Camera;
 class D3D12ForwardRenderer;
 
-class D3D12ParticleSystem : public ParticleSystem
-{
+class D3D12ParticleSystem : public ParticleSystem {
 public:
 	D3D12ParticleSystem(D3D12API* renderer, short id);
 	virtual ~D3D12ParticleSystem();
@@ -61,12 +60,12 @@ private:
 	UINT m_srv_cbv_uav_size;
 
 #ifdef Particle_Single_Fence
-	ID3D12Fence1*				m_Fence = nullptr;
+	ID3D12Fence1* m_Fence = nullptr;
 	HANDLE						m_EventHandle = nullptr;
 	UINT64						m_FenceValue = 0;
 #else
 	//Fences for the UAVs
-	ID3D12Fence1*				m_Fence[NUM_SWAP_BUFFERS] = { nullptr };
+	ID3D12Fence1* m_Fence[NUM_SWAP_BUFFERS] = { nullptr };
 	HANDLE						m_EventHandle[NUM_SWAP_BUFFERS] = { nullptr };
 	UINT64						m_FenceValue[NUM_SWAP_BUFFERS] = { 0 };
 #endif

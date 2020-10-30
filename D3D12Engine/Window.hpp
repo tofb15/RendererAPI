@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Math.hpp"
+#include "Utills/Math.hpp"
 #include "WindowInput.hpp"
 
 class Texture;

@@ -359,6 +359,9 @@
     <ProjectReference Include="..\D3D12Engine\D3D12Engine.vcxproj">
       <Project>{d6a4e757-0104-4fde-8551-828a230e8a15}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\FusionReactor_DX12\FusionReactor_DX12.vcxproj">
+      <Project>{3b8b9f3a-161f-4270-9036-67755173499d}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Editor.h" />

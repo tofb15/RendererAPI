@@ -3,7 +3,7 @@
 	Contain a texture that could be applied to a mesh.
 */
 
-#include "Math.hpp"
+#include "Utills/Math.hpp"
 
 class Texture {
 public:

@@ -5,8 +5,8 @@
 #include "External/LodePNG/lodepng.h"
 #include "External/D3DX12/d3dx12.h"
 #include "External/DDS/DDSTextureLoader12.h"
-#include "Loaders/SimpleTexture.h"
-#include "D3D12/DXR/D3D12Utils.h"
+#include "D3D12Engine/Loaders/SimpleTexture.h"
+#include "DXR/D3D12Utils.h"
 
 #include <iostream>
 #include <d3d12.h>

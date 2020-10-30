@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../RenderState.hpp"
+#include "D3D12Engine/RenderState.hpp"
 
 /*
 	Specific rendering states goes here like Wireframe, conservative rasterization etc.

@@ -7,11 +7,10 @@
 #include "..\DXR\DXRBase.h"
 #include "..\D3D12ShaderManager.hpp"
 
-#include "../../External/IMGUI/imgui.h"
-#include "../../External/IMGUI/imgui_impl_win32.h"
-#include "../../External/IMGUI/imgui_impl_dx12.h"
+#include "D3D12Engine/External/IMGUI/imgui.h"
+#include "D3D12Engine/External/IMGUI/imgui_impl_win32.h"
+#include "D3D12Engine/External/IMGUI/imgui_impl_dx12.h"
 #include "../External/LodePNG/lodepng.h"
-
 #include "../External/D3DX12/d3dx12.h"
 
 #include <d3d12.h>

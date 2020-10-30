@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Texture.hpp"
+#include "D3D12Engine/Texture.hpp"
 #include "D3D12TextureLoader.hpp"
 
 #include <vector>

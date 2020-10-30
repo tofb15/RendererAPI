@@ -1,5 +1,5 @@
 #pragma once
-#include "../Mesh.hpp"
+#include "D3D12Engine/Mesh.hpp"
 #include <unordered_map>
 
 class D3D12VertexBuffer;

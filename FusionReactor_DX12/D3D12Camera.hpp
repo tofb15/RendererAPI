@@ -1,7 +1,6 @@
 #pragma once
-#include "../Camera.hpp"
+#include "D3D12Engine/Camera.hpp"
 #include <DirectXMath.h>
-#include "../Math.hpp"
 
 struct Sphere {
 	float radius;

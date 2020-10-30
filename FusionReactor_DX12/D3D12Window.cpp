@@ -8,9 +8,9 @@
 
 #include "D3D12API.hpp"
 
-#include "../External/IMGUI/imgui.h"
-#include "../External/IMGUI/imgui_impl_win32.h"
-#include "../External/IMGUI/imgui_impl_dx12.h"
+#include "D3D12Engine/External/IMGUI/imgui.h"
+#include "D3D12Engine/External/IMGUI/imgui_impl_win32.h"
+#include "D3D12Engine/External/IMGUI/imgui_impl_dx12.h"
 #include "D3D12TextureLoader.hpp"
 #include "D3D12Texture.hpp"
 

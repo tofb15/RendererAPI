@@ -1,5 +1,5 @@
 #pragma once
-#include "Math.hpp"
+#include "Utills/Math.hpp"
 
 class Camera {
 public:

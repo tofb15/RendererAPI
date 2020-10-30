@@ -374,74 +374,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="D3D12\Utills\D3D12DescriptorHeapManager.cpp" />
-    <ClCompile Include="D3D12\DXR\D3D12Utils.cpp" />
-    <ClCompile Include="D3D12\D3D12Terrain.cpp" />
-    <ClCompile Include="D3D12\D3D12TextureLoader.cpp" />
-    <ClCompile Include="D3D12\D3D12VertexBuffer.cpp" />
-    <ClCompile Include="D3D12\D3D12Camera.cpp" />
-    <ClCompile Include="D3D12\D3D12Material.cpp" />
-    <ClCompile Include="D3D12\D3D12Mesh.cpp" />
-    <ClCompile Include="D3D12\D3D12API.cpp" />
-    <ClCompile Include="D3D12\D3D12RenderState.cpp" />
-    <ClCompile Include="D3D12\D3D12Technique.cpp" />
-    <ClCompile Include="D3D12\D3D12Texture.cpp" />
-    <ClCompile Include="D3D12\D3D12VertexBufferLoader.cpp" />
-    <ClCompile Include="D3D12\D3D12Window.cpp" />
-    <ClCompile Include="D3D12\D3D12ShaderManager.cpp" />
-    <ClCompile Include="D3D12\DXR\DXILShaderCompiler.cpp" />
-    <ClCompile Include="D3D12\DXR\DXRBase.cpp" />
-    <ClCompile Include="D3D12\DXR\DXRUtils.cpp" />
-    <ClCompile Include="D3D12\External\DDS\DDSTextureLoader12.cpp" />
-    <ClCompile Include="D3D12\External\LodePNG\lodepng.cpp" />
-    <ClCompile Include="D3D12\FullScreenPass.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="D3D12\FXAAPass.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="D3D12\D3D12ParticleSystem.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="D3D12\Renderers\D3D12ForwardRenderer.cpp" />
-    <ClCompile Include="D3D12\Renderers\D3D12GBufferRenderer.cpp" />
-    <ClCompile Include="D3D12\Renderers\D3D12RaytracerRenderer.cpp" />
-    <ClCompile Include="D3D12\Renderers\D3D12Renderer.cpp" />
-    <ClCompile Include="D3D12\Utills\D3D12ResourceView.cpp" />
-    <ClCompile Include="D3D12\Utills\D3D12Timer.cpp" />
     <ClCompile Include="External\IMGUI\imgui.cpp" />
     <ClCompile Include="External\IMGUI\imgui_demo.cpp" />
     <ClCompile Include="External\IMGUI\imgui_draw.cpp" />
@@ -454,7 +386,6 @@
     <ClCompile Include="Loaders\MyMeshLoader.cpp" />
     <ClCompile Include="Loaders\OBJ_Loader.cpp" />
     <ClCompile Include="Loaders\SimpleTexture.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -488,83 +419,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="D3D12\Utills\D3D12DescriptorHeapManager.hpp" />
-    <ClInclude Include="D3D12\DXR\D3D12Utils.h" />
-    <ClInclude Include="D3D12\D3D12Terrain.hpp" />
-    <ClInclude Include="D3D12\D3D12TextureLoader.hpp" />
-    <ClInclude Include="D3D12\D3D12VertexBuffer.hpp" />
-    <ClInclude Include="D3D12\D3D12Camera.hpp" />
-    <ClInclude Include="D3D12\D3D12Material.hpp" />
-    <ClInclude Include="D3D12\D3D12Mesh.hpp" />
-    <ClInclude Include="D3D12\D3D12API.hpp" />
-    <ClInclude Include="D3D12\D3D12RenderState.hpp" />
-    <ClInclude Include="D3D12\D3D12Technique.hpp" />
-    <ClInclude Include="D3D12\D3D12Texture.hpp" />
-    <ClInclude Include="D3D12\D3D12Window.hpp" />
-    <ClInclude Include="D3D12\D3D12_FDecl.h" />
-    <ClInclude Include="D3D12\DXR\DXILShaderCompiler.h" />
-    <ClInclude Include="D3D12\DXR\DXRBase.h" />
-    <ClInclude Include="D3D12\DXR\DXRUtils.h" />
-    <ClInclude Include="D3D12\External\D3DX12\d3dx12.h" />
-    <ClInclude Include="D3D12\External\DDS\DDSTextureLoader12.h" />
-    <ClInclude Include="D3D12\External\LodePNG\lodepng.h" />
-    <ClInclude Include="D3D12\GlobalSettings.hpp" />
-    <ClInclude Include="D3D12\D3D12ShaderManager.hpp" />
-    <ClInclude Include="D3D12\D3D12VertexBufferLoader.hpp" />
-    <ClInclude Include="D3D12\FullScreenPass.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="D3D12\FXAAPass.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="D3D12\D3D12ParticleSystem.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Performance_NoGUI|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DO_TESTING_R|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="D3D12\Renderers\D3D12ForwardRenderer.h" />
-    <ClInclude Include="D3D12\Renderers\D3D12GBufferRenderer.h" />
-    <ClInclude Include="D3D12\Renderers\D3D12RaytracerRenderer.h" />
-    <ClInclude Include="D3D12\Renderers\D3D12Renderer.h" />
-    <ClInclude Include="D3D12\Utills\D3D12Timer.h" />
-    <ClInclude Include="D3D12\Utills\D3D12ResourceView.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Loaders\BinaryFile.h" />
     <ClInclude Include="Loaders\ConfigFileLoader.hpp" />
     <ClInclude Include="Loaders\MyMeshLoader.h" />
     <ClInclude Include="Loaders\SimpleTexture.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="Terrain.hpp" />
     <ClInclude Include="Utills\CodeParser.h" />
     <ClInclude Include="Utills\RegularExpressions.h" />
     <ClInclude Include="Utills\Utills.h" />
@@ -576,14 +437,12 @@
     <ClInclude Include="Light\LightSource.h" />
     <ClInclude Include="Loaders\OBJ_Loader.h" />
     <ClInclude Include="Renderer.hpp" />
-    <ClInclude Include="ParticleSystem.hpp" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Terrain.hpp" />
     <ClInclude Include="Utills\FileSystem.h" />
     <ClInclude Include="WindowInput.hpp" />
     <ClInclude Include="Material.hpp" />
-    <ClInclude Include="Math.hpp" />
+    <ClInclude Include="Utills\Math.hpp" />
     <ClInclude Include="Mesh.hpp" />
     <ClInclude Include="RenderAPI.hpp" />
     <ClInclude Include="RenderState.hpp" />

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Technique.hpp"
+#include "D3D12Engine/Technique.hpp"
 
 class D3D12RenderState;
 class D3D12API;

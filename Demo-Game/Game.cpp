@@ -47,7 +47,7 @@ int Game::Initialize() {
 	return 0;
 }
 bool Game::InitializeRendererAndWindow() {
-	m_renderAPI = RenderAPI::MakeAPI(RenderAPI::RenderBackendAPI::D3D12);	//Specify Forward or Deferred Rendering?
+	m_renderAPI = new D3D12API();
 
 	if (m_renderAPI == nullptr) {
 		std::cout << "Selected renderAPI was not implemented and could therefor not be created." << std::endl;
