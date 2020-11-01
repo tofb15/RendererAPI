@@ -1,17 +1,19 @@
 #pragma once
+namespace FusionReactor {
 
-/*
-	Describes how a mesh should be rendered.
-	Contains a collection of shader data(Material) and specific render states(RenderState)
+	/*
+		Describes how a mesh should be rendered.
+		Contains a collection of shader data(Material) and specific render states(RenderState)
 
-	TODO: integrate it with RTX
-*/
-class Technique {
-public:
-	virtual ~Technique();
-	virtual bool Enable() = 0;
+		TODO: integrate it with RTX
+	*/
+	class Technique {
+	public:
+		virtual ~Technique();
+		virtual bool Enable() = 0;
 
-protected:
-	Technique();
-private:
-};
+	protected:
+		Technique();
+	private:
+	};
+}

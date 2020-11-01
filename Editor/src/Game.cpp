@@ -1,6 +1,8 @@
 #include "Game.h"
 #include "FusionReactor/src/Utills/Utills.h"
 
+using namespace FusionReactor;
+
 Game::Game() {}
 
 Game::~Game() {
@@ -47,7 +49,7 @@ int Game::Initialize() {
 	return 0;
 }
 bool Game::InitializeRendererAndWindow() {
-	m_renderAPI = new D3D12API();
+	m_renderAPI = FusionReactor_DX12::D3D12API::CreateRenderAPI();
 
 	if (m_renderAPI == nullptr) {
 		std::cout << "Selected renderAPI was not implemented and could therefor not be created." << std::endl;
@@ -183,25 +185,25 @@ void Game::ProcessLocalInput(double dt) {
 	if (rightMouse) {
 		for (size_t i = 0; i < m_windows.size(); i++) {
 			bool shift = inputs[i]->IsKeyDown(WindowInput::KEY_CODE_SHIFT);
-			float ms = (float)(m_ms * (shift ? 1.0 : 0.02));
+			float ms = (float)(m_ms * (shift ? 1.0 : 0.02)) * (float)dt;
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_W)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * (ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * ms);
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_S)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * -(ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetTargetDirection().normalized() * -ms);
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_A)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * -(ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * -ms);
 			}
 			if (inputs[i]->IsKeyDown(WindowInput::KEY_CODE_D)) {
-				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * (ms * dt));
+				m_scene.m_cameras[i]->Move(m_scene.m_cameras[0]->GetRight().normalized() * ms);
 			}
 		}
 
 		// Rotation is based on delta time
 		Int2 mouseMovement = inputs[0]->GetMouseMovement();
-		m_scene.m_cameras[0]->Rotate({ 0, 1, 0 }, (double)(mouseMovement.x) * dt * 2);
-		m_scene.m_cameras[0]->Rotate(m_scene.m_cameras[0]->GetRight(), (double)(mouseMovement.y) * dt * 2);
+		m_scene.m_cameras[0]->Rotate({ 0, 1, 0 }, (float)(mouseMovement.x) * dt * 2);
+		m_scene.m_cameras[0]->Rotate(m_scene.m_cameras[0]->GetRight(), (float)(mouseMovement.y) * dt * 2);
 	}
 }
 

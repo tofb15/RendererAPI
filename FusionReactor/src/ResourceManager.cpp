@@ -10,507 +10,510 @@
 #include <chrono>
 #include "Loaders/ConfigFileLoader.hpp"
 
-ResourceManager* s_instance = nullptr;
+namespace FusionReactor {
 
-ResourceManager* ResourceManager::GetInstance(RenderAPI* api) {
-	if (!s_instance) {
-		s_instance = MY_NEW ResourceManager(api);
-	}
+	ResourceManager* s_instance = nullptr;
 
-	return s_instance;
-}
-
-bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions) {
-	return false;
-}
-
-bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, const std::string& bpName) {
-	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName;
-	std::ofstream out(fName);
-
-	out << "#===Blueprint file===\n";
-	out << "#Avaiable settings:\n";
-	out << "#mesh (requierd): path to the mesh relative the mesh folder.\n";
-	out << "#materials (requierd): Array with comma seperated material paths relative the material folder.\n";
-	out << "#\tThe materials pointed to will be used to render the parts within the selected mesh.\n";
-	out << "#====================\n";
-	out << "\n";
-	out << "mesh = " << GetMeshName(bp->mesh) << "\n";
-	out << "materials = {";
-	size_t size = bp->materials.size();
-	size_t i = 0;
-	for (auto material : bp->materials) {
-		out << GetMaterialName(material);
-		if (++i < size) {
-			out << ", ";
-		}
-	}
-	out << "}\n";
-
-	out.close();
-	return true;
-}
-
-ResourceManager::~ResourceManager() {
-	for (auto& e : m_blueprints) { if (e.second) { delete e.second; } }
-	for (auto& e : m_meshes) { if (e.second) { delete e.second; } }
-	for (auto& e : m_textures) { if (e.second) { delete e.second; } }
-	for (auto& e : m_materials) { if (e.second) { delete e.second; } }
-}
-
-void ResourceManager::SetAssetPath(const std::string& s) {
-	m_assetPath = s;
-}
-
-std::string ResourceManager::GetSceneFolderFullPath() {
-	return m_assetPath + SCENE_FOLDER_NAME;
-}
-
-std::string ResourceManager::GetAssetPath() {
-	return m_assetPath;
-}
-
-Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name) {
-	Blueprint* bp = MY_NEW Blueprint;
-	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name;
-
-	ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode;
-
-	std::string errorString;
-	bool result = ConfigLoader::Load(fName.c_str(), *configRoot, &errorString);
-
-	if (result) {
-		for (auto& setting : configRoot->subnodes) {
-			if (!bp) {
-				break;
-			}
-
-			if (setting->type == ConfigLoader::ConfigTreeNodeType::Setting) {
-				const std::string& settingName = setting->subnodes[0]->value;
-				const std::string& settingValue = setting->subnodes[1]->value;
-				const ConfigLoader::ConfigTreeNodeType settingType = setting->subnodes[1]->type;
-
-				if (settingName == "mesh") {
-					//Load mesh
-					if (settingType == ConfigLoader::ConfigTreeNodeType::String) {
-						bp->mesh = GetMesh(settingValue);
-						if (!bp->mesh) {
-							delete bp;
-							bp = nullptr;
-						}
-					}
-				} else if (settingName == "materials") {
-					//Load material(s)
-					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
-						for (auto& mat : setting->subnodes[1]->subnodes) {
-							if (mat->type == ConfigLoader::ConfigTreeNodeType::String) {
-								Material* mt = GetMaterial(mat->value);
-								bp->materials.push_back(mt);
-							}
-						}
-					}
-				} else {
-					//Undefined setting
-					std::cout << "Blueprint loader found unknown setting: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\" \n";
-				}
-			}
-		}
-	} else {
-		std::cout << "Could not load blueprint: " + errorString + " \n";
-		delete bp;
-		bp = nullptr;
-	}
-
-	//TODO:: Remove this printing
-	std::vector<bool> b = { false };
-	configRoot->Print(b);
-	configRoot->Delete();
-	return bp;
-}
-
-Mesh* ResourceManager::GetMesh(const std::string& name) {
-	Mesh* mesh = nullptr;
-	std::string fName = m_assetPath + MESH_FOLDER_NAME + name;
-
-	auto search = m_meshes.find(name);
-	if (search == m_meshes.end()) {
-		if (!DoesFileExist(fName)) {
-			return nullptr;
+	ResourceManager* ResourceManager::GetInstance(RenderAPI* api) {
+		if (!s_instance) {
+			s_instance = MY_NEW ResourceManager(api);
 		}
 
-		mesh = m_api->MakeMesh();
-		if (!mesh->LoadFromFile(fName.c_str(), Mesh::MESH_LOAD_FLAG_NONE)) {
-			delete mesh;
-			return nullptr;
-		}
-		m_meshes[name] = mesh;
-	} else {
-		mesh = m_meshes[name];
+		return s_instance;
 	}
 
-	return mesh;
-}
-
-std::string ResourceManager::GetMeshName(Mesh* mesh) {
-	for (auto& e : m_meshes) {
-		if (e.second == mesh) {
-			return e.first;
-		}
-	}
-	return std::string();
-}
-
-Texture* ResourceManager::GetTexture(const std::string& name) {
-	Texture* texture = nullptr;
-	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
-
-	auto search = m_textures.find(name);
-	if (search == m_textures.end()) {
-		if (!DoesFileExist(fName)) {
-			return nullptr;
-		}
-
-		texture = m_api->MakeTexture();
-		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures[name] = texture;
-	} else {
-		texture = m_textures[name];
-	}
-
-	return texture;
-}
-
-Texture* ResourceManager::GetTextureCopy(const std::string& name, const std::string& copyName) {
-	Texture* texture = nullptr;
-	std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
-
-	auto search = m_textures.find(copyName);
-	if (search == m_textures.end()) {
-		if (!DoesFileExist(fName)) {
-			return nullptr;
-		}
-
-		texture = m_api->MakeTexture();
-		texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
-		m_textures[copyName] = texture;
-	} else {
-		texture = m_textures[copyName];
-	}
-
-	return texture;
-}
-
-std::string ResourceManager::GetTextureName(Texture* texture) {
-	for (auto& e : m_textures) {
-		if (e.second == texture) {
-			return e.first;
-		}
-	}
-	return std::string();
-}
-
-bool ResourceManager::IsBlueprintLoaded(const std::string& name) {
-	return m_blueprints.find(name) != m_blueprints.end();
-}
-
-Blueprint* ResourceManager::GetBlueprint(const std::string& name) {
-	Blueprint* bp = nullptr;
-	auto search = m_blueprints.find(name);
-	if (search == m_blueprints.end()) {
-		bp = LoadBlueprintFromFile(name.c_str());
-		if (bp) {
-			m_blueprints[name] = bp;
-		}
-	} else {
-		bp = m_blueprints[name];
-	}
-
-	return bp;
-}
-
-Material* ResourceManager::GetMaterial(const std::string& name) {
-	Material* e = nullptr;
-	std::string fName = m_assetPath + MATERIAL_FOLDER_NAME + name;
-
-	auto search = m_materials.find(name);
-	if (search == m_materials.end()) {
-		if (!DoesFileExist(fName)) {
-			return nullptr;
-		}
-
-		e = m_api->MakeMaterial();
-		e->LoadFromFile(fName.c_str(), *this);
-		m_materials[name] = e;
-	} else {
-		e = m_materials[name];
-	}
-
-	return e;
-}
-
-ShaderProgramHandle ResourceManager::LoadShaderProgramFromFile(const std::string& fName) {
-	ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode;
-
-	std::string errorString;
-	bool result = ConfigLoader::Load(fName.c_str(), *configRoot, &errorString);
-
-	ShaderDescription sd;
-	ShaderProgramDescription spd;
-	ShaderProgramHandle sph = -1;
-	std::string entrypoint;
-	std::string shaderFile;
-
-	if (!result) {
-		std::cout << "Could not load blueprint: " + errorString + " \n";
-	} else {
-		for (auto& setting : configRoot->subnodes) {
-			if (setting->type == ConfigLoader::ConfigTreeNodeType::Setting) {
-				const std::string& settingName = setting->subnodes[0]->value;
-				const std::string& settingValue = setting->subnodes[1]->value;
-				const ConfigLoader::ConfigTreeNodeType settingType = setting->subnodes[1]->type;
-
-				if (settingName == "closesthit") {
-					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
-						auto& arrayNodes = setting->subnodes[1]->subnodes;
-						if (arrayNodes.size() == 2) {
-							entrypoint = arrayNodes[0]->value;
-							shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
-
-							if (!DoesFileExist(shaderFile)) {
-								std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
-							} else {
-								sd.defines.clear();
-								sd.type = ShaderType::CLOSEST_HIT;
-								sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
-								sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
-
-								//Register shader to shader the manager
-								spd.CHS = m_api->GetShaderManager()->RegisterShader(sd);
-							}
-						} else {
-							std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
-						}
-					}
-				} else if (settingName == "anyhit") {
-					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
-						auto& arrayNodes = setting->subnodes[1]->subnodes;
-						if (arrayNodes.size() == 2) {
-							entrypoint = arrayNodes[0]->value;
-							shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
-
-							if (!DoesFileExist(shaderFile)) {
-								std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
-							} else {
-								sd.defines.clear();
-								sd.type = ShaderType::ANY_HIT;
-								sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
-								sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
-								//Register shader to shader the manager
-								spd.AHS = m_api->GetShaderManager()->RegisterShader(sd);
-							}
-						} else {
-							std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
-						}
-					}
-				} else if (settingName == "intersection") {
-					if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
-						auto& arrayNodes = setting->subnodes[1]->subnodes;
-						if (arrayNodes.size() == 2) {
-							entrypoint = arrayNodes[0]->value;
-							shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
-
-							if (!DoesFileExist(shaderFile)) {
-								std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
-							} else {
-								sd.defines.clear();
-								sd.type = ShaderType::INTERSECTION;
-								sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
-								sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
-								//Register shader to shader the manager
-								spd.IS = m_api->GetShaderManager()->RegisterShader(sd);
-							}
-						} else {
-							std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
-						}
-					}
-				} else {
-					//Undefined setting
-					std::cout << "ShaderProgram loader found unknown setting: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\" \n";
-				}
-			}
-		}
-
-		sph = m_api->GetShaderManager()->RegisterShaderProgram(spd);
-	}
-
-	if (sph < 0) {
-		std::cout << "ShaderProgram loader failed to register shader program to the shader manager. ShaderProgram file: \"" + std::string(fName) + "\" \n";
-	}
-
-	configRoot->Delete();
-	return sph;
-}
-
-ShaderProgramHandle ResourceManager::GetShaderProgramHandle(const std::string& name) {
-	ShaderProgramHandle sph = -1;
-	std::string fName = m_assetPath + SHADER_PROGRAMS_FOLDER_NAME + name;
-
-	auto search = m_shaderPrograms.find(name);
-	if (search == m_shaderPrograms.end()) {
-		if (!DoesFileExist(fName)) {
-			return sph;
-		}
-
-		sph = LoadShaderProgramFromFile(fName);
-		if (sph >= 0) {
-			m_shaderPrograms[name] = sph;
-		}
-	} else {
-		sph = m_shaderPrograms[name];
-	}
-
-	return sph;
-}
-
-bool ResourceManager::PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load) {
-	bool allGood = true;
-	std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + path + ".bp";
-
-	std::ifstream in(fName);
-	if (!in.is_open()) {
+	bool ResourceManager::SaveBlueprintToFile(std::vector<BlueprintDescription>& bpDescriptions) {
 		return false;
 	}
-	std::string line;
 
-	std::getline(in, line);
-	if (assets_to_load & Asset_Type_Model) {
-		Mesh* tempMesh = GetMesh(line);
-		if (!tempMesh) {
-			allGood = false;
+	bool ResourceManager::SaveBlueprintToFile(Blueprint* bp, const std::string& bpName) {
+		std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + bpName;
+		std::ofstream out(fName);
+
+		out << "#===Blueprint file===\n";
+		out << "#Avaiable settings:\n";
+		out << "#mesh (requierd): path to the mesh relative the mesh folder.\n";
+		out << "#materials (requierd): Array with comma seperated material paths relative the material folder.\n";
+		out << "#\tThe materials pointed to will be used to render the parts within the selected mesh.\n";
+		out << "#====================\n";
+		out << "\n";
+		out << "mesh = " << GetMeshName(bp->mesh) << "\n";
+		out << "materials = {";
+		size_t size = bp->materials.size();
+		size_t i = 0;
+		for (auto material : bp->materials) {
+			out << GetMaterialName(material);
+			if (++i < size) {
+				out << ", ";
+			}
 		}
+		out << "}\n";
+
+		out.close();
+		return true;
 	}
 
-	if (assets_to_load & Asset_Type_Texture) {
-		int tempInt;
-		in >> tempInt;
-		in.ignore();
-		for (size_t i = 0; i < tempInt; i++) {
-			//Skip lines
-			std::getline(in, line);
+	ResourceManager::~ResourceManager() {
+		for (auto& e : m_blueprints) { if (e.second) { delete e.second; } }
+		for (auto& e : m_meshes) { if (e.second) { delete e.second; } }
+		for (auto& e : m_textures) { if (e.second) { delete e.second; } }
+		for (auto& e : m_materials) { if (e.second) { delete e.second; } }
+	}
+
+	void ResourceManager::SetAssetPath(const std::string& s) {
+		m_assetPath = s;
+	}
+
+	std::string ResourceManager::GetSceneFolderFullPath() {
+		return m_assetPath + SCENE_FOLDER_NAME;
+	}
+
+	std::string ResourceManager::GetAssetPath() {
+		return m_assetPath;
+	}
+
+	Blueprint* ResourceManager::LoadBlueprintFromFile(const std::string& name) {
+		Blueprint* bp = MY_NEW Blueprint;
+		std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + name;
+
+		ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode;
+
+		std::string errorString;
+		bool result = ConfigLoader::Load(fName.c_str(), *configRoot, &errorString);
+
+		if (result) {
+			for (auto& setting : configRoot->subnodes) {
+				if (!bp) {
+					break;
+				}
+
+				if (setting->type == ConfigLoader::ConfigTreeNodeType::Setting) {
+					const std::string& settingName = setting->subnodes[0]->value;
+					const std::string& settingValue = setting->subnodes[1]->value;
+					const ConfigLoader::ConfigTreeNodeType settingType = setting->subnodes[1]->type;
+
+					if (settingName == "mesh") {
+						//Load mesh
+						if (settingType == ConfigLoader::ConfigTreeNodeType::String) {
+							bp->mesh = GetMesh(settingValue);
+							if (!bp->mesh) {
+								delete bp;
+								bp = nullptr;
+							}
+						}
+					} else if (settingName == "materials") {
+						//Load material(s)
+						if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+							for (auto& mat : setting->subnodes[1]->subnodes) {
+								if (mat->type == ConfigLoader::ConfigTreeNodeType::String) {
+									Material* mt = GetMaterial(mat->value);
+									bp->materials.push_back(mt);
+								}
+							}
+						}
+					} else {
+						//Undefined setting
+						std::cout << "Blueprint loader found unknown setting: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\" \n";
+					}
+				}
+			}
+		} else {
+			std::cout << "Could not load blueprint: " + errorString + " \n";
+			delete bp;
+			bp = nullptr;
 		}
 
-		in >> tempInt;
-		in.ignore();
-		for (size_t i = 0; i < tempInt; i++) {
-			std::getline(in, line);
-			Texture* tempTexture = GetTexture(line);
-			if (!tempTexture) {
+		//TODO:: Remove this printing
+		std::vector<bool> b = { false };
+		configRoot->Print(b);
+		configRoot->Delete();
+		return bp;
+	}
+
+	Mesh* ResourceManager::GetMesh(const std::string& name) {
+		Mesh* mesh = nullptr;
+		std::string fName = m_assetPath + MESH_FOLDER_NAME + name;
+
+		auto search = m_meshes.find(name);
+		if (search == m_meshes.end()) {
+			if (!DoesFileExist(fName)) {
+				return nullptr;
+			}
+
+			mesh = m_api->MakeMesh();
+			if (!mesh->LoadFromFile(fName.c_str(), Mesh::MESH_LOAD_FLAG_NONE)) {
+				delete mesh;
+				return nullptr;
+			}
+			m_meshes[name] = mesh;
+		} else {
+			mesh = m_meshes[name];
+		}
+
+		return mesh;
+	}
+
+	std::string ResourceManager::GetMeshName(Mesh* mesh) {
+		for (auto& e : m_meshes) {
+			if (e.second == mesh) {
+				return e.first;
+			}
+		}
+		return std::string();
+	}
+
+	Texture* ResourceManager::GetTexture(const std::string& name) {
+		Texture* texture = nullptr;
+		std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
+
+		auto search = m_textures.find(name);
+		if (search == m_textures.end()) {
+			if (!DoesFileExist(fName)) {
+				return nullptr;
+			}
+
+			texture = m_api->MakeTexture();
+			texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
+			m_textures[name] = texture;
+		} else {
+			texture = m_textures[name];
+		}
+
+		return texture;
+	}
+
+	Texture* ResourceManager::GetTextureCopy(const std::string& name, const std::string& copyName) {
+		Texture* texture = nullptr;
+		std::string fName = m_assetPath + TEXTURE_FODLER_NAME + name;
+
+		auto search = m_textures.find(copyName);
+		if (search == m_textures.end()) {
+			if (!DoesFileExist(fName)) {
+				return nullptr;
+			}
+
+			texture = m_api->MakeTexture();
+			texture->LoadFromFile(fName.c_str(), Texture::TEXTURE_USAGE_GPU_FLAG);
+			m_textures[copyName] = texture;
+		} else {
+			texture = m_textures[copyName];
+		}
+
+		return texture;
+	}
+
+	std::string ResourceManager::GetTextureName(Texture* texture) {
+		for (auto& e : m_textures) {
+			if (e.second == texture) {
+				return e.first;
+			}
+		}
+		return std::string();
+	}
+
+	bool ResourceManager::IsBlueprintLoaded(const std::string& name) {
+		return m_blueprints.find(name) != m_blueprints.end();
+	}
+
+	Blueprint* ResourceManager::GetBlueprint(const std::string& name) {
+		Blueprint* bp = nullptr;
+		auto search = m_blueprints.find(name);
+		if (search == m_blueprints.end()) {
+			bp = LoadBlueprintFromFile(name.c_str());
+			if (bp) {
+				m_blueprints[name] = bp;
+			}
+		} else {
+			bp = m_blueprints[name];
+		}
+
+		return bp;
+	}
+
+	Material* ResourceManager::GetMaterial(const std::string& name) {
+		Material* e = nullptr;
+		std::string fName = m_assetPath + MATERIAL_FOLDER_NAME + name;
+
+		auto search = m_materials.find(name);
+		if (search == m_materials.end()) {
+			if (!DoesFileExist(fName)) {
+				return nullptr;
+			}
+
+			e = m_api->MakeMaterial();
+			e->LoadFromFile(fName.c_str(), *this);
+			m_materials[name] = e;
+		} else {
+			e = m_materials[name];
+		}
+
+		return e;
+	}
+
+	ShaderProgramHandle ResourceManager::LoadShaderProgramFromFile(const std::string& fName) {
+		ConfigLoader::ConfigTreeNode* configRoot = MY_NEW ConfigLoader::ConfigTreeNode;
+
+		std::string errorString;
+		bool result = ConfigLoader::Load(fName.c_str(), *configRoot, &errorString);
+
+		ShaderDescription sd;
+		ShaderProgramDescription spd;
+		ShaderProgramHandle sph = -1;
+		std::string entrypoint;
+		std::string shaderFile;
+
+		if (!result) {
+			std::cout << "Could not load blueprint: " + errorString + " \n";
+		} else {
+			for (auto& setting : configRoot->subnodes) {
+				if (setting->type == ConfigLoader::ConfigTreeNodeType::Setting) {
+					const std::string& settingName = setting->subnodes[0]->value;
+					const std::string& settingValue = setting->subnodes[1]->value;
+					const ConfigLoader::ConfigTreeNodeType settingType = setting->subnodes[1]->type;
+
+					if (settingName == "closesthit") {
+						if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+							auto& arrayNodes = setting->subnodes[1]->subnodes;
+							if (arrayNodes.size() == 2) {
+								entrypoint = arrayNodes[0]->value;
+								shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
+
+								if (!DoesFileExist(shaderFile)) {
+									std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
+								} else {
+									sd.defines.clear();
+									sd.type = ShaderType::CLOSEST_HIT;
+									sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
+									sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
+
+									//Register shader to shader the manager
+									spd.CHS = m_api->GetShaderManager()->RegisterShader(sd);
+								}
+							} else {
+								std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
+							}
+						}
+					} else if (settingName == "anyhit") {
+						if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+							auto& arrayNodes = setting->subnodes[1]->subnodes;
+							if (arrayNodes.size() == 2) {
+								entrypoint = arrayNodes[0]->value;
+								shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
+
+								if (!DoesFileExist(shaderFile)) {
+									std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
+								} else {
+									sd.defines.clear();
+									sd.type = ShaderType::ANY_HIT;
+									sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
+									sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
+									//Register shader to shader the manager
+									spd.AHS = m_api->GetShaderManager()->RegisterShader(sd);
+								}
+							} else {
+								std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
+							}
+						}
+					} else if (settingName == "intersection") {
+						if (settingType == ConfigLoader::ConfigTreeNodeType::Array) {
+							auto& arrayNodes = setting->subnodes[1]->subnodes;
+							if (arrayNodes.size() == 2) {
+								entrypoint = arrayNodes[0]->value;
+								shaderFile = m_assetPath + std::string(SHADER_FOLDER_NAME) + arrayNodes[1]->value;
+
+								if (!DoesFileExist(shaderFile)) {
+									std::cout << "ShaderProgram loader tried to load non existing shader: \"" + settingName + "=" + "{" + entrypoint + ", " + shaderFile + "}" + "\" in file: \"" + std::string(fName) + "\" \n";
+								} else {
+									sd.defines.clear();
+									sd.type = ShaderType::INTERSECTION;
+									sd.entrypoint = std::wstring(entrypoint.begin(), entrypoint.end());
+									sd.filename = std::wstring(shaderFile.begin(), shaderFile.end());
+									//Register shader to shader the manager
+									spd.IS = m_api->GetShaderManager()->RegisterShader(sd);
+								}
+							} else {
+								std::cout << "ShaderProgram loader detected invalid setting arguments for: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\". Expected an array with two elements.\n";
+							}
+						}
+					} else {
+						//Undefined setting
+						std::cout << "ShaderProgram loader found unknown setting: \"" + settingName + "=" + (settingType == ConfigLoader::ConfigTreeNodeType::Array ? "{@Array}" : settingValue) + "\" in file: \"" + std::string(fName) + "\" \n";
+					}
+				}
+			}
+
+			sph = m_api->GetShaderManager()->RegisterShaderProgram(spd);
+		}
+
+		if (sph < 0) {
+			std::cout << "ShaderProgram loader failed to register shader program to the shader manager. ShaderProgram file: \"" + std::string(fName) + "\" \n";
+		}
+
+		configRoot->Delete();
+		return sph;
+	}
+
+	ShaderProgramHandle ResourceManager::GetShaderProgramHandle(const std::string& name) {
+		ShaderProgramHandle sph = -1;
+		std::string fName = m_assetPath + SHADER_PROGRAMS_FOLDER_NAME + name;
+
+		auto search = m_shaderPrograms.find(name);
+		if (search == m_shaderPrograms.end()) {
+			if (!DoesFileExist(fName)) {
+				return sph;
+			}
+
+			sph = LoadShaderProgramFromFile(fName);
+			if (sph >= 0) {
+				m_shaderPrograms[name] = sph;
+			}
+		} else {
+			sph = m_shaderPrograms[name];
+		}
+
+		return sph;
+	}
+
+	bool ResourceManager::PreLoadBlueprintFromFile(const std::string& path, Asset_Types assets_to_load) {
+		bool allGood = true;
+		std::string fName = m_assetPath + std::string(BLUEPRINT_FOLDER_NAME) + path + ".bp";
+
+		std::ifstream in(fName);
+		if (!in.is_open()) {
+			return false;
+		}
+		std::string line;
+
+		std::getline(in, line);
+		if (assets_to_load & Asset_Type_Model) {
+			Mesh* tempMesh = GetMesh(line);
+			if (!tempMesh) {
 				allGood = false;
 			}
 		}
-	}
 
-	return allGood;
-}
-
-bool ResourceManager::PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load) {
-	auto search = m_blueprints.find(name);
-	if (search == m_blueprints.end()) {
-		return PreLoadBlueprintFromFile(name.c_str(), assets_to_load);
-	}
-
-	return true;
-}
-
-Blueprint* ResourceManager::CreateBlueprint(const std::string& name) {
-	Blueprint* bp = nullptr;
-	auto search = m_blueprints.find(name);
-	if (search == m_blueprints.end()) {
-		bp = MY_NEW Blueprint;
-		m_blueprints[name] = bp;
-	}
-
-	return bp;
-}
-
-std::string ResourceManager::GetBlueprintName(Blueprint* bp) {
-	for (auto& e : m_blueprints) {
-		if (e.second == bp) {
-			return e.first;
-		}
-	}
-	return std::string();
-}
-
-std::string ResourceManager::GetMaterialName(Material* material) {
-	for (auto& e : m_materials) {
-		if (e.second == material) {
-			return e.first;
-		}
-	}
-	return std::string();
-}
-
-std::string ResourceManager::GetShaderProgramName(ShaderProgramHandle sph) {
-	for (auto& e : m_shaderPrograms) {
-		if (e.second == sph) {
-			return e.first;
-		}
-	}
-	return std::string();
-}
-
-std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
-	return m_blueprints;
-}
-
-bool ResourceManager::DoesFileExist(const std::string& s) {
-	return std::filesystem::exists(s);
-}
-
-void ResourceManager::WaitUntilResourcesIsLoaded() {
-	for (auto& e : m_textures) {
-		while (!e.second->IsLoaded()) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		}
-	}
-}
-
-void ResourceManager::RecompileShaders() {
-	m_recompileShaders = true;
-}
-
-void ResourceManager::PrepareRendering() {
-	for (auto& mat1 : m_materials) {
-		if (mat1.second->HasChanged()) {
-			for (auto& bp : m_blueprints) {
-				for (auto& mat2 : bp.second->materials) {
-					if (mat1.second == mat2) {
-						bp.second->hasChanged = true;
-						break;
-					}
-				}
+		if (assets_to_load & Asset_Type_Texture) {
+			int tempInt;
+			in >> tempInt;
+			in.ignore();
+			for (size_t i = 0; i < tempInt; i++) {
+				//Skip lines
+				std::getline(in, line);
 			}
 
-			mat1.second->SetHasChanged(false);
+			in >> tempInt;
+			in.ignore();
+			for (size_t i = 0; i < tempInt; i++) {
+				std::getline(in, line);
+				Texture* tempTexture = GetTexture(line);
+				if (!tempTexture) {
+					allGood = false;
+				}
+			}
+		}
+
+		return allGood;
+	}
+
+	bool ResourceManager::PreLoadBlueprint(const std::string& name, Asset_Types assets_to_load) {
+		auto search = m_blueprints.find(name);
+		if (search == m_blueprints.end()) {
+			return PreLoadBlueprintFromFile(name.c_str(), assets_to_load);
+		}
+
+		return true;
+	}
+
+	Blueprint* ResourceManager::CreateBlueprint(const std::string& name) {
+		Blueprint* bp = nullptr;
+		auto search = m_blueprints.find(name);
+		if (search == m_blueprints.end()) {
+			bp = MY_NEW Blueprint;
+			m_blueprints[name] = bp;
+		}
+
+		return bp;
+	}
+
+	std::string ResourceManager::GetBlueprintName(Blueprint* bp) {
+		for (auto& e : m_blueprints) {
+			if (e.second == bp) {
+				return e.first;
+			}
+		}
+		return std::string();
+	}
+
+	std::string ResourceManager::GetMaterialName(Material* material) {
+		for (auto& e : m_materials) {
+			if (e.second == material) {
+				return e.first;
+			}
+		}
+		return std::string();
+	}
+
+	std::string ResourceManager::GetShaderProgramName(ShaderProgramHandle sph) {
+		for (auto& e : m_shaderPrograms) {
+			if (e.second == sph) {
+				return e.first;
+			}
+		}
+		return std::string();
+	}
+
+	std::unordered_map<std::string, Blueprint*>& ResourceManager::GetBlueprints() {
+		return m_blueprints;
+	}
+
+	bool ResourceManager::DoesFileExist(const std::string& s) {
+		return std::filesystem::exists(s);
+	}
+
+	void ResourceManager::WaitUntilResourcesIsLoaded() {
+		for (auto& e : m_textures) {
+			while (!e.second->IsLoaded()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			}
 		}
 	}
 
-	if (m_recompileShaders) {
-		m_api->GetShaderManager()->RecompileShaders();
-		m_recompileShaders = false;
+	void ResourceManager::RecompileShaders() {
+		m_recompileShaders = true;
 	}
-}
 
-ResourceManager::ResourceManager(RenderAPI* api) : m_api(api) {
-}
+	void ResourceManager::PrepareRendering() {
+		for (auto& mat1 : m_materials) {
+			if (mat1.second->HasChanged()) {
+				for (auto& bp : m_blueprints) {
+					for (auto& mat2 : bp.second->materials) {
+						if (mat1.second == mat2) {
+							bp.second->hasChanged = true;
+							break;
+						}
+					}
+				}
 
-void ResourceManager::RefreshFileSystemResourceLists() {
-	FileSystem::ListDirectory(m_foundScenes, m_assetPath + SCENE_FOLDER_NAME, { ".scene" });
-	FileSystem::ListDirectory(m_foundBluePrints, m_assetPath + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
-	FileSystem::ListDirectory(m_foundMeshes, m_assetPath + std::string(MESH_FOLDER_NAME), { ".obj" });
-	FileSystem::ListDirectory(m_foundTextures, m_assetPath + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
-	FileSystem::ListDirectory(m_foundMaterials, m_assetPath + std::string(MATERIAL_FOLDER_NAME), { ".mat" });
-	FileSystem::ListDirectory(m_foundShaderPrograms, m_assetPath + std::string(SHADER_PROGRAMS_FOLDER_NAME), { ".sp" });
-	FileSystem::ListDirectory(m_foundShaders, m_assetPath + std::string(SHADER_FOLDER_NAME), { ".hlsl" });
+				mat1.second->SetHasChanged(false);
+			}
+		}
+
+		if (m_recompileShaders) {
+			m_api->GetShaderManager()->RecompileShaders();
+			m_recompileShaders = false;
+		}
+	}
+
+	ResourceManager::ResourceManager(RenderAPI* api) : m_api(api) {
+	}
+
+	void ResourceManager::RefreshFileSystemResourceLists() {
+		FileSystem::ListDirectory(m_foundScenes, m_assetPath + SCENE_FOLDER_NAME, { ".scene" });
+		FileSystem::ListDirectory(m_foundBluePrints, m_assetPath + std::string(BLUEPRINT_FOLDER_NAME), { ".bp" });
+		FileSystem::ListDirectory(m_foundMeshes, m_assetPath + std::string(MESH_FOLDER_NAME), { ".obj" });
+		FileSystem::ListDirectory(m_foundTextures, m_assetPath + std::string(TEXTURE_FODLER_NAME), { ".png", ".dds", ".simpleTexture" });
+		FileSystem::ListDirectory(m_foundMaterials, m_assetPath + std::string(MATERIAL_FOLDER_NAME), { ".mat" });
+		FileSystem::ListDirectory(m_foundShaderPrograms, m_assetPath + std::string(SHADER_PROGRAMS_FOLDER_NAME), { ".sp" });
+		FileSystem::ListDirectory(m_foundShaders, m_assetPath + std::string(SHADER_FOLDER_NAME), { ".hlsl" });
+	}
 }

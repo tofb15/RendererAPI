@@ -17,6 +17,8 @@
 #include <unordered_set>
 #include <iterator> 
 
+using namespace FusionReactor;
+
 Editor::Editor() {
 	m_icon_blueprint_id = nullptr;
 	m_icon_material_id = nullptr;

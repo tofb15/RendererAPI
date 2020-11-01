@@ -34,6 +34,8 @@
 //#include "d3dx12.h"
 
 using namespace DirectX;
+using namespace FusionReactor;
+using namespace FusionReactor_DX12;
 
 //--------------------------------------------------------------------------------------
 // Macros

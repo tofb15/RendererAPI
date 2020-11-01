@@ -1,39 +1,43 @@
 #pragma once
 
 #include "FusionReactor/src/Technique.hpp"
+#include "D3D12_FDecl.h"
 
-class D3D12RenderState;
-class D3D12API;
-class D3D12ShaderManager;
-struct ID3D12PipelineState;
-struct ID3D12RootSignature;
+namespace FusionReactor {
+	namespace FusionReactor_DX12 {
+		class D3D12RenderState;
+		class D3D12API;
+		class D3D12ShaderManager;
 
-/*
-	Describes how a mesh should be rendered.
-	Contains a collection of shader data(Material) and specific render states(RenderState)
 
-	TODO: integrate it with RTX
-*/
-class D3D12Technique : public Technique {
-public:
-	D3D12Technique(D3D12API* d3d12, unsigned short id);
-	virtual bool Initialize(D3D12RenderState* rs, /*ShaderProgramHandle& sp,*/ D3D12ShaderManager* sm);
-	bool InitializeRootSignature();
+		/*
+			Describes how a mesh should be rendered.
+			Contains a collection of shader data(Material) and specific render states(RenderState)
 
-	virtual ~D3D12Technique();
+			TODO: integrate it with RTX
+		*/
+		class D3D12Technique : public Technique {
+		public:
+			D3D12Technique(D3D12API* d3d12, unsigned short id);
+			virtual bool Initialize(D3D12RenderState* rs, /*ShaderProgramHandle& sp,*/ D3D12ShaderManager* sm);
+			bool InitializeRootSignature();
 
-	// Inherited via Technique
-	virtual bool Enable() override;
-	unsigned short GetID() const;
+			virtual ~D3D12Technique();
 
-	ID3D12PipelineState* GetPipelineState();
-	ID3D12RootSignature* GetRootSignature() const;
-	D3D12RenderState* GetRenderState() const;
+			// Inherited via Technique
+			virtual bool Enable() override;
+			unsigned short GetID() const;
 
-private:
-	unsigned short m_id;
-	D3D12API* m_d3d12 = nullptr;
-	D3D12RenderState* m_rs = nullptr;
-	ID3D12PipelineState* m_pipelineState = nullptr;
-	ID3D12RootSignature* m_rootSignature = nullptr;
-};
+			ID3D12PipelineState* GetPipelineState();
+			ID3D12RootSignature* GetRootSignature() const;
+			D3D12RenderState* GetRenderState() const;
+
+		private:
+			unsigned short m_id;
+			D3D12API* m_d3d12 = nullptr;
+			D3D12RenderState* m_rs = nullptr;
+			ID3D12PipelineState* m_pipelineState = nullptr;
+			ID3D12RootSignature* m_rootSignature = nullptr;
+		};
+	}
+}

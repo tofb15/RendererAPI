@@ -4,8 +4,8 @@
 #include "Game.h"
 #include <vector>
 
-class Object;
-class WindowInput;
+class FusionReactor::Object;
+class FusionReactor::WindowInput;
 enum class ResourceType {
 	None = 0,
 	Scene,
@@ -61,7 +61,7 @@ private:
 
 	ResourceType m_selectedResourceType = ResourceType::None;
 	std::vector<void*> m_selectedResources;
-	std::unordered_set<Blueprint*> m_selectedSceneObjectBlueprints;
+	std::unordered_set<FusionReactor::Blueprint*> m_selectedSceneObjectBlueprints;
 	std::vector<std::string> m_selectedFileNames;
 	std::string m_lastClickedFileName;
 	FileSystem::Directory m_resourceFileBrowser;

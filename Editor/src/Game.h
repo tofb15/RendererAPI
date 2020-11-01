@@ -28,9 +28,9 @@
 
 typedef std::chrono::steady_clock Clock;
 typedef std::chrono::time_point<std::chrono::steady_clock> Time;
-class Editor;
-class Object;
+class FusionReactor::Object;
 
+using namespace::FusionReactor;
 class Game : public GUI {
 public:
 	Game();

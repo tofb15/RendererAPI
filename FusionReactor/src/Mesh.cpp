@@ -2,30 +2,29 @@
 
 #include "Mesh.hpp"
 
-Mesh::~Mesh()
-{
-}
+namespace FusionReactor {
 
-unsigned Mesh::GetVertexBufferFlags() const
-{
-	return m_VertexBufferFlags;
-}
+	Mesh::~Mesh() {
+	}
 
-const char * Mesh::GetMaterialName() const
-{
-	return m_DefaultMaterialName;
-}
+	unsigned Mesh::GetVertexBufferFlags() const {
+		return m_VertexBufferFlags;
+	}
 
-std::string Mesh::GetName() const {
+	const char* Mesh::GetMaterialName() const {
+		return m_DefaultMaterialName;
+	}
 
-	return m_name;
-}
+	std::string Mesh::GetName() const {
 
-void Mesh::SetName(const std::string&  name) {
-	m_name = name;
-}
+		return m_name;
+	}
 
-Mesh::Mesh()
-{
-	m_VertexBufferFlags = 0;
+	void Mesh::SetName(const std::string& name) {
+		m_name = name;
+	}
+
+	Mesh::Mesh() {
+		m_VertexBufferFlags = 0;
+	}
 }

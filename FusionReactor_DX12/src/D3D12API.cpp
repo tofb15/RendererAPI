@@ -30,369 +30,372 @@
 //#pragma comment(lib, "dxguid.lib")
 #define MULTI_THREADED
 
-typedef HRESULT(__stdcall* f_funci)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
+namespace FusionReactor {
+	namespace FusionReactor_DX12 {
 
+		typedef HRESULT(__stdcall* f_funci)(UINT Flags, REFIID riid, _COM_Outptr_ void** pDebug);
 
-/*Release a Interface that will not be used anymore*/
-template<class Interface>
-inline void SafeRelease(Interface** ppInterfaceToRelease) {
-	if (*ppInterfaceToRelease != NULL) {
-		(*ppInterfaceToRelease)->Release();
+		/*Release a Interface that will not be used anymore*/
+		template<class Interface>
+		inline void SafeRelease(Interface** ppInterfaceToRelease) {
+			if (*ppInterfaceToRelease != NULL) {
+				(*ppInterfaceToRelease)->Release();
 
-		(*ppInterfaceToRelease) = NULL;
-	}
-}
-
-D3D12API::D3D12API() {
-	int i = 0;
-}
-D3D12API::~D3D12API() {
-	WaitForGPU_ALL();
-
-	if (m_Fence) {
-		m_Fence->Release();
-	}
-
-	if (m_CommandQueue_direct) {
-		m_CommandQueue_direct->Release();
-	}
-
-	if (m_textureLoader) {
-		m_textureLoader->Kill();	//Notify the other thread to stop.
-		delete m_textureLoader;
-	}
-
-	if (m_vertexBufferLoader) {
-		delete m_vertexBufferLoader;
-	}
-
-	if (m_shadermanager) {
-		delete m_shadermanager;
-		m_shadermanager = nullptr;
-	}
-
-	if (m_device) {
-		HRESULT hr = m_device->GetDeviceRemovedReason();
-		if (FAILED(hr)) {
-			_com_error err2(hr);
-			std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+				(*ppInterfaceToRelease) = NULL;
+			}
 		}
-		m_device->Release();
-	}
 
-	if (m_descriptorHeapManager) {
-		delete m_descriptorHeapManager;
-	}
-}
+		D3D12API::D3D12API() {}
+		D3D12API::~D3D12API() {
+			WaitForGPU_ALL();
 
-bool D3D12API::Initialize() {
-	if (!InitializeDirect3DDevice()) {
-		printf("Error: Could not initialize device\n");
-		return false;
-	}
+			if (m_Fence) {
+				m_Fence->Release();
+			}
 
-	if (!InitializeCommandQueue()) {
-		printf("Error: Could not initialize command queue\n");
-		return false;
-	}
+			if (m_CommandQueue_direct) {
+				m_CommandQueue_direct->Release();
+			}
 
-	if (!InitializeFence()) {
-		printf("Error: Could not initialize command queue\n");
-		return false;
-	}
+			if (m_textureLoader) {
+				m_textureLoader->Kill();	//Notify the other thread to stop.
+				delete m_textureLoader;
+			}
 
-	m_textureLoader = MY_NEW D3D12TextureLoader(this);
-	if (!m_textureLoader->Initialize()) {
-		printf("Error: Could not initialize texture loader\n");
-		return false;
-	}
+			if (m_vertexBufferLoader) {
+				delete m_vertexBufferLoader;
+			}
 
-	//Start new Texture loading thread
-	//m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
+			if (m_shadermanager) {
+				delete m_shadermanager;
+				m_shadermanager = nullptr;
+			}
 
-	m_vertexBufferLoader = MY_NEW D3D12VertexBufferLoader(this);
-	if (!m_vertexBufferLoader->Initialize()) {
-		printf("Error: Could not initialize vertex buffer loader\n");
-		return false;
-	}
+			if (m_device) {
+				HRESULT hr = m_device->GetDeviceRemovedReason();
+				if (FAILED(hr)) {
+					_com_error err2(hr);
+					std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
+				}
+				m_device->Release();
+			}
 
-	m_shadermanager = MY_NEW D3D12ShaderManager(this);
-	if (!m_shadermanager->Initialize()) {
-		return false;
-	}
+			if (m_descriptorHeapManager) {
+				delete m_descriptorHeapManager;
+			}
+		}
 
-	m_descriptorHeapManager = MY_NEW D3D12DescriptorHeapManager(this);
-	m_descriptorHeapManager->Initialize(10, 0, 10, 0, 100, 10000, 10, 0);
+		bool D3D12API::Initialize() {
+			if (!InitializeDirect3DDevice()) {
+				printf("Error: Could not initialize device\n");
+				return false;
+			}
 
-	return true;
-}
+			if (!InitializeCommandQueue()) {
+				printf("Error: Could not initialize command queue\n");
+				return false;
+			}
 
-Camera* D3D12API::MakeCamera() {
-	return MY_NEW D3D12Camera();
-}
-Window* D3D12API::MakeWindow() {
-	return MY_NEW D3D12Window(this);
-}
-Texture* D3D12API::MakeTexture() {
-	if (++m_texturesCreated == 0)
-		return nullptr;
+			if (!InitializeFence()) {
+				printf("Error: Could not initialize command queue\n");
+				return false;
+			}
 
-	return MY_NEW D3D12Texture(this, m_texturesCreated);
-}
-Mesh* D3D12API::MakeMesh() {
-	if (++m_meshesCreated == 0)
-		return nullptr;
+			m_textureLoader = MY_NEW D3D12TextureLoader(this);
+			if (!m_textureLoader->Initialize()) {
+				printf("Error: Could not initialize texture loader\n");
+				return false;
+			}
 
-	return MY_NEW D3D12Mesh(this, m_meshesCreated);
-}
-Terrain* D3D12API::MakeTerrain() {
-	return MY_NEW D3D12Terrain(this);
-}
-Material* D3D12API::MakeMaterial() {
-	return MY_NEW D3D12Material(this);
-}
-RenderState* D3D12API::MakeRenderState() {
-	return MY_NEW D3D12RenderState;
-}
-Technique* D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) {
-	//if (++m_techniquesCreated == 0)
-	//	return nullptr;
-	//
-	//D3D12Technique* tech = MY_NEW D3D12Technique(this, m_techniquesCreated);
-	//if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), /*sp,*/ static_cast<D3D12ShaderManager*>(sm))) {
-	//	delete tech;
-	//	return nullptr;
-	//}
-	//Next Frame Frame
-	//int* closestTechnique_temp = MY_NEW int[m_techniquesCreated];
-	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
-	//{
-	//	closestTechnique_temp[i] = m_closestTechnique[i];
-	//}
-	//closestTechnique_temp[m_techniquesCreated - 1] = 0;
-	//delete m_closestTechnique;
-	//m_closestTechnique = closestTechnique_temp;
+			//Start new Texture loading thread
+			//m_thread_texture = std::thread(&D3D12TextureLoader::DoWork, &*m_textureLoader);
 
-	////Last Frame
-	//closestTechnique_temp = MY_NEW int[m_techniquesCreated];
-	//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
-	//{
-	//	closestTechnique_temp[i] = m_closestTechnique_lastFrame[i];
-	//}
-	//closestTechnique_temp[m_techniquesCreated - 1] = 0;
-	//delete m_closestTechnique_lastFrame;
-	//m_closestTechnique_lastFrame = closestTechnique_temp;
-	//return tech;
-	return nullptr;
-}
-ShaderManager* D3D12API::GetShaderManager() {
-	return m_shadermanager;
-}
-D3D12ShaderManager* D3D12API::GetShaderManager_D3D12() {
-	return m_shadermanager;
-}
-D3D12DescriptorHeapManager* D3D12API::GetDescriptorHeapManager() {
-	return m_descriptorHeapManager;
-}
-D3D12VertexBuffer* D3D12API::MakeVertexBuffer() {
-	return MY_NEW D3D12VertexBuffer(this);
-}
+			m_vertexBufferLoader = MY_NEW D3D12VertexBufferLoader(this);
+			if (!m_vertexBufferLoader->Initialize()) {
+				printf("Error: Could not initialize vertex buffer loader\n");
+				return false;
+			}
 
-D3D12VertexBuffer* D3D12API::MakeVertexBuffer(const D3D12VertexBuffer& buffer) {
-	return MY_NEW D3D12VertexBuffer(buffer);
-}
+			m_shadermanager = MY_NEW D3D12ShaderManager(this);
+			if (!m_shadermanager->Initialize()) {
+				return false;
+			}
 
-ID3D12Device5* D3D12API::GetDevice() const {
-	return m_device;
-}
+			m_descriptorHeapManager = MY_NEW D3D12DescriptorHeapManager(this);
+			m_descriptorHeapManager->Initialize(10, 0, 10, 0, 100, 10000, 10, 0);
 
-ID3D12CommandQueue* D3D12API::GetDirectCommandQueue() {
-	return m_CommandQueue_direct;
-}
+			return true;
+		}
 
-D3D12TextureLoader* D3D12API::GetTextureLoader() const {
-	return m_textureLoader;
-}
+		Camera* D3D12API::MakeCamera() {
+			return MY_NEW D3D12Camera();
+		}
+		Window* D3D12API::MakeWindow() {
+			return MY_NEW D3D12Window(this);
+		}
+		Texture* D3D12API::MakeTexture() {
+			if (++m_texturesCreated == 0)
+				return nullptr;
 
-D3D12VertexBufferLoader* D3D12API::GetVertexBufferLoader() const {
-	return m_vertexBufferLoader;
-}
+			return MY_NEW D3D12Texture(this, m_texturesCreated);
+		}
+		Mesh* D3D12API::MakeMesh() {
+			if (++m_meshesCreated == 0)
+				return nullptr;
 
-USHORT D3D12API::GetNrMeshesCreated() const {
-	return m_meshesCreated;
-}
+			return MY_NEW D3D12Mesh(this, m_meshesCreated);
+		}
+		Terrain* D3D12API::MakeTerrain() {
+			return MY_NEW D3D12Terrain(this);
+		}
+		Material* D3D12API::MakeMaterial() {
+			return MY_NEW D3D12Material(this);
+		}
+		RenderState* D3D12API::MakeRenderState() {
+			return MY_NEW D3D12RenderState;
+		}
+		Technique* D3D12API::MakeTechnique(RenderState* rs, ShaderProgram* sp, ShaderManager* sm) {
+			//if (++m_techniquesCreated == 0)
+			//	return nullptr;
+			//
+			//D3D12Technique* tech = MY_NEW D3D12Technique(this, m_techniquesCreated);
+			//if (!tech->Initialize(static_cast<D3D12RenderState*>(rs), /*sp,*/ static_cast<D3D12ShaderManager*>(sm))) {
+			//	delete tech;
+			//	return nullptr;
+			//}
+			//Next Frame Frame
+			//int* closestTechnique_temp = MY_NEW int[m_techniquesCreated];
+			//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
+			//{
+			//	closestTechnique_temp[i] = m_closestTechnique[i];
+			//}
+			//closestTechnique_temp[m_techniquesCreated - 1] = 0;
+			//delete m_closestTechnique;
+			//m_closestTechnique = closestTechnique_temp;
 
-USHORT D3D12API::GetNrTechniquesCreated() const {
-	return m_techniquesCreated;
-}
+			////Last Frame
+			//closestTechnique_temp = MY_NEW int[m_techniquesCreated];
+			//for (size_t i = 0; i < m_techniquesCreated - 1; i++)
+			//{
+			//	closestTechnique_temp[i] = m_closestTechnique_lastFrame[i];
+			//}
+			//closestTechnique_temp[m_techniquesCreated - 1] = 0;
+			//delete m_closestTechnique_lastFrame;
+			//m_closestTechnique_lastFrame = closestTechnique_temp;
+			//return tech;
+			return nullptr;
+		}
+		ShaderManager* D3D12API::GetShaderManager() {
+			return m_shadermanager;
+		}
+		D3D12ShaderManager* D3D12API::GetShaderManager_D3D12() {
+			return m_shadermanager;
+		}
+		D3D12DescriptorHeapManager* D3D12API::GetDescriptorHeapManager() {
+			return m_descriptorHeapManager;
+		}
+		D3D12VertexBuffer* D3D12API::MakeVertexBuffer() {
+			return MY_NEW D3D12VertexBuffer(this);
+		}
 
-USHORT D3D12API::GetNrTexturesCreated() const {
-	return m_texturesCreated;
-}
+		D3D12VertexBuffer* D3D12API::MakeVertexBuffer(const D3D12VertexBuffer& buffer) {
+			return MY_NEW D3D12VertexBuffer(buffer);
+		}
 
-UINT D3D12API::GetViewSize() {
-	return m_cbv_srv_uav_size;
-}
+		ID3D12Device5* D3D12API::GetDevice() const {
+			return m_device;
+		}
 
-UINT D3D12API::GetGPUBufferIndex() {
-	return m_GPU_buffer_index;
-}
+		ID3D12CommandQueue* D3D12API::GetDirectCommandQueue() {
+			return m_CommandQueue_direct;
+		}
 
-void D3D12API::IncGPUBufferIndex() {
-	m_FenceValues_GPU_BUFFERS[m_GPU_buffer_index] = SignalFence();
-	m_GPU_buffer_index = (++m_GPU_buffer_index) % NUM_GPU_BUFFERS;
-	WaitForGPU_BUFFERS(m_GPU_buffer_index);
+		D3D12TextureLoader* D3D12API::GetTextureLoader() const {
+			return m_textureLoader;
+		}
 
-	m_descriptorHeapManager->BeginFrame();
-}
+		D3D12VertexBufferLoader* D3D12API::GetVertexBufferLoader() const {
+			return m_vertexBufferLoader;
+		}
 
-unsigned __int64 D3D12API::SignalFence() {
-	const unsigned __int64 fenceVal = ++m_currentFenceValue;
-	m_CommandQueue_direct->Signal(m_Fence, fenceVal);
-	return fenceVal;
-}
+		USHORT D3D12API::GetNrMeshesCreated() const {
+			return m_meshesCreated;
+		}
 
-void D3D12API::WaitForGPU_ALL() {
-	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < m_currentFenceValue) {
-		m_Fence->SetEventOnCompletion(m_currentFenceValue, m_EventHandle);
-		WaitForSingleObject(m_EventHandle, INFINITE);
-	}
-}
+		USHORT D3D12API::GetNrTechniquesCreated() const {
+			return m_techniquesCreated;
+		}
 
-void D3D12API::WaitForGPU_BUFFERS(int index) {
-	WaitForFenceValue(m_FenceValues_GPU_BUFFERS[index]);
-}
+		USHORT D3D12API::GetNrTexturesCreated() const {
+			return m_texturesCreated;
+		}
 
-void D3D12API::WaitForFenceValue(unsigned __int64 value) {
-	//Wait until command queue is done.
-	if (m_Fence->GetCompletedValue() < value) {
-		//m_numWaits++;
-		m_Fence->SetEventOnCompletion(value, m_EventHandle);
-		WaitForSingleObject(m_EventHandle, INFINITE);
-	}
-}
+		UINT D3D12API::GetViewSize() {
+			return m_cbv_srv_uav_size;
+		}
 
-bool D3D12API::InitializeDirect3DDevice() {
+		UINT D3D12API::GetGPUBufferIndex() {
+			return m_GPU_buffer_index;
+		}
+
+		void D3D12API::IncGPUBufferIndex() {
+			m_FenceValues_GPU_BUFFERS[m_GPU_buffer_index] = SignalFence();
+			m_GPU_buffer_index = (++m_GPU_buffer_index) % NUM_GPU_BUFFERS;
+			WaitForGPU_BUFFERS(m_GPU_buffer_index);
+
+			m_descriptorHeapManager->BeginFrame();
+		}
+
+		unsigned __int64 D3D12API::SignalFence() {
+			const unsigned __int64 fenceVal = ++m_currentFenceValue;
+			m_CommandQueue_direct->Signal(m_Fence, fenceVal);
+			return fenceVal;
+		}
+
+		void D3D12API::WaitForGPU_ALL() {
+			//Wait until command queue is done.
+			if (m_Fence->GetCompletedValue() < m_currentFenceValue) {
+				m_Fence->SetEventOnCompletion(m_currentFenceValue, m_EventHandle);
+				WaitForSingleObject(m_EventHandle, INFINITE);
+			}
+		}
+
+		void D3D12API::WaitForGPU_BUFFERS(int index) {
+			WaitForFenceValue(m_FenceValues_GPU_BUFFERS[index]);
+		}
+
+		void D3D12API::WaitForFenceValue(unsigned __int64 value) {
+			//Wait until command queue is done.
+			if (m_Fence->GetCompletedValue() < value) {
+				//m_numWaits++;
+				m_Fence->SetEventOnCompletion(value, m_EventHandle);
+				WaitForSingleObject(m_EventHandle, INFINITE);
+			}
+		}
+
+		bool D3D12API::InitializeDirect3DDevice() {
 #ifndef DEBUG
-	//Enable the D3D12 debug layer.
-	ID3D12Debug* debugController = nullptr;
+			//Enable the D3D12 debug layer.
+			ID3D12Debug* debugController = nullptr;
 
-	HMODULE mD3D12 = GetModuleHandle("D3D12.dll");
-	if (mD3D12 == 0) {
-		return false;
-	}
+			HMODULE mD3D12 = GetModuleHandle("D3D12.dll");
+			if (mD3D12 == 0) {
+				return false;
+			}
 
-	PFN_D3D12_GET_DEBUG_INTERFACE f = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(mD3D12, "D3D12GetDebugInterface");
-	if (SUCCEEDED(f(IID_PPV_ARGS(&debugController)))) {
-		debugController->EnableDebugLayer();
-	}
-	debugController->Release();
+			PFN_D3D12_GET_DEBUG_INTERFACE f = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(mD3D12, "D3D12GetDebugInterface");
+			if (SUCCEEDED(f(IID_PPV_ARGS(&debugController)))) {
+				debugController->EnableDebugLayer();
+			}
+			debugController->Release();
 #endif
 
-	//dxgi1_6 is only needed for the initialization process using the adapter.
-	IDXGIFactory6* factory = nullptr;
-	IDXGIAdapter1* adapter = nullptr;
-	//First a factory is created to iterate through the adapters available.
-	CreateDXGIFactory(IID_PPV_ARGS(&factory));
-	for (UINT adapterIndex = 0;; ++adapterIndex) {
-		adapter = nullptr;
-		if (DXGI_ERROR_NOT_FOUND == factory->EnumAdapters1(adapterIndex, &adapter)) {
-			return false;	//No more adapters to enumerate.
+			//dxgi1_6 is only needed for the initialization process using the adapter.
+			IDXGIFactory6* factory = nullptr;
+			IDXGIAdapter1* adapter = nullptr;
+			//First a factory is created to iterate through the adapters available.
+			CreateDXGIFactory(IID_PPV_ARGS(&factory));
+			for (UINT adapterIndex = 0;; ++adapterIndex) {
+				adapter = nullptr;
+				if (DXGI_ERROR_NOT_FOUND == factory->EnumAdapters1(adapterIndex, &adapter)) {
+					return false;	//No more adapters to enumerate.
+				}
+
+				// Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+				if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device5), nullptr))) {
+					break;
+				}
+
+				SafeRelease(&adapter);
+			}
+			if (adapter) {
+				HRESULT hr = S_OK;
+				//Create the actual device.
+				if (!SUCCEEDED(hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)))) {
+					return false;
+				}
+
+				SafeRelease(&adapter);
+			} else {
+				return false;
+				////Create warp device if no adapter was found.
+				//factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
+				//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
+			}
+
+			D3D12_FEATURE_DATA_D3D12_OPTIONS5 caps = {};
+			HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &caps, sizeof(caps));
+
+			if (SUCCEEDED(hr) && caps.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0) {
+				m_gpuSupportRaytracing = true;
+			}
+
+			// Retrieve hardware specific descriptor size
+			m_cbv_srv_uav_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			SafeRelease(&factory);
+			return true;
 		}
 
-		// Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-		if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, __uuidof(ID3D12Device5), nullptr))) {
-			break;
+		bool D3D12API::InitializeCommandQueue() {
+			HRESULT hr;
+			//Describe and create the command queue.
+			D3D12_COMMAND_QUEUE_DESC cqd = {};
+			hr = m_device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue_direct));
+			if (FAILED(hr)) {
+				return false;
+			}
+
+			return true;
 		}
 
-		SafeRelease(&adapter);
-	}
-	if (adapter) {
-		HRESULT hr = S_OK;
-		//Create the actual device.
-		if (!SUCCEEDED(hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)))) {
-			return false;
+		bool D3D12API::InitializeFence() {
+			HRESULT hr;
+			hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+			if (FAILED(hr)) {
+				return false;
+			}
+			//Create an event handle to use for GPU synchronization.
+			m_EventHandle = CreateEvent(0, false, false, 0);
+			m_currentFenceValue = 0;
+			for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
+				m_FenceValues_GPU_BUFFERS[i] = 0;
+			}
+
+			return true;
 		}
 
-		SafeRelease(&adapter);
-	} else {
-		return false;
-		////Create warp device if no adapter was found.
-		//factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
-		//D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice5));
-	}
+		Renderer* D3D12API::MakeRenderer(const RendererType rendererType) {
+			D3D12Renderer* renderer = nullptr;
 
-	D3D12_FEATURE_DATA_D3D12_OPTIONS5 caps = {};
-	HRESULT hr = m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &caps, sizeof(caps));
+			switch (rendererType) {
+			case RendererType::Forward:
+				renderer = MY_NEW D3D12ForwardRenderer(this);
+				break;
+			case RendererType::Raytracing:
+				if (m_gpuSupportRaytracing) {
+					renderer = MY_NEW D3D12RaytracerRenderer(this);
+				}
+				break;
+			case RendererType::Raytracing_HYBRID:
+				if (m_gpuSupportRaytracing) {
+					renderer = MY_NEW D3D12GBufferRenderer(this);
+				}
+				break;
+			default:
+				break;
+			}
 
-	if (SUCCEEDED(hr) && caps.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0) {
-		m_gpuSupportRaytracing = true;
-	}
+			if (renderer) {
+				if (!renderer->Initialize()) {
+					delete renderer;
+					renderer = nullptr;
+				}
+			}
 
-	// Retrieve hardware specific descriptor size
-	m_cbv_srv_uav_size = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	SafeRelease(&factory);
-	return true;
-}
-
-bool D3D12API::InitializeCommandQueue() {
-	HRESULT hr;
-	//Describe and create the command queue.
-	D3D12_COMMAND_QUEUE_DESC cqd = {};
-	hr = m_device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CommandQueue_direct));
-	if (FAILED(hr)) {
-		return false;
-	}
-
-	return true;
-}
-
-bool D3D12API::InitializeFence() {
-	HRESULT hr;
-	hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
-	if (FAILED(hr)) {
-		return false;
-	}
-	//Create an event handle to use for GPU synchronization.
-	m_EventHandle = CreateEvent(0, false, false, 0);
-	m_currentFenceValue = 0;
-	for (int i = 0; i < NUM_GPU_BUFFERS; i++) {
-		m_FenceValues_GPU_BUFFERS[i] = 0;
-	}
-
-	return true;
-}
-
-Renderer* D3D12API::MakeRenderer(const RendererType rendererType) {
-	D3D12Renderer* renderer = nullptr;
-
-	switch (rendererType) {
-	case RendererType::Forward:
-		renderer = MY_NEW D3D12ForwardRenderer(this);
-		break;
-	case RendererType::Raytracing:
-		if (m_gpuSupportRaytracing) {
-			renderer = MY_NEW D3D12RaytracerRenderer(this);
+			return renderer;
 		}
-		break;
-	case RendererType::Raytracing_HYBRID:
-		if (m_gpuSupportRaytracing) {
-			renderer = MY_NEW D3D12GBufferRenderer(this);
-		}
-		break;
-	default:
-		break;
+
 	}
-
-	if (renderer) {
-		if (!renderer->Initialize()) {
-			delete renderer;
-			renderer = nullptr;
-		}
-	}
-
-
-	return renderer;
 }
