@@ -11,16 +11,17 @@
 #include "D3D12Material.hpp"
 #include "D3D12Mesh.hpp"
 #include "D3D12Terrain.hpp"
-#include "D3D12VertexBuffer.hpp"
-#include "D3D12VertexBufferLoader.hpp"
 #include "D3D12RenderState.hpp"
 #include "D3D12ShaderManager.hpp"
-#include "D3D12TextureLoader.hpp"
+
+#include "Internal/D3D12VertexBuffer.hpp"
+#include "Internal/D3D12VertexBufferLoader.hpp"
+#include "Internal/D3D12TextureLoader.hpp"
+#include "Internal/D3D12DescriptorHeapManager.hpp"
 
 #include "Renderers/D3D12ForwardRenderer.h"
 #include "Renderers/D3D12RaytracerRenderer.h"
 #include "Renderers/D3D12GBufferRenderer.h"
-#include "Utills/D3D12DescriptorHeapManager.hpp"
 
 #include <comdef.h>
 #include <iostream>

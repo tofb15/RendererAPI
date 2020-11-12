@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Internal/D3D12TextureLoader.hpp"
 #include "FusionReactor/src/Texture.hpp"
-#include "D3D12TextureLoader.hpp"
+#include "Internal/D3D12ResourceView.h"
 #include "D3D12_FDecl.h"
 
 #include <vector>
@@ -9,7 +10,6 @@ namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 		class D3D12API;
 		class D3D12TextureLoader;
-
 
 		/*
 			Contain a texture that could be applied to a mesh.
@@ -33,6 +33,11 @@ namespace FusionReactor {
 
 			std::vector<D3D12_SUBRESOURCE_DATA>& GetSubResourceData_DDS();
 			D3D12_RESOURCE_DESC GetTextureDescription();
+
+			bool InitEmpty(uint32_t width, uint32_t heigth, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flag);
+			void CreateSRV(D3D12ResourceView& view, uint32_t slotIndex) const;
+			void CreateUAV(D3D12ResourceView& view, uint32_t slotIndex) const;
+
 		private:
 			friend D3D12TextureLoader;
 			//Called from D3D12TextureLoader

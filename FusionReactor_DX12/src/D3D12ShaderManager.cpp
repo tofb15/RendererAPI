@@ -5,7 +5,7 @@
 #include <fstream>
 #include "D3D12API.hpp"
 #include <cassert>
-#include "DXR/DXRUtils.h"
+#include "Internal/DXR/DXRUtils.h"
 #include "Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
 #include <algorithm>
 

@@ -3,15 +3,15 @@
 #include "DXRUtils.h"
 #include "FusionReactor/src/Utills/Math.hpp"
 #include "FusionReactor/src/Light\LightSource.h"
-#include "..\D3D12API.hpp"
-#include "..\D3D12Camera.hpp"
-#include "..\D3D12Window.hpp"
-#include "..\Renderers\D3D12Renderer.h"
+#include "..\..\D3D12API.hpp"
+#include "..\..\D3D12Camera.hpp"
+#include "..\..\D3D12Window.hpp"
+#include "..\..\Renderers\D3D12Renderer.h"
 #include "../../Shaders/D3D12/DXR/Common_hlsl_cpp.hlsli"
 #include <DirectXMath.h>
 
 #include "..\Utills\D3D12Timer.h"
-#include "..\Utills\D3D12ResourceView.h"
+#include "..\D3D12ResourceView.h"
 
 #include <vector>
 #include <Windows.h>

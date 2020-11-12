@@ -6,7 +6,7 @@
 #include "D3D12Texture.hpp"
 #include <chrono>
 #include "External/LodePNG/lodepng.h"
-#include "DXR/D3D12Utils.h"
+#include "Internal/Utills/D3D12Utils.h"
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 		D3D12TextureLoader::D3D12TextureLoader(D3D12API* renderer) : m_d3d12(renderer) {
@@ -93,6 +93,43 @@ namespace FusionReactor {
 			for (int i = 0; i < N_RAM_LOADER_THREADS; i++) {
 				m_ram_upload_Worker[i] = std::thread(&D3D12TextureLoader::RAMUploaderDoWork, this);
 			}
+
+			return true;
+		}
+
+		bool D3D12TextureLoader::CreateEmptyTexture(D3D12Texture* texture) {
+			if (!texture) {
+				return false;
+			}
+
+			ID3D12Resource* textureResource = nullptr;
+			D3D12_RESOURCE_DESC resourceDesc = texture->GetTextureDescription();
+			D3D12_HEAP_PROPERTIES heapProperties = {};
+			heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heapProperties.CreationNodeMask = 1; //used when multi-gpu
+			heapProperties.VisibleNodeMask = 1; //used when multi-gpu
+			heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+			HRESULT hr = m_d3d12->GetDevice()->CreateCommittedResource(
+				&heapProperties,
+				D3D12_HEAP_FLAG_NONE,
+				&resourceDesc,
+				D3D12_RESOURCE_STATE_COMMON,
+				nullptr,
+				IID_PPV_ARGS(&textureResource)
+			);
+			if (FAILED(hr)) {
+				return false;
+			}
+
+			{
+				std::unique_lock<std::mutex> lock(m_mutex_TextureResources);
+				m_textureResources.push_back(textureResource);
+				texture->m_GPU_Loader_index = m_nrOfTextures++;
+			}
+
+			LoadTextureToGPU(texture);
 
 			return true;
 		}
@@ -337,17 +374,24 @@ namespace FusionReactor {
 				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 				srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
 
+				D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+				uavDesc.Format = resourceDesc.Format;
+				uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+				uavDesc.Texture2D.MipSlice = 0;
+				uavDesc.Texture2D.PlaneSlice = 0;
+
 				if (!reuseResource) {
 					//if max SRV capacity is reached, Allocate a new DescriptorHeap. 
-					unsigned localHeapIndex = m_nrOfTextures % MAX_SRVs_PER_DESCRIPTOR_HEAP;
+					unsigned localHeapIndex = (m_nrOfTextures * 1) % MAX_SRVs_PER_DESCRIPTOR_HEAP;
 					if (localHeapIndex == 0) {
 						AddDescriptorHeap();
 					}
 
-
 					D3D12_CPU_DESCRIPTOR_HANDLE cdh = m_descriptorHeaps.back()->GetCPUDescriptorHandleForHeapStart();
 					cdh.ptr += localHeapIndex * m_CBV_SRV_UAV_DescriptorSize;
 					m_d3d12->GetDevice()->CreateShaderResourceView(textureResource, &srvDesc, cdh);
+					//cdh.ptr += m_CBV_SRV_UAV_DescriptorSize;
+					//m_d3d12->GetDevice()->CreateUnorderedAccessView(textureResource, nullptr, &uavDesc, cdh);
 				}
 
 #pragma endregion

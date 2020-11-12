@@ -8,10 +8,10 @@ namespace FusionReactor {
 		class D3D12Window;
 		class D3D12ShaderPass;
 
-		class D3D12RaytracerRenderer : public D3D12Renderer {
+		class D3D12TempNameRenderer : public D3D12Renderer {
 		public:
-			D3D12RaytracerRenderer(D3D12API* d3d12);
-			~D3D12RaytracerRenderer();
+			D3D12TempNameRenderer(D3D12API* d3d12);
+			~D3D12TempNameRenderer();
 
 			// Inherited via D3D12Renderer
 			virtual bool Initialize() override;
@@ -35,24 +35,16 @@ namespace FusionReactor {
 			virtual float GetSetting(const std::string& setting) override;
 			virtual bool  SaveLastFrame(const std::string& file) override;
 
-			void SetupPostProcShaderPass();
-
 		private:
-			std::vector<SubmissionItem> m_renderItems;
-			//std::vector<SubmissionItem> m_NonOpaqueItems;
-			std::vector<LightSource> m_lights;
-
-			DXRBase* m_dxrBase;
-
+			//TODO: Make command general Allocator/List ring buffer.
 			ID3D12CommandAllocator* m_commandAllocators[NUM_GPU_BUFFERS] = { nullptr };
 			ID3D12GraphicsCommandList4* m_commandLists[NUM_GPU_BUFFERS] = { nullptr };
+
+			D3D12ShaderPass* shaderPass1;
 
 			//RenderTargets
 			ID3D12Resource* m_outputTextures[NUM_GPU_BUFFERS] = { nullptr };
 			Int2 m_outputDim;
-
-			D3D12ShaderPass* m_postProc1;
-
 		};
 	}
 }

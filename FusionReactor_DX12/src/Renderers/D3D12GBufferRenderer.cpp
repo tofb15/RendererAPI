@@ -5,7 +5,7 @@
 #include "..\D3D12Technique.hpp"
 #include "..\D3D12Mesh.hpp"
 #include "..\D3D12Texture.hpp"
-#include "..\D3D12VertexBuffer.hpp"
+#include "../Internal/D3D12VertexBuffer.hpp"
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 		D3D12GBufferRenderer::D3D12GBufferRenderer(D3D12API* d3d12) : D3D12Renderer(d3d12) {

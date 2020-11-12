@@ -6,7 +6,7 @@
 #include <d3d12.h>
 #include <unordered_map>
 #include <Windows.h>
-#include "DXR/D3D12Utils.h"
+#include "Internal/Utills/D3D12Utils.h"
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 		struct ShaderDefine {

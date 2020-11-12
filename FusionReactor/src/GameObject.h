@@ -8,6 +8,7 @@ namespace FusionReactor {
 		GameObject/Entity that can interact with the world and be rendered.
 	*/
 	struct Object {
+		UINT32 entity_id;
 		Blueprint* blueprint;
 		Transform transform;
 

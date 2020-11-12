@@ -1,7 +1,7 @@
 #pragma once
-#include "../D3D12API.hpp"
+#include "../../D3D12API.hpp"
+#include "../Utills/D3D12Utils.h"
 #include "DXILShaderCompiler.h"
-#include "D3D12Utils.h"
 
 #include <Windows.h>
 namespace FusionReactor {

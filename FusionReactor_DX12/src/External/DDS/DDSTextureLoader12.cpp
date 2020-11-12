@@ -17,7 +17,7 @@
 
 #include "DDSTextureLoader12.h"
 
-#include "FusionReactor_DX12/src/DXR/DXRUtils.h"
+#include "FusionReactor_DX12/src/Internal/DXR/DXRUtils.h"
 
 #include <assert.h>
 #include <algorithm>

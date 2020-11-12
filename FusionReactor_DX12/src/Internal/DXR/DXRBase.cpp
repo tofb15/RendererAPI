@@ -3,14 +3,14 @@
 #include "DXRBase.h"
 #include "FusionReactor/src/Material.hpp"
 #include "Shaders\D3D12\DXR\Common_hlsl_cpp.hlsli"
-#include "..\D3D12Mesh.hpp"
+#include "..\..\D3D12Mesh.hpp"
 #include "..\D3D12VertexBuffer.hpp"
-#include "..\D3D12Window.hpp"
-#include "..\D3D12Texture.hpp"
-#include "..\D3D12Technique.hpp"
-#include "..\D3D12ShaderManager.hpp"
-#include "..\D3D12Material.hpp"
-#include "..\Utills\D3D12DescriptorHeapManager.hpp"
+#include "..\..\D3D12Window.hpp"
+#include "..\..\D3D12Texture.hpp"
+#include "..\..\D3D12Technique.hpp"
+#include "..\..\D3D12ShaderManager.hpp"
+#include "..\..\D3D12Material.hpp"
+#include "..\D3D12DescriptorHeapManager.hpp"
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 		DXRBase::DXRBase(D3D12API* d3d12) : m_d3d12(d3d12) {
@@ -39,9 +39,6 @@ namespace FusionReactor {
 			if (m_cb_scene) {
 				m_cb_scene->Release();
 			}
-			//if (m_descriptorHeap) {
-			//	m_descriptorHeap->Release();
-			//}
 		}
 
 		bool DXRBase::Initialize() {
@@ -221,7 +218,7 @@ namespace FusionReactor {
 #else
 			cmdList->DispatchRays(&desc);
 #endif // PERFORMANCE_TESTING
-		}
+			}
 
 		void DXRBase::SetAllowAnyHitShader(bool b) {
 			if (m_allowAnyhitshaders != b) {
@@ -610,5 +607,5 @@ namespace FusionReactor {
 				instanceDesc = nullptr;
 			}
 		}
+		}
 	}
-}

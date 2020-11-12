@@ -4,9 +4,9 @@
 #include "..\D3D12Window.hpp"
 #include "..\D3D12Texture.hpp"
 #include "..\D3D12API.hpp"
-#include "..\DXR\DXRBase.h"
 #include "..\D3D12ShaderManager.hpp"
 
+#include "..\Internal/DXR\DXRBase.h"
 #include "FusionReactor/src/External/IMGUI/imgui.h"
 #include "FusionReactor/src/External/IMGUI/imgui_impl_win32.h"
 #include "FusionReactor/src/External/IMGUI/imgui_impl_dx12.h"
@@ -332,11 +332,15 @@ namespace FusionReactor {
 			return true;
 		}
 
+		void D3D12RaytracerRenderer::SetupPostProcShaderPass() {
+
+		}
+
 #ifdef PERFORMANCE_TESTING
 		double* D3D12RaytracerRenderer::GetGPU_Timers(int& nValues, int& firstValue) {
 			return m_dxrBase->GetGPU_Timers(nValues, firstValue);
-		}
+	}
 #endif // PERFORMANCE_TESTING
 
-	}
+}
 }

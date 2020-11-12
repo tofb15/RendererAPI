@@ -1,6 +1,6 @@
 #pragma once
 #include "../D3D12_FDecl.h"
-#include "../DXR/D3D12Utils.h"
+#include "Utills/D3D12Utils.h"
 
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {

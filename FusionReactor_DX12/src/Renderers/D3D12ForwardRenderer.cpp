@@ -6,7 +6,7 @@
 #include "..\D3D12Technique.hpp"
 #include "..\D3D12Mesh.hpp"
 #include "..\D3D12Texture.hpp"
-#include "..\D3D12VertexBuffer.hpp"
+#include "../Internal/D3D12VertexBuffer.hpp"
 
 #include <algorithm>
 #include <functional>

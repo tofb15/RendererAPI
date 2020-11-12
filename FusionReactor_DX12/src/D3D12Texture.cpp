@@ -1,12 +1,13 @@
 #include "stdafx.h"
 
+
 #include "D3D12Texture.hpp"
 #include "D3D12API.hpp"
 #include "External/LodePNG/lodepng.h"
 #include "External/D3DX12/d3dx12.h"
 #include "External/DDS/DDSTextureLoader12.h"
 #include "FusionReactor/src/Loaders/SimpleTexture.h"
-#include "DXR/D3D12Utils.h"
+#include "Internal/Utills/D3D12Utils.h"
 
 #include <iostream>
 #include <d3d12.h>
@@ -104,6 +105,55 @@ namespace FusionReactor {
 
 		D3D12_RESOURCE_DESC D3D12Texture::GetTextureDescription() {
 			return m_textureDesc;
+		}
+
+		bool D3D12Texture::InitEmpty(uint32_t width, uint32_t heigth, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flag) {
+			m_textureDesc.Format = format;
+			m_textureDesc.Width = width;
+			m_textureDesc.Height = heigth;
+			m_textureDesc.Flags = flag;
+			m_textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			m_textureDesc.DepthOrArraySize = 0;
+			m_textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			m_textureDesc.MipLevels = 1;
+			m_textureDesc.SampleDesc.Count = 0;
+			m_textureDesc.SampleDesc.Quality = 0;
+			m_textureDesc.Alignment = 0;
+
+			//m_d3d12->GetTextureLoader()->LoadTextureToGPU
+
+			return true;
+		}
+
+		void D3D12Texture::CreateSRV(D3D12ResourceView& view, uint32_t slotIndex) const {
+			D3D12_SHADER_RESOURCE_VIEW_DESC desc;
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			desc.Format = m_textureDesc.Format;
+			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			desc.Texture2D.MipLevels = m_textureDesc.MipLevels;
+			desc.Texture2D.MostDetailedMip = m_textureDesc.MipLevels;
+
+			//TODO: Only Create view one time, then copy if needed
+			if (slotIndex == -1) {
+				m_d3d12->GetDevice()->CreateShaderResourceView(m_d3d12->GetTextureLoader()->GetResource(m_index), &desc, view.AllocateSlot().cdh);
+			} else {
+				m_d3d12->GetDevice()->CreateShaderResourceView(m_d3d12->GetTextureLoader()->GetResource(m_index), &desc, view.GetCPUHandle(slotIndex));
+			}
+		}
+
+		void D3D12Texture::CreateUAV(D3D12ResourceView& view, uint32_t slotIndex) const {
+			D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
+			desc.Format = m_textureDesc.Format;
+			desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = 0;
+			desc.Texture2D.PlaneSlice = 0;
+
+			//TODO: Only Create view one time, then copy if needed
+			if (slotIndex == -1) {
+				m_d3d12->GetDevice()->CreateUnorderedAccessView(m_d3d12->GetTextureLoader()->GetResource(m_index), nullptr, &desc, view.AllocateSlot().cdh);
+			} else {
+				m_d3d12->GetDevice()->CreateUnorderedAccessView(m_d3d12->GetTextureLoader()->GetResource(m_index), nullptr, &desc, view.GetCPUHandle(slotIndex));
+			}
 		}
 
 		bool D3D12Texture::LoadFromFile_Blocking(ID3D12Resource** ddsResource) {

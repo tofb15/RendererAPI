@@ -20,6 +20,7 @@ namespace FusionReactor {
 
 			bool Initialize();
 
+			bool CreateEmptyTexture(D3D12Texture* texture);
 			void LoadTextureToGPU(D3D12Texture* texture);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE GetSpecificTextureGPUAdress(D3D12Texture* texture);

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Internal/Utills/D3D12Utils.h"
 #include "FusionReactor/src/Window.hpp"
 #include "D3D12API.hpp"
-#include "DXR/D3D12Utils.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>

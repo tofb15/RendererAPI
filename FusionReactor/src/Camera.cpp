@@ -10,6 +10,16 @@ namespace FusionReactor {
 	void Camera::SetPerspectiveOrthographic(float width, float height, float nearPlane, float farPlane) {
 	}
 
+	void Camera::Clone(Camera* other) const {
+		if (this == other) {
+			return;
+		}
+
+		other->m_position = m_position;
+		other->m_target = m_target;
+		other->m_fov = m_fov;
+	}
+
 	Float3 Camera::GetPosition() const {
 		return m_position;
 	}
