@@ -125,6 +125,12 @@ namespace FusionReactor {
 			m_descriptorHeapManager = MY_NEW D3D12DescriptorHeapManager(this);
 			m_descriptorHeapManager->Initialize(10, 0, 10, 0, 100, 10000, 10, 0);
 
+			m_memPool.Initialize(1024, 256, this);
+			m_memPool.Allocate(11);
+			m_memPool.Allocate(60);
+			m_memPool.Allocate(30);
+
+
 			return true;
 		}
 

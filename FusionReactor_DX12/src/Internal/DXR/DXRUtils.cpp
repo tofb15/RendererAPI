@@ -269,7 +269,7 @@ namespace FusionReactor {
 
 			//===Copy data to GPU resource===
 			char* pData;
-			tableData.resource->Map(0, nullptr, (void**)& pData);
+			tableData.resource->Map(0, nullptr, (void**)&pData);
 			for (UINT i = 0; i < m_nInstances; i++) {
 				auto& shader = m_shaderNames[i];
 

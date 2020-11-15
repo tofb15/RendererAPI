@@ -5,6 +5,8 @@
 
 #include <thread>
 
+#include "Internal/Utills/D3D12GPUMemoryPool.h"
+
 namespace FusionReactor {
 	namespace FusionReactor_DX12 {
 
@@ -83,6 +85,8 @@ namespace FusionReactor {
 			bool InitializeFence();          //3.
 		private:
 
+			D3D12GPUMemoryPool m_memPool;
+
 			USHORT m_meshesCreated = 0;
 			USHORT m_techniquesCreated = 0;
 			USHORT m_texturesCreated = 0;
@@ -95,7 +99,7 @@ namespace FusionReactor {
 			D3D12DescriptorHeapManager* m_descriptorHeapManager = nullptr;
 
 			// Default resources
-			ID3D12Device5* m_device = nullptr;
+			ID3D12Device8* m_device = nullptr;
 			ID3D12CommandQueue* m_CommandQueue_direct = nullptr;
 			D3D12VertexBufferLoader* m_vertexBufferLoader = nullptr;
 
