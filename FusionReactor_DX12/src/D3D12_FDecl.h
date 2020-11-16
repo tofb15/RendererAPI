@@ -1,7 +1,6 @@
 #pragma once
 struct ID3D12Resource;
 struct ID3D12Device5;
-struct ID3D12Device8;
 struct ID3D12GraphicsCommandList3;
 struct ID3D12Fence1;
 struct ID3D12DescriptorHeap;
